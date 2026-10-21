@@ -10,10 +10,10 @@ export function Logo({ light = false, small = false, center = false, className =
       } ${className}`}
     >
       <img
-        src="/logo-prosilat.png"
-        alt="Logo ProSilat"
+        src="/logo-prosijil.png"
+        alt="Logo ProSijil"
         className={`${small ? 'h-7 sm:h-8' : 'h-10 sm:h-12'} w-auto object-contain shrink-0 ${
-          !light ? 'filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.12)]' : ''
+          light ? 'brightness-0 invert' : ''
         }`}
       />
       <div className="leading-tight shrink-0">
