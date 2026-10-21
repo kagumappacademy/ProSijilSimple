@@ -55,6 +55,9 @@ function Sidebar({ close, logout, user }) {
 
       {/* Menu Navigation */}
       <div className="flex-1 px-3 py-3.5">
+        <div className="sm:hidden mb-3.5">
+          <ClockWidget />
+        </div>
         <div className="flex items-center gap-2 px-3 mb-2">
           <span className="h-1.5 w-1.5 rounded-full bg-red-600" />
           <span className="text-[9px] font-extrabold uppercase tracking-[0.2em] text-red-700 dark:text-red-400">
@@ -184,7 +187,7 @@ export function AdminLayout({ user, onLogout }) {
       )}
 
       <div className="lg:pl-[230px]">
-        <header className="sticky top-0 z-30 flex h-14 sm:h-16 items-center justify-between border-b border-slate-200/70 dark:border-slate-800 bg-white/85 dark:bg-slate-900/85 px-3 sm:px-6 backdrop-blur-md transition-colors">
+        <header className="sticky top-0 z-30 flex min-h-[4.75rem] items-center justify-between border-b border-slate-200/70 dark:border-slate-800 bg-white/85 dark:bg-slate-900/85 px-3 sm:px-6 backdrop-blur-md transition-colors py-2 sm:py-2.5">
           <div className="flex items-center gap-2 sm:gap-3">
             <button
               className="rounded-xl border border-slate-200 dark:border-slate-700 p-2 text-slate-700 dark:text-slate-200 lg:hidden hover:bg-slate-50 dark:hover:bg-slate-800 transition"
@@ -202,9 +205,9 @@ export function AdminLayout({ user, onLogout }) {
           </div>
 
           {/* Right Toolbar: Live Clock & Date, Language Switcher (BM / ENG), Dark / Light Mode Switch */}
-          <div className="flex items-center gap-1.5 sm:gap-3">
-            {/* Live Clock & Date Widget */}
-            <ClockWidget />
+          <div className="flex items-center gap-2 sm:gap-3">
+            {/* Live Clock & Date Widget (Waktu Semasa • MYT (GMT+8)) */}
+            <ClockWidget className="hidden sm:block" />
 
             {/* Language Switcher (BM / ENG) */}
             <LangToggle />
@@ -212,7 +215,7 @@ export function AdminLayout({ user, onLogout }) {
             {/* Dark / Light Mode Switch Button */}
             <ThemeToggle />
 
-            <div className="h-4 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block" />
+            <div className="h-5 w-px bg-slate-200 dark:bg-slate-700 hidden sm:block" />
             <div className="grid h-8 w-8 place-items-center rounded-lg bg-red-50 dark:bg-red-950/50 text-xs font-extrabold text-red-700 dark:text-red-400 border border-red-100 dark:border-red-900/50 shadow-2xs">
               {(user?.username || 'A')[0].toUpperCase()}
             </div>

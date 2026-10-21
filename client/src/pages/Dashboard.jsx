@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { GraduationCap, Award, MapPin, ArrowUpRight, Plus, TrendingUp, CalendarDays, ChevronRight, Layers, Sparkles } from 'lucide-react';
 import { api, fmtDate } from '../lib/api';
 import { PageIntro, Panel, Loading, Empty } from '../components/UI';
-import { useLang } from '../lib/appContext';
+import { useLang, ClockWidget } from '../lib/appContext';
 
 function NumberCard({ title, value, icon: Icon, tint, index }) {
   return (
@@ -89,6 +89,9 @@ export function Dashboard() {
         title="Selamat kembali 👋"
         desc={`Ringkasan pengurusan sijil & pesilat • ${date}`}
       />
+
+      {/* Mobile Live Clock & Date Widget */}
+      <ClockWidget className="sm:hidden mb-3.5" />
 
       {!data ? (
         <Loading />

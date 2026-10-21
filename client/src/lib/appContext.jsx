@@ -633,7 +633,7 @@ export function LangToggle({ className = '' }) {
   );
 }
 
-// Live Digital Clock & Date Widget (Jam & Tarikh Langsung)
+// Live Digital Clock & Date Widget (Waktu Semasa • MYT (GMT+8))
 export function ClockWidget({ className = '' }) {
   const { lang } = useLang();
   const [now, setNow] = useState(new Date());
@@ -643,32 +643,74 @@ export function ClockWidget({ className = '' }) {
     return () => clearInterval(timer);
   }, []);
 
-  const d = dictionary[lang] || dictionary.bm;
-  const dayName = d.days[now.getDay()];
+  const fullDays = {
+    bm: ['Ahad', 'Isnin', 'Selasa', 'Rabu', 'Khamis', 'Jumaat', 'Sabtu'],
+    en: ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+  };
+
+  const fullMonths = {
+    bm: [
+      'Januari',
+      'Februari',
+      'Mac',
+      'April',
+      'Mei',
+      'Jun',
+      'Julai',
+      'Ogos',
+      'September',
+      'Oktober',
+      'November',
+      'Disember',
+    ],
+    en: [
+      'January',
+      'February',
+      'March',
+      'April',
+      'May',
+      'June',
+      'July',
+      'August',
+      'September',
+      'October',
+      'November',
+      'December',
+    ],
+  };
+
+  const dayName = (fullDays[lang] || fullDays.bm)[now.getDay()];
   const dateNum = now.getDate();
-  const monthName = d.months[now.getMonth()];
+  const monthName = (fullMonths[lang] || fullMonths.bm)[now.getMonth()];
   const yearNum = now.getFullYear();
 
-  const hh = String(now.getHours()).padStart(2, '0');
-  const mm = String(now.getMinutes()).padStart(2, '0');
-  const ss = String(now.getSeconds()).padStart(2, '0');
+  let hours = now.getHours();
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const seconds = String(now.getSeconds()).padStart(2, '0');
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12;
+  hours = hours ? hours : 12;
+  const hh = String(hours).padStart(2, '0');
 
-  const timeStr = `${hh}:${mm}:${ss}`;
+  const timeStr = `${hh}:${minutes}:${seconds} ${ampm}`;
   const dateStr = `${dayName}, ${dateNum} ${monthName} ${yearNum}`;
+  const eyebrowStr = lang === 'en' ? 'CURRENT TIME • MYT (GMT+8)' : 'WAKTU SEMASA • MYT (GMT+8)';
 
   return (
     <div
-      className={`hidden sm:flex items-center gap-2 rounded-xl border border-slate-200/80 bg-white/90 px-3 py-1.5 text-xs font-mono shadow-2xs dark:border-slate-800 dark:bg-slate-900/90 text-slate-700 dark:text-slate-300 ${className}`}
-      title={`Masa & Tarikh: ${dateStr} ${timeStr}`}
+      data-no-translate="true"
+      translate="no"
+      className={`rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 py-2.5 sm:px-5 sm:py-3 shadow-2xs select-none transition-all ${className}`}
+      title={`${eyebrowStr}\n${timeStr}\n${dateStr}`}
     >
-      <div className="flex items-center gap-1.5 text-red-700 dark:text-red-400 font-bold">
-        <Clock size={13} className="shrink-0 animate-pulse" />
-        <span>{timeStr}</span>
+      <div className="text-[10px] sm:text-[11px] font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 leading-none">
+        {eyebrowStr}
       </div>
-      <span className="text-slate-300 dark:text-slate-700">•</span>
-      <div className="flex items-center gap-1 text-[11px] font-sans font-semibold text-slate-600 dark:text-slate-400">
-        <Calendar size={12} className="shrink-0 text-slate-400 dark:text-slate-500" />
-        <span>{dateStr}</span>
+      <div className="text-xl sm:text-2xl lg:text-[26px] font-black tracking-tight text-slate-900 dark:text-white leading-tight font-sans my-1">
+        {timeStr}
+      </div>
+      <div className="text-xs sm:text-[13px] font-semibold text-slate-600 dark:text-slate-400 leading-none">
+        {dateStr}
       </div>
     </div>
   );
