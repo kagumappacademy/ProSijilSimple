@@ -1,0 +1,9 @@
+@tailwind base;@tailwind components;@tailwind utilities;
+:root{font-family:'Plus Jakarta Sans','DM Sans',sans-serif;color:#21312c;background:#f7f9f7;font-synthesis:none}
+*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;min-width:320px}button,a,input,select{ -webkit-tap-highlight-color:transparent}button{cursor:pointer}::selection{background:#d6b77b;color:#123e35}
+.text-balance{text-wrap:balance}.glass{background:rgba(255,255,255,.85);backdrop-filter:blur(18px)}
+.mesh-bg{background-image:radial-gradient(ellipse at 15% 28%,rgba(192,165,102,.12),transparent 36%),radial-gradient(ellipse at 84% 28%,rgba(65,153,123,.16),transparent 32%),linear-gradient(135deg,#123e35 0%,#0c2b25 65%,#09251f 100%)}
+.dot-grid{background-image:radial-gradient(rgba(255,255,255,.14) 1px,transparent 1px);background-size:26px 26px}
+.grid-light{background-image:linear-gradient(to right,#eef3ee 1px,transparent 1px),linear-gradient(to bottom,#eef3ee 1px,transparent 1px);background-size:35px 35px}
+::-webkit-scrollbar{width:8px;height:8px}::-webkit-scrollbar-track{background:#f7f9f7}::-webkit-scrollbar-thumb{background:#c9d4cb;border-radius:10px}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}}

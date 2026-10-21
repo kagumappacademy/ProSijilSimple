@@ -1,0 +1,16 @@
+{
+  "name": "prosijil-full-system",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": ["client", "server"],
+  "scripts": {
+    "dev": "concurrently -n API,WEB -c green,cyan \"npm run dev -w server\" \"npm run dev -w client\"",
+    "build": "npm run build -w client",
+    "start": "npm run start -w server",
+    "admin:create": "npm run admin:create -w server --",
+    "demo:seed": "npm run demo:seed -w server",
+    "test": "npm run test -w server"
+  },
+  "devDependencies": {"concurrently": "^9.2.1"},
+  "engines": {"node": ">=22.13.0"}
+}
