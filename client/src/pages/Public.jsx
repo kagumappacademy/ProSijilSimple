@@ -228,7 +228,7 @@ export function Home() {
   }
 
   return (
-    <div className="min-h-screen responsive-bg">
+    <div className="min-h-screen bg-[#FBFBFD]">
       <PublicNav />
       <main>
         {/* Apple/Android Style Hero Section with Crimson/Ruby Red Mesh */}
@@ -347,7 +347,7 @@ export function Home() {
             </motion.div>
           </div>
 
-          <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-8 rounded-t-[50%] bg-transparent" />
+          <div className="pointer-events-none absolute bottom-0 left-0 right-0 h-8 rounded-t-[50%] bg-[#FBFBFD]" />
         </section>
 
         <SearchResult records={records} loading={loading} searched={searched} q={q} />
@@ -473,7 +473,7 @@ export function Verify() {
   }, [token]);
 
   return (
-    <div className="min-h-screen responsive-bg">
+    <div className="min-h-screen bg-canvas">
       <div className="mx-auto max-w-2xl px-4 py-6 sm:py-8">
         <Link to="/" className="flex justify-center">
           <Logo center />

@@ -19,24 +19,33 @@ html {
   scroll-behavior: smooth;
 }
 
-/* Responsive App Background (ProSilat x ProSijil Watermark Wallpaper) */
-body, .responsive-bg {
+body {
   margin: 0;
   min-width: 320px;
-  color: #0f172a;
   background-color: #fbfbfd;
-  background-image: url('/bg-mobile.png');
-  background-size: cover;
-  background-position: center top;
-  background-repeat: no-repeat;
+  color: #0f172a;
 }
 
-@media (min-width: 768px) {
-  body, .responsive-bg {
-    background-image: url('/bg-desktop.png');
-    background-position: center center;
-    background-attachment: fixed;
-  }
+html.dark {
+  color-scheme: dark;
+}
+
+html.dark body {
+  background-color: #090d16;
+  color: #f1f5f9;
+}
+
+html.dark ::selection {
+  background: #7f1d1d;
+  color: #fef2f2;
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+  background: #334155;
+}
+
+html.dark ::-webkit-scrollbar-thumb:hover {
+  background: #475569;
 }
 
 button, a, input, select {

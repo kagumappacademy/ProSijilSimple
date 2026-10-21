@@ -29,7 +29,7 @@ export function Login({ onLogin }) {
   }
 
   return (
-    <div className="grid min-h-screen responsive-bg lg:grid-cols-2">
+    <div className="grid min-h-screen bg-canvas lg:grid-cols-2">
       <aside className="mesh-bg relative hidden flex-col justify-between overflow-hidden p-8 lg:p-10 xl:p-12 text-white lg:flex">
         <div className="dot-grid absolute inset-0 opacity-20" />
         <div className="pointer-events-none absolute -bottom-28 -right-28 h-[400px] w-[400px] rounded-full border-[50px] border-white/5" />
