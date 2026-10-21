@@ -152,7 +152,7 @@ app.post('/api/admin/students/import',requireAdmin,upload.single('file'),(req,re
  try{
  const rows=decodeCsv(req.file.buffer);
  let inserted=0,skipped=0;const errors=[];
- const ins=db.prepare('INSERT INTO pesilat (nama_penuh,no_kp_atau_id,peringkat,cawangan) VALUES (?,?,?,?)');
+ const ins=db.prepare('INSERT INTO pesilat (nama_penuh,no_kp_atau_id,peringkat,cawangan,tarikh_daftar) VALUES (?,?,?,?,?)');
  const findById=db.prepare('SELECT 1 FROM pesilat WHERE no_kp_atau_id=? COLLATE NOCASE');
  const findByName=db.prepare('SELECT 1 FROM pesilat WHERE nama_penuh=? COLLATE NOCASE AND cawangan=? COLLATE NOCASE');
  db.exec('BEGIN');
@@ -160,7 +160,7 @@ app.post('/api/admin/students/import',requireAdmin,upload.single('file'),(req,re
   for(const row of rows){
    if(row.nama_penuh.length<2){errors.push(`Baris ${row.baris}: Nama tidak sah`);skipped++;continue;}
    if(row.no_kp_atau_id?findById.get(row.no_kp_atau_id):findByName.get(row.nama_penuh,row.cawangan)) {skipped++;continue;}
-   try{ins.run(row.nama_penuh,row.no_kp_atau_id||uniqueId(),row.peringkat,row.cawangan);inserted++;}
+   try{ins.run(row.nama_penuh,row.no_kp_atau_id||uniqueId(),row.peringkat,row.cawangan,row.tarikh_daftar||today());inserted++;}
    catch(e){errors.push(`Baris ${row.baris}: ${e.message.includes('UNIQUE')?'ID bertindih':'Tidak dapat dimasukkan'}`);skipped++;}
   }
   db.exec('COMMIT');

@@ -4,7 +4,8 @@ const aliases = {
  nama_penuh: ['nama_penuh','nama peserta','nama pesilat','nama pelajar','nama','full name','student name'],
  no_kp_atau_id: ['no_kp_atau_id','no kp','no kad pengenalan','no. kad pengenalan','nric','ic','id','no id','no. kp','nombor kad pengenalan'],
  peringkat: ['peringkat','peringkat semasa','tali pinggang','bengkung','belt','level'],
- cawangan: ['cawangan','nama cawangan','gelanggang','nama gelanggang','branch']
+ cawangan: ['cawangan','nama cawangan','gelanggang','nama gelanggang','branch'],
+ tarikh_daftar: ['tarikh_daftar','tarikh daftar','tarikh pendaftaran','registration date','tarikh','date']
 };
 const key = s => String(s || '').replace(/^\uFEFF/,'').trim().toLowerCase().replace(/[_\-]+/g,' ').replace(/\s+/g,' ');
 function identify(header) {
@@ -31,7 +32,7 @@ export function decodeCsv(buffer) {
  return records.map((rec, i) => {
   const row = {};
   for (const [h,k] of Object.entries(mapping)) row[k] = rec[h];
-  return { baris:i+2, nama_penuh:saneName(row.nama_penuh), no_kp_atau_id:trim(row.no_kp_atau_id,60), peringkat:trim(row.peringkat,90)||'Belum ditetapkan', cawangan:trim(row.cawangan,160)||'Tidak dinyatakan' };
+  return { baris:i+2, nama_penuh:saneName(row.nama_penuh), no_kp_atau_id:trim(row.no_kp_atau_id,60), peringkat:trim(row.peringkat,90)||'Belum ditetapkan', cawangan:trim(row.cawangan,160)||'Tidak dinyatakan', tarikh_daftar:trim(row.tarikh_daftar,10) };
  });
 }
 export function csvSafe(s) {
