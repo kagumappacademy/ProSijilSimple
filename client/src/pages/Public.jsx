@@ -182,8 +182,8 @@ function SearchResult({ records, loading, q, searched }) {
             <h3 className="text-base font-extrabold text-slate-950">{t('noStudentsFound')}</h3>
             <p className="mx-auto mt-2 max-w-md text-xs leading-6 text-slate-500">
               {lang === 'eng'
-                ? `Check spelling of full name or ID "${q}". If certificate has not been issued yet, please contact the academy.`
-                : `Semak ejaan nama penuh atau nombor ID “${q}”. Jika sijil belum dikeluarkan, sila hubungi pihak akademi.`}
+                ? `Check spelling of student full name "${q}". Please make sure to enter full name only without IC number.`
+                : `Semak ejaan nama penuh pesilat “${q}”. Sila pastikan anda hanya memasukkan nama penuh tanpa nombor kad pengenalan (No. KP).`}
             </p>
           </motion.div>
         )}
@@ -208,7 +208,10 @@ export function Home() {
 
   async function search(e) {
     e.preventDefault();
-    if (q.trim().length < 3) return toast.error(lang === 'eng' ? 'Enter full name or ID (minimum 3 characters).' : 'Masukkan nama penuh atau ID (minima 3 aksara).');
+    if (q.trim().length < 3) return toast.error(t('searchWarningMinChars'));
+    if (/^\d{4,}/.test(q.trim()) || /^\d{2,}-\d{2,}/.test(q.trim())) {
+      return toast.warning(t('searchWarningNoIC'));
+    }
     setLoading(true);
     setSearched(true);
     try {
@@ -227,8 +230,8 @@ export function Home() {
     {
       icon: Search,
       num: '01',
-      title: lang === 'eng' ? 'Search student name' : 'Cari nama pesilat',
-      text: lang === 'eng' ? 'Enter full name or student ID number into the smart search field.' : 'Masukkan nama penuh atau nombor ID pesilat pada ruangan carian pintar.',
+      title: lang === 'eng' ? 'Enter Student Full Name' : 'Masukkan Nama Penuh',
+      text: lang === 'eng' ? 'Enter student full name only into the search field (do not enter IC number).' : 'Masukkan nama penuh pesilat sahaja pada ruangan carian (jangan masukkan no. kad pengenalan).',
     },
     {
       icon: FileCheck2,
@@ -302,12 +305,13 @@ export function Home() {
                 </div>
               </motion.form>
 
-              <motion.p variants={rise} className="mt-3 flex items-center gap-2 text-xs text-white/50">
-                <ShieldCheck size={14} className="text-rose-300" />{' '}
-                {lang === 'eng'
-                  ? 'Fast search using student full name or ID number only.'
-                  : 'Carian pantas menggunakan nama penuh atau ID pesilat sahaja.'}
-              </motion.p>
+              <motion.div
+                variants={rise}
+                className="mt-3.5 inline-flex items-center gap-2 rounded-xl bg-white/10 px-3.5 py-2 text-xs font-semibold text-rose-100 backdrop-blur-md border border-white/15 shadow-xs"
+              >
+                <ShieldCheck size={15} className="text-rose-300 shrink-0" />
+                <span>{t('searchHelperText')}</span>
+              </motion.div>
 
               <motion.div variants={rise} className="mt-6 flex flex-wrap items-center gap-6">
                 <div>
