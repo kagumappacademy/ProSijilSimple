@@ -26,52 +26,7 @@ import { PdfThumbnail } from '../components/PdfThumbnail';
 
 const PAGE_SIZE = 20;
 
-function getRankMeta(rank) {
-  const r = (rank || '').toLowerCase();
-  if (r.includes('merah')) {
-    return {
-      chip: 'rose',
-      border: 'border-rose-200 hover:border-rose-400',
-      activeBorder: 'border-rose-600 ring-2 ring-rose-400/40 bg-rose-50/40',
-      badge: 'bg-rose-50 text-rose-700 border-rose-200',
-      dot: 'bg-rose-500',
-    };
-  }
-  if (r.includes('hijau')) {
-    return {
-      chip: 'emerald',
-      border: 'border-emerald-200 hover:border-emerald-400',
-      activeBorder: 'border-emerald-600 ring-2 ring-emerald-400/40 bg-emerald-50/40',
-      badge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-      dot: 'bg-emerald-500',
-    };
-  }
-  if (r.includes('kuning')) {
-    return {
-      chip: 'gold',
-      border: 'border-amber-200 hover:border-amber-400',
-      activeBorder: 'border-amber-500 ring-2 ring-amber-400/40 bg-amber-50/40',
-      badge: 'bg-amber-50 text-amber-800 border-amber-200',
-      dot: 'bg-amber-400',
-    };
-  }
-  if (r.includes('hitam')) {
-    return {
-      chip: 'slate',
-      border: 'border-slate-300 hover:border-slate-500',
-      activeBorder: 'border-slate-800 ring-2 ring-slate-400/40 bg-slate-50',
-      badge: 'bg-slate-900 text-white border-slate-700',
-      dot: 'bg-slate-900',
-    };
-  }
-  return {
-    chip: 'red',
-    border: 'border-slate-200 hover:border-red-400',
-    activeBorder: 'border-red-600 ring-2 ring-forest-400/40 bg-red-50/40',
-    badge: 'bg-red-50 text-red-700 border-red-200',
-    dot: 'bg-forest-600',
-  };
-}
+
 
 export function GenerateCerts() {
   const navigate = useNavigate();
@@ -412,8 +367,8 @@ export function GenerateCerts() {
                 </span>
               </div>
 
-              {/* Horizontal Scrollable / Responsive Grid of Visual Template Cards */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-2.5 max-h-[220px] overflow-y-auto p-2 bg-slate-50/70 rounded-2xl border border-slate-200/80">
+              {/* Responsive Grid of Visual Template Cards (Ngam-ngam, Tiada slider ke bawah) */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 gap-2 p-2 bg-slate-50/70 rounded-2xl border border-slate-200/80">
                 {/* Button Option: Semua Peringkat */}
                 <button
                   type="button"
@@ -424,7 +379,7 @@ export function GenerateCerts() {
                       : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
                   }`}
                 >
-                  <div className="aspect-[1/1.35] w-full rounded-lg border border-dashed border-red-300 bg-red-50/50 flex flex-col items-center justify-center p-2 text-center">
+                  <div className="aspect-[1/1.25] w-full rounded-lg border border-dashed border-red-300 bg-red-50/50 flex flex-col items-center justify-center p-2 text-center">
                     <Sparkles size={20} className="text-red-700 mb-1" />
                     <span className="text-[11px] font-extrabold text-slate-950 leading-tight">
                       Semua Peringkat
@@ -447,7 +402,6 @@ export function GenerateCerts() {
 
                 {/* Individual Template Boxes with Live PDF Thumbnail */}
                 {currentTemplatesForName.map((template) => {
-                  const meta = getRankMeta(template.peringkat);
                   const isSelected =
                     selectedLevel &&
                     (norm(selectedLevel) === norm(template.peringkat) ||
@@ -461,25 +415,22 @@ export function GenerateCerts() {
                       onClick={() => handleSelectLevelChip(template.peringkat)}
                       className={`group relative flex flex-col justify-between rounded-xl border p-2 text-left cursor-pointer transition-all hover:shadow-xs ${
                         isSelected
-                          ? meta.activeBorder + ' shadow-xs'
+                          ? 'border-red-600 ring-2 ring-red-400/30 bg-red-50/30 shadow-xs'
                           : 'border-slate-200 bg-white hover:border-slate-300'
                       }`}
                       title={`Klik untuk pilih templat: ${template.peringkat}`}
                     >
                       {/* Visual Certificate Preview rendered from outside */}
-                      <div className="relative aspect-[1/1.35] w-full overflow-hidden rounded-lg border border-slate-200/90 bg-slate-50">
+                      <div className="relative aspect-[1/1.25] w-full overflow-hidden rounded-lg border border-slate-200/90 bg-slate-50">
                         <PdfThumbnail
                           url={previewUrl}
                           title={template.nama_template}
                           className="h-full w-full pointer-events-none"
                         />
 
-                        {/* Rank Badge on top of preview */}
+                        {/* Rank Badge on top of preview - Neutral, no color */}
                         <div className="absolute top-1 left-1 z-10">
-                          <span
-                            className={`inline-flex items-center gap-0.5 rounded px-1.5 py-0.2 text-[8px] font-extrabold uppercase tracking-tight border ${meta.badge}`}
-                          >
-                            <span className={`h-1 w-1 rounded-full ${meta.dot}`} />
+                          <span className="inline-flex items-center rounded bg-white/95 px-1.5 py-0.5 text-[8.5px] font-bold uppercase tracking-tight text-slate-700 border border-slate-200/90 shadow-2xs">
                             {template.peringkat.replace(/^ujian\s+/i, '')}
                           </span>
                         </div>
@@ -652,7 +603,6 @@ export function GenerateCerts() {
                 {pageStudents.map((student, idx) => {
                   const isChecked = selectedIds.has(student.id);
                   const matchedTemplate = getMatchingTemplate(student);
-                  const rankMeta = getRankMeta(student.peringkat);
                   const rowNumber = startIndex + idx + 1;
 
                   return (
@@ -684,7 +634,9 @@ export function GenerateCerts() {
                         {student.cawangan}
                       </td>
                       <td className="px-3.5 py-1.5 whitespace-nowrap">
-                        <Chip color={rankMeta.chip}>{student.peringkat}</Chip>
+                        <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-700 border border-slate-200/80">
+                          {student.peringkat}
+                        </span>
                       </td>
                       <td className="px-3.5 py-1.5 text-xs whitespace-nowrap">
                         {matchedTemplate ? (
