@@ -475,8 +475,8 @@ export function Verify() {
   return (
     <div className="min-h-screen bg-canvas">
       <div className="mx-auto max-w-2xl px-4 py-6 sm:py-8">
-        <Link to="/">
-          <Logo />
+        <Link to="/" className="flex justify-center">
+          <Logo center />
         </Link>
         <div className="mt-6 sm:mt-8 rounded-2xl border border-slate-200/80 bg-white p-5 sm:p-7 text-center shadow-apple">
           {loading ? (

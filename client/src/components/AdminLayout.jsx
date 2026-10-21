@@ -32,15 +32,15 @@ const items = [
 function Sidebar({ close, logout, user }) {
   return (
     <div className="flex h-full flex-col overflow-y-auto">
-      <div className="flex items-center justify-between border-b border-white/10 px-5 py-4">
-        <Link to="/" onClick={close} className="shrink-0">
-          <Logo light small />
+      <div className="relative flex items-center justify-center border-b border-white/10 px-4 py-4">
+        <Link to="/" onClick={close} className="flex items-center justify-center mx-auto text-center">
+          <Logo light small center />
         </Link>
         {close && (
           <button
             onClick={close}
             aria-label="Tutup menu"
-            className="rounded-lg p-1.5 text-white/70 hover:bg-white/10 hover:text-white lg:hidden"
+            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-white/70 hover:bg-white/10 hover:text-white lg:hidden"
           >
             <X size={19} />
           </button>

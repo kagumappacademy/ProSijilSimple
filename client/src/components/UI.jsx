@@ -2,24 +2,18 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Loader2, X, Search, ChevronLeft, ChevronRight, Inbox, AlertTriangle } from 'lucide-react';
 
-export function Logo({ light = false, small = false, className = '' }) {
+export function Logo({ light = false, small = false, center = false, className = '' }) {
   return (
-    <div className={`flex items-center gap-2.5 select-none ${className}`}>
-      <div
-        className={`relative flex items-center justify-center shrink-0 ${
-          small ? 'h-9 px-2 rounded-xl' : 'h-11 px-2.5 rounded-2xl'
-        } ${
-          light
-            ? 'bg-black/25 border border-white/15 shadow-inner'
-            : 'bg-[#7f1d1d] border border-red-950/40 shadow-xs'
-        }`}
-      >
-        <img
-          src="/logo-prosilat.png"
-          alt="Logo ProSilat"
-          className={`${small ? 'h-6' : 'h-7 sm:h-8'} w-auto object-contain filter drop-shadow-xs`}
-        />
-      </div>
+    <div
+      className={`flex items-center gap-2.5 select-none ${
+        center ? 'justify-center mx-auto text-left' : ''
+      } ${className}`}
+    >
+      <img
+        src="/logo-prosilat.png"
+        alt="Logo ProSilat"
+        className={`${small ? 'h-8 sm:h-9' : 'h-10 sm:h-12'} w-auto object-contain shrink-0`}
+      />
       <div className="leading-tight">
         <span
           className={`block ${
