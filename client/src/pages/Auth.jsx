@@ -5,8 +5,12 @@ import { ArrowLeft, ArrowRight, Eye, EyeOff, Lock, ShieldCheck } from 'lucide-re
 import { toast } from 'sonner';
 import { api } from '../lib/api';
 import { Logo, Button, Input } from '../components/UI';
+import { useLanguage } from '../lib/i18n';
+import { LanguageToggle } from '../components/LanguageToggle';
+import { ThemeToggle } from '../components/ThemeToggle';
 
 export function Login({ onLogin }) {
+  const { t, lang } = useLanguage();
   const nav = useNavigate();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -19,7 +23,7 @@ export function Login({ onLogin }) {
     try {
       const r = await api('/auth/login', { method: 'POST', body: { username, password } });
       onLogin(r.user);
-      toast.success('Log masuk berjaya. Selamat kembali!');
+      toast.success(lang === 'en' ? 'Login successful. Welcome back!' : 'Log masuk berjaya. Selamat kembali!');
       nav('/admin');
     } catch (e) {
       toast.error(e.message);
@@ -29,28 +33,38 @@ export function Login({ onLogin }) {
   }
 
   return (
-    <div className="grid min-h-screen bg-canvas lg:grid-cols-2">
+    <div className="grid min-h-screen bg-canvas dark:bg-[#0b0f17] text-slate-900 dark:text-slate-100 lg:grid-cols-2 transition-colors">
       <aside className="mesh-bg relative hidden flex-col justify-between overflow-hidden p-8 lg:p-10 xl:p-12 text-white lg:flex">
         <div className="dot-grid absolute inset-0 opacity-20" />
         <div className="pointer-events-none absolute -bottom-28 -right-28 h-[400px] w-[400px] rounded-full border-[50px] border-white/5" />
-        <div className="relative">
+        <div className="relative flex items-center justify-between">
           <Link to="/">
             <Logo light />
           </Link>
+          <div className="flex items-center gap-2">
+            <LanguageToggle className="border-white/20 bg-white/10 text-white" />
+            <ThemeToggle className="border-white/20 bg-white/10 text-white hover:bg-white/20" />
+          </div>
         </div>
         <div className="relative max-w-lg">
           <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-rose-400/30 bg-white/10 px-3.5 py-1.5 text-xs font-semibold tracking-wider text-rose-200 backdrop-blur-sm">
-            <ShieldCheck size={14} /> PORTAL PENTADBIR
+            <ShieldCheck size={14} /> {lang === 'en' ? 'ADMIN PORTAL' : 'PORTAL PENTADBIR'}
           </div>
           <h1 className="text-3xl lg:text-4xl xl:text-5xl font-extrabold leading-tight tracking-tight">
-            Urus sijil dengan lebih <span className="text-rose-300">mudah & teratur.</span>
+            {lang === 'en' ? (
+              <>Manage certificates with <span className="text-rose-300">ease & clarity.</span></>
+            ) : (
+              <>Urus sijil dengan lebih <span className="text-rose-300">mudah & teratur.</span></>
+            )}
           </h1>
           <p className="mt-4 max-w-md text-sm leading-7 text-white/70">
-            Satu platform untuk mengurus rekod pesilat, mengeluarkan sijil, dan memperkasakan akademi silat anda.
+            {lang === 'en'
+              ? 'One platform to manage student records, issue verified certificates, and empower your academy.'
+              : 'Satu platform untuk mengurus rekod pesilat, mengeluarkan sijil, dan memperkasakan akademi silat anda.'}
           </p>
         </div>
         <div className="relative border-t border-white/15 pt-4 text-xs text-white/40">
-          Akademi ProSilat • Sistem Pengurusan Sijil Digital
+          Akademi ProSilat • {t('brand.subtitle', 'Sistem Pengurusan Sijil Digital')}
         </div>
       </aside>
 
@@ -63,42 +77,43 @@ export function Login({ onLogin }) {
           <div className="mb-5 flex items-center justify-between">
             <Link
               to="/"
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 transition hover:text-red-700"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-red-700 transition"
             >
-              <ArrowLeft size={14} /> Ke Halaman Utama
+              <ArrowLeft size={14} /> {lang === 'en' ? 'Back to Home' : 'Ke Halaman Utama'}
             </Link>
-            <div className="lg:hidden">
-              <Logo small />
+            <div className="flex items-center gap-2">
+              <LanguageToggle />
+              <ThemeToggle />
             </div>
           </div>
 
           <div className="mb-6">
-            <div className="mb-1 text-[11px] font-extrabold uppercase tracking-[0.2em] text-red-600">
-              SELAMAT KEMBALI
+            <div className="mb-1 text-[11px] font-extrabold uppercase tracking-[0.2em] text-red-600 dark:text-red-400">
+              {lang === 'en' ? 'WELCOME BACK' : 'SELAMAT KEMBALI'}
             </div>
-            <h2 className="text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl">
-              Log Masuk Admin
+            <h2 className="text-2xl font-extrabold tracking-tight text-slate-950 dark:text-slate-100 sm:text-3xl">
+              {lang === 'en' ? 'Admin Login' : 'Log Masuk Admin'}
             </h2>
-            <p className="mt-1 text-xs text-slate-500">
-              Masukkan maklumat akaun pentadbir untuk meneruskan.
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              {lang === 'en' ? 'Enter administrator credentials to proceed.' : 'Masukkan maklumat akaun pentadbir untuk meneruskan.'}
             </p>
           </div>
 
           <form className="space-y-3.5" onSubmit={submit}>
             <Input
-              label="Nama Pengguna"
+              label={lang === 'en' ? 'Username' : 'Nama Pengguna'}
               autoComplete="username"
-              placeholder="Masukkan username"
+              placeholder={lang === 'en' ? 'Enter username' : 'Masukkan username'}
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
             />
             <div className="relative">
               <Input
-                label="Kata Laluan"
+                label={lang === 'en' ? 'Password' : 'Kata Laluan'}
                 type={show ? 'text' : 'password'}
                 autoComplete="current-password"
-                placeholder="Masukkan kata laluan"
+                placeholder={lang === 'en' ? 'Enter password' : 'Masukkan kata laluan'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -113,13 +128,17 @@ export function Login({ onLogin }) {
               </button>
             </div>
             <Button type="submit" loading={busy} className="mt-2 w-full text-xs">
-              Log Masuk <ArrowRight size={15} />
+              {lang === 'en' ? 'Login' : 'Log Masuk'} <ArrowRight size={15} />
             </Button>
           </form>
 
-          <div className="mt-5 flex items-start gap-2.5 rounded-xl bg-red-50 p-3 text-xs leading-5 text-red-900 border border-red-100">
-            <Lock className="mt-0.5 shrink-0 text-red-600" size={15} />
-            <span>Khas untuk kakitangan yang diberi kuasa sahaja. Sesi ditamatkan automatik selepas 8 jam.</span>
+          <div className="mt-5 flex items-start gap-2.5 rounded-xl bg-red-50 dark:bg-red-950/40 p-3 text-xs leading-5 text-red-900 dark:text-red-300 border border-red-100 dark:border-red-900/50">
+            <Lock className="mt-0.5 shrink-0 text-red-600 dark:text-red-400" size={15} />
+            <span>
+              {lang === 'en'
+                ? 'Authorized personnel only. Session ends automatically after 8 hours.'
+                : 'Khas untuk kakitangan yang diberi kuasa sahaja. Sesi ditamatkan automatik selepas 8 jam.'}
+            </span>
           </div>
         </motion.div>
       </main>

@@ -21,6 +21,7 @@ import {
 import { toast } from 'sonner';
 import { api, fmtDate, certDownload, certPreview } from '../lib/api';
 import { PageIntro, Panel, Button, Input, Modal, Confirm, Loading, Empty, SearchField, Chip } from '../components/UI';
+import { useLanguage } from '../lib/i18n';
 
 function getRankMeta(rank) {
   const r = (rank || '').toLowerCase();
@@ -127,7 +128,7 @@ function CertificateForm({ open, onClose, onSaved }) {
           {selected ? (
             <div className="flex items-center justify-between rounded-xl border border-red-200 bg-red-50/70 px-4 py-2.5">
               <div>
-                <div className="font-bold text-slate-900 text-sm student-name" data-no-translate="true" translate="no">{selected.nama_penuh}</div>
+                <div className="font-bold text-slate-900 text-sm">{selected.nama_penuh}</div>
                 <div className="mt-0.5 text-xs text-slate-500">
                   {selected.no_kp_atau_id} • {selected.cawangan}
                   {selected.tarikh_daftar ? ` • Daftar: ${fmtDate(selected.tarikh_daftar)}` : ''}
@@ -164,7 +165,7 @@ function CertificateForm({ open, onClose, onSaved }) {
                       }}
                       className="block w-full rounded-lg px-3 py-2 text-left hover:bg-red-50 transition"
                     >
-                      <div className="text-xs sm:text-sm font-bold text-slate-900 student-name" data-no-translate="true" translate="no">{p.nama_penuh}</div>
+                      <div className="text-xs sm:text-sm font-bold text-slate-900">{p.nama_penuh}</div>
                       <div className="text-[11px] text-slate-500">
                         {p.no_kp_atau_id} • {p.cawangan}
                       </div>
@@ -214,6 +215,7 @@ function CertificateForm({ open, onClose, onSaved }) {
 }
 
 export function Certificates() {
+  const { t, lang } = useLanguage();
   const [data, setData] = useState(null);
   const [q, setQ] = useState('');
   const [selectedBranch, setSelectedBranch] = useState('');
@@ -308,55 +310,55 @@ export function Certificates() {
   return (
     <>
       <PageIntro
-        eyebrow="DOKUMEN DIGITAL"
-        title="Pengurusan Sijil"
-        desc="Susunan rekod sijil mengikut Cawangan dan di dalam Cawangan mengikut Peringkat pesilat."
+        eyebrow={t('certs.eyebrow', 'REKOD PENGELUARAN SIJIL')}
+        title={t('certs.title', 'Pengurusan Sijil')}
+        desc={t('certs.desc', 'Semak, tapis mengikut cawangan dan peringkat, cetak, muat turun, atau batalkan sijil digital rasmi.')}
         action={
           <Button onClick={() => setModal(true)} className="!px-3.5 !py-2 text-xs">
-            <Plus size={15} /> Keluarkan Sijil
+            <Plus size={15} /> {lang === 'en' ? 'Issue Certificate' : 'Keluarkan Sijil'}
           </Button>
         }
       />
 
       <Panel className="flex flex-col">
         {/* Top Control Bar: Carian, Penapis & Togol Paparan */}
-        <div className="border-b border-slate-100 p-3 sm:px-4 sm:py-3 space-y-3">
+        <div className="border-b border-slate-100 dark:border-slate-800 p-3 sm:px-4 sm:py-3 space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <Award className="text-red-700 shrink-0" size={18} />
-              <div className="text-xs sm:text-sm font-extrabold text-slate-950">
-                Pusat Rekod Sijil
+              <Award className="text-red-700 dark:text-red-400 shrink-0" size={18} />
+              <div className="text-xs sm:text-sm font-extrabold text-slate-950 dark:text-slate-100">
+                {lang === 'en' ? 'Certificate Records Center' : 'Pusat Rekod Sijil'}
               </div>
-              <Chip color="red">{data?.total || 0} sijil keseluruhan</Chip>
+              <Chip color="red">{data?.total || 0} {lang === 'en' ? 'total certificates' : 'sijil keseluruhan'}</Chip>
             </div>
 
             {/* View Switch: By Kumpulan vs By Jadual */}
-            <div className="flex items-center gap-1.5 bg-slate-100 p-0.5 rounded-xl text-xs">
+            <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 p-0.5 rounded-xl text-xs">
               <button
                 type="button"
                 onClick={() => setViewMode('grouped')}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition ${
                   viewMode === 'grouped'
-                    ? 'bg-white text-slate-900 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-800'
+                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
                 }`}
                 title="Susunan Mengikut Cawangan & Peringkat"
               >
                 <Layers size={13} />
-                <span>By Cawangan & Peringkat</span>
+                <span>{lang === 'en' ? 'By Branch & Rank' : 'By Cawangan & Peringkat'}</span>
               </button>
               <button
                 type="button"
                 onClick={() => setViewMode('table')}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition ${
                   viewMode === 'table'
-                    ? 'bg-white text-slate-900 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-800'
+                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
+                    : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white'
                 }`}
                 title="Paparan Jadual Penuh"
               >
                 <List size={13} />
-                <span>Jadual Penuh</span>
+                <span>{lang === 'en' ? 'Full Table' : 'Jadual Penuh'}</span>
               </button>
             </div>
           </div>
@@ -364,12 +366,12 @@ export function Certificates() {
           {/* Level 1: Pilihan Cawangan (By Cawangan) */}
           <div className="space-y-1.5 pt-1">
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-1">
-                <MapPin size={11} className="text-red-600" />
-                Pilih Cawangan:
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                <MapPin size={11} className="text-red-600 dark:text-red-400" />
+                {lang === 'en' ? 'Select Branch:' : 'Pilih Cawangan:'}
               </span>
               <span className="text-[10px] text-slate-400">
-                {branchList.length} cawangan aktif
+                {branchList.length} {lang === 'en' ? 'active branches' : 'cawangan aktif'}
               </span>
             </div>
 
@@ -383,13 +385,13 @@ export function Certificates() {
                 className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition ${
                   !selectedBranch
                     ? 'bg-red-700 text-white shadow-xs'
-                    : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200/80'
+                    : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200/80 dark:border-slate-700'
                 }`}
               >
-                <span>Semua Cawangan</span>
+                <span>{t('action.allBranches', 'Semua Cawangan')}</span>
                 <span
                   className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
-                    !selectedBranch ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+                    !selectedBranch ? 'bg-white/20 text-white' : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'
                   }`}
                 >
                   {data?.total || 0}
@@ -413,13 +415,13 @@ export function Certificates() {
                     className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition ${
                       isActive
                         ? 'bg-red-700 text-white shadow-xs ring-1 ring-red-400'
-                        : 'bg-slate-50 text-slate-700 hover:bg-slate-100 border border-slate-200/80'
+                        : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200/80 dark:border-slate-700'
                     }`}
                   >
                     <span>{b.name}</span>
                     <span
                       className={`text-[10px] px-1.5 py-0.2 rounded-full font-extrabold ${
-                        isActive ? 'bg-white/20 text-white' : 'bg-red-100/70 text-red-800'
+                        isActive ? 'bg-white/20 text-white' : 'bg-red-100/70 dark:bg-red-950/60 text-red-800 dark:text-red-300'
                       }`}
                     >
                       {b.count}
@@ -431,11 +433,11 @@ export function Certificates() {
           </div>
 
           {/* Level 2: Di Dalam Cawangan Mengikut Peringkat (In Cawangan By Peringkat) */}
-          <div className="flex flex-wrap items-center justify-between gap-2.5 pt-1 border-t border-slate-100">
+          <div className="flex flex-wrap items-center justify-between gap-2.5 pt-1 border-t border-slate-100 dark:border-slate-800">
             <div className="flex flex-wrap items-center gap-1.5">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mr-1 flex items-center gap-1">
-                <Filter size={11} className="text-red-600" />
-                Peringkat:
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 mr-1 flex items-center gap-1">
+                <Filter size={11} className="text-red-600 dark:text-red-400" />
+                {t('th.rank', 'Peringkat')}:
               </span>
 
               <button
@@ -443,11 +445,11 @@ export function Certificates() {
                 onClick={() => setSelectedLevel('')}
                 className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition ${
                   !selectedLevel
-                    ? 'bg-slate-900 text-white shadow-xs'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900 shadow-xs'
+                    : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700'
                 }`}
               >
-                Semua Peringkat
+                {t('action.allRanks', 'Semua Peringkat')}
               </button>
 
               {availableLevelsForBranch.map((lvl) => {
@@ -462,14 +464,14 @@ export function Certificates() {
                     className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold border transition ${
                       isSelected
                         ? 'bg-red-700 text-white border-red-700 shadow-xs'
-                        : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50'
+                        : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800'
                     }`}
                   >
                     <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
                     <span>{lvl.name}</span>
                     <span
                       className={`text-[9px] px-1 py-0.2 rounded-full ${
-                        isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+                        isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'
                       }`}
                     >
                       {lvl.count}
@@ -484,7 +486,7 @@ export function Certificates() {
               <SearchField
                 value={q}
                 onChange={setQ}
-                placeholder="Cari nama, ID atau sijil..."
+                placeholder={t('certs.searchPlaceholder', 'Cari nama, ID atau sijil...')}
               />
             </div>
           </div>
@@ -495,8 +497,8 @@ export function Certificates() {
           <Loading />
         ) : data.rows.length === 0 ? (
           <Empty
-            title="Tiada rekod sijil ditemui"
-            message="Tiada sijil yang sepadan dengan cawangan, peringkat atau kriteria carian anda."
+            title={lang === 'en' ? 'No certificate records found' : 'Tiada rekod sijil ditemui'}
+            message={lang === 'en' ? 'No certificates match the selected branch, rank, or search criteria.' : 'Tiada sijil yang sepadan dengan cawangan, peringkat atau kriteria carian anda.'}
           />
         ) : viewMode === 'grouped' ? (
           /* Paparan Hierarki Berkumpulan (By Cawangan, dan di dalam Cawangan By Peringkat) */
@@ -507,88 +509,88 @@ export function Certificates() {
               return (
                 <div
                   key={cawanganName}
-                  className="rounded-2xl border border-slate-200/90 bg-white overflow-hidden shadow-xs"
+                  className="rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-xs"
                 >
                   {/* Header Cawangan (Level 1) */}
-                  <div className="flex items-center justify-between bg-gradient-to-r from-red-50/70 via-slate-50 to-white px-4 py-2.5 border-b border-slate-200/80">
+                  <div className="flex items-center justify-between bg-gradient-to-r from-red-50/70 via-slate-50 to-white dark:from-slate-900 dark:via-slate-850 dark:to-slate-900 px-4 py-2.5 border-b border-slate-200/80 dark:border-slate-800">
                     <div className="flex items-center gap-2">
                       <div className="grid h-7 w-7 place-items-center rounded-lg bg-red-700 text-white shadow-xs">
                         <MapPin size={14} />
                       </div>
                       <div>
-                        <h2 className="text-xs sm:text-sm font-extrabold text-slate-950">
+                        <h2 className="text-xs sm:text-sm font-extrabold text-slate-950 dark:text-slate-100">
                           {cawanganName}
                         </h2>
                         <p className="text-[10px] text-slate-400">
-                          {levelEntries.length} peringkat berdaftar di cawangan ini
+                          {levelEntries.length} {lang === 'en' ? 'ranks in this branch' : 'peringkat berdaftar di cawangan ini'}
                         </p>
                       </div>
                     </div>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-extrabold text-red-800">
-                      <Award size={12} /> {branchData.total} sijil
+                    <span className="inline-flex items-center gap-1 rounded-full bg-red-100 dark:bg-red-950/60 px-2.5 py-0.5 text-xs font-extrabold text-red-800 dark:text-red-300">
+                      <Award size={12} /> {branchData.total} {lang === 'en' ? 'certs' : 'sijil'}
                     </span>
                   </div>
 
                   {/* Di dalam Cawangan: Kumpulan Mengikut Peringkat (Level 2) */}
-                  <div className="p-3 sm:p-4 space-y-3.5 bg-slate-50/40">
+                  <div className="p-3 sm:p-4 space-y-3.5 bg-slate-50/40 dark:bg-slate-950/40">
                     {levelEntries.map(([peringkatName, certList]) => {
                       const rankMeta = getRankMeta(peringkatName);
 
                       return (
                         <div
                           key={peringkatName}
-                          className="rounded-xl border border-slate-200/80 bg-white overflow-hidden shadow-2xs"
+                          className="rounded-xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 overflow-hidden shadow-2xs"
                         >
                           {/* Header Peringkat Di Dalam Cawangan */}
-                          <div className="flex items-center justify-between px-3.5 py-2 bg-white border-b border-slate-100">
+                          <div className="flex items-center justify-between px-3.5 py-2 bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
                             <div className="flex items-center gap-2">
                               <span className={`h-2.5 w-2.5 rounded-full ${rankMeta.dot}`} />
-                              <h3 className="text-xs font-extrabold text-slate-900">
+                              <h3 className="text-xs font-extrabold text-slate-900 dark:text-slate-100">
                                 {peringkatName}
                               </h3>
                             </div>
                             <Chip color={rankMeta.chip}>
-                              {certList.length} sijil
+                              {certList.length} {lang === 'en' ? 'certs' : 'sijil'}
                             </Chip>
                           </div>
 
                           {/* Senarai Sijil Di Bawah Peringkat Ini */}
                           <div className="overflow-x-auto">
                             <table className="w-full text-left text-xs">
-                              <thead className="bg-[#FAFBF9] text-[9px] font-extrabold uppercase tracking-wider text-slate-400 border-b border-slate-100">
+                              <thead className="bg-[#FAFBF9] dark:bg-slate-850 text-[9px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-slate-800">
                                 <tr>
-                                  <th className="w-10 px-3 py-2 text-center">Bil.</th>
-                                  <th className="px-3 py-2">Nama Pesilat</th>
-                                  <th className="px-3 py-2">No. KP / ID</th>
-                                  <th className="px-3 py-2">Nama Sijil</th>
-                                  <th className="px-3 py-2">Tarikh Dikeluarkan</th>
+                                  <th className="w-10 px-3 py-2 text-center">{t('th.no', 'Bil.')}</th>
+                                  <th className="px-3 py-2">{t('th.name', 'Nama Pesilat')}</th>
+                                  <th className="px-3 py-2">{t('th.ic', 'No. KP / ID')}</th>
+                                  <th className="px-3 py-2">{t('th.certName', 'Nama Sijil')}</th>
+                                  <th className="px-3 py-2">{t('th.issueDate', 'Tarikh Dikeluarkan')}</th>
                                   <th className="px-3 py-2">Format</th>
-                                  <th className="px-3 py-2 text-right">Tindakan</th>
+                                  <th className="px-3 py-2 text-right">{t('th.action', 'Tindakan')}</th>
                                 </tr>
                               </thead>
-                              <tbody className="divide-y divide-slate-100">
+                              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                                 {certList.map((r, idx) => (
-                                  <tr key={r.id} className="hover:bg-slate-50/80 transition">
+                                  <tr key={r.id} className="hover:bg-slate-50/80 dark:hover:bg-slate-800/60 transition">
                                     <td className="px-3 py-2 text-center font-mono text-slate-400 text-[10px]">
                                       {idx + 1}
                                     </td>
                                     <td className="px-3 py-2">
-                                      <span className="font-bold text-slate-950 text-xs sm:text-sm student-name" data-no-translate="true" translate="no">
+                                      <span className="font-bold text-slate-950 dark:text-slate-100 text-xs sm:text-sm">
                                         {r.nama_penuh}
                                       </span>
                                     </td>
-                                    <td className="px-3 py-2 font-mono text-slate-500 text-[11px] whitespace-nowrap">
+                                    <td className="px-3 py-2 font-mono text-slate-500 dark:text-slate-400 text-[11px] whitespace-nowrap">
                                       {r.no_kp_atau_id || '—'}
                                     </td>
                                     <td className="px-3 py-2">
-                                      <div className="flex items-center gap-1 font-semibold text-slate-800 text-xs">
-                                        <FileText size={13} className="text-red-600 shrink-0" />
+                                      <div className="flex items-center gap-1 font-semibold text-slate-800 dark:text-slate-200 text-xs">
+                                        <FileText size={13} className="text-red-600 dark:text-red-400 shrink-0" />
                                         <span className="truncate max-w-[220px]" title={r.nama_sijil}>
                                           {r.nama_sijil}
                                         </span>
                                       </div>
                                     </td>
-                                    <td className="px-3 py-2 text-slate-500 text-[11px] whitespace-nowrap">
+                                    <td className="px-3 py-2 text-slate-500 dark:text-slate-400 text-[11px] whitespace-nowrap">
                                       <span className="inline-flex items-center gap-1">
                                         <CalendarDays size={11} className="text-slate-400" />
                                         {fmtDate(r.tarikh_isu)}
@@ -598,11 +600,11 @@ export function Certificates() {
                                       <span
                                         className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${
                                           r.jenis === 'generated'
-                                            ? 'bg-red-50 text-red-700 border-red-200'
-                                            : 'bg-amber-50 text-amber-800 border-amber-200'
+                                            ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-950/40 dark:text-red-300 dark:border-red-900/50'
+                                            : 'bg-amber-50 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900/50'
                                         }`}
                                       >
-                                        {r.jenis === 'generated' ? 'Auto PDF' : 'Fail Sendiri'}
+                                        {r.jenis === 'generated' ? 'Auto PDF' : (lang === 'en' ? 'Uploaded File' : 'Fail Sendiri')}
                                       </span>
                                     </td>
                                     <td className="px-3 py-2 text-right whitespace-nowrap">
@@ -611,26 +613,26 @@ export function Certificates() {
                                           href={certPreview(r.public_token)}
                                           target="_blank"
                                           rel="noopener noreferrer"
-                                          title="Lihat sijil"
+                                          title={t('action.view', 'Lihat sijil')}
                                           aria-label="Lihat sijil"
-                                          className="rounded-lg bg-slate-100 p-1.5 text-slate-600 transition hover:bg-red-50 hover:text-red-800"
+                                          className="rounded-lg bg-slate-100 dark:bg-slate-800 p-1.5 text-slate-600 dark:text-slate-300 transition hover:bg-red-50 hover:text-red-800 dark:hover:bg-red-950/40 dark:hover:text-red-300"
                                         >
                                           <Eye size={13} />
                                         </a>
                                         <a
                                           href={certDownload(r.public_token)}
                                           download={`${r.nama_penuh}.pdf`}
-                                          title="Muat turun sijil"
+                                          title={t('action.download', 'Muat turun sijil')}
                                           aria-label="Muat turun sijil"
-                                          className="rounded-lg bg-red-50 p-1.5 text-red-700 transition hover:bg-red-100 border border-red-100"
+                                          className="rounded-lg bg-red-50 dark:bg-red-950/50 p-1.5 text-red-700 dark:text-red-300 transition hover:bg-red-100 border border-red-100 dark:border-red-900/50"
                                         >
                                           <Download size={13} />
                                         </a>
                                         <button
                                           onClick={() => setTarget(r)}
-                                          title="Padam sijil"
+                                          title={t('action.delete', 'Padam sijil')}
                                           aria-label="Padam sijil"
-                                          className="rounded-lg bg-rose-50 p-1.5 text-rose-600 transition hover:bg-rose-100"
+                                          className="rounded-lg bg-rose-50 dark:bg-rose-950/50 p-1.5 text-rose-600 dark:text-rose-300 transition hover:bg-rose-100 dark:hover:bg-rose-900/50"
                                         >
                                           <Trash2 size={13} />
                                         </button>
@@ -653,47 +655,47 @@ export function Certificates() {
           /* Paparan Jadual Penuh Bertapis */
           <div className="overflow-x-auto max-h-[calc(100vh-250px)] overflow-y-auto">
             <table className="w-full min-w-[760px] text-left text-xs sm:text-sm">
-              <thead className="sticky top-0 z-10 bg-[#FBFCFA] text-[10px] font-extrabold uppercase tracking-[.13em] text-slate-400 border-b border-slate-100 shadow-2xs">
+              <thead className="sticky top-0 z-10 bg-[#FBFCFA] dark:bg-slate-900 text-[10px] font-extrabold uppercase tracking-[.13em] text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-slate-800 shadow-2xs">
                 <tr>
-                  <th className="px-3.5 py-2.5">Nama Pesilat</th>
-                  <th className="px-3.5 py-2.5">Cawangan</th>
-                  <th className="px-3.5 py-2.5">Peringkat</th>
-                  <th className="px-3.5 py-2.5">Nama Sijil</th>
-                  <th className="px-3.5 py-2.5">Tarikh</th>
+                  <th className="px-3.5 py-2.5">{t('th.name', 'Nama Pesilat')}</th>
+                  <th className="px-3.5 py-2.5">{t('th.branch', 'Cawangan')}</th>
+                  <th className="px-3.5 py-2.5">{t('th.rank', 'Peringkat')}</th>
+                  <th className="px-3.5 py-2.5">{t('th.certName', 'Nama Sijil')}</th>
+                  <th className="px-3.5 py-2.5">{t('th.issueDate', 'Tarikh')}</th>
                   <th className="px-3.5 py-2.5">Format</th>
-                  <th className="px-3.5 py-2.5 text-right">Tindakan</th>
+                  <th className="px-3.5 py-2.5 text-right">{t('th.action', 'Tindakan')}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                 {data.rows.map((r) => {
                   const rankMeta = getRankMeta(r.peringkat);
 
                   return (
-                    <tr key={r.id} className="hover:bg-slate-50 transition">
+                    <tr key={r.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/60 transition">
                       <td className="px-3.5 py-2.5">
-                        <div className="font-bold text-slate-950 text-xs sm:text-sm student-name" data-no-translate="true" translate="no">{r.nama_penuh}</div>
+                        <div className="font-bold text-slate-950 dark:text-slate-100 text-xs sm:text-sm">{r.nama_penuh}</div>
                         <div className="text-[10px] text-slate-400">{r.no_kp_atau_id || '—'}</div>
                       </td>
-                      <td className="px-3.5 py-2.5 font-semibold text-slate-700 whitespace-nowrap text-xs">
+                      <td className="px-3.5 py-2.5 font-semibold text-slate-700 dark:text-slate-300 whitespace-nowrap text-xs">
                         {r.cawangan}
                       </td>
                       <td className="px-3.5 py-2.5 whitespace-nowrap">
                         <Chip color={rankMeta.chip}>{r.peringkat}</Chip>
                       </td>
                       <td className="px-3.5 py-2.5">
-                        <div className="flex items-center gap-1.5 font-semibold text-slate-800 text-xs">
-                          <FileText className="shrink-0 text-red-600" size={14} />
+                        <div className="flex items-center gap-1.5 font-semibold text-slate-800 dark:text-slate-200 text-xs">
+                          <FileText className="shrink-0 text-red-600 dark:text-red-400" size={14} />
                           <span className="truncate max-w-[240px]" title={r.nama_sijil}>
                             {r.nama_sijil}
                           </span>
                         </div>
                       </td>
-                      <td className="px-3.5 py-2.5 text-xs text-slate-500 whitespace-nowrap">
+                      <td className="px-3.5 py-2.5 text-xs text-slate-500 dark:text-slate-400 whitespace-nowrap">
                         {fmtDate(r.tarikh_isu)}
                       </td>
                       <td className="px-3.5 py-2.5 whitespace-nowrap">
                         <Chip color={r.jenis === 'generated' ? 'red' : 'gold'}>
-                          {r.jenis === 'generated' ? 'Auto PDF' : 'Fail Sendiri'}
+                          {r.jenis === 'generated' ? 'Auto PDF' : (lang === 'en' ? 'Uploaded' : 'Fail Sendiri')}
                         </Chip>
                       </td>
                       <td className="px-3.5 py-2.5 text-right whitespace-nowrap">
@@ -702,26 +704,26 @@ export function Certificates() {
                             href={certPreview(r.public_token)}
                             target="_blank"
                             rel="noopener noreferrer"
-                            title="Lihat sijil"
+                            title={t('action.view', 'Lihat sijil')}
                             aria-label="Lihat sijil"
-                            className="rounded-lg bg-slate-100 p-1.5 text-slate-600 transition hover:bg-red-50 hover:text-red-800"
+                            className="rounded-lg bg-slate-100 dark:bg-slate-800 p-1.5 text-slate-600 dark:text-slate-300 transition hover:bg-red-50 hover:text-red-800 dark:hover:bg-red-950/40 dark:hover:text-red-300"
                           >
                             <Eye size={14} />
                           </a>
                           <a
                             href={certDownload(r.public_token)}
                             download={`${r.nama_penuh}.pdf`}
-                            title="Muat turun sijil"
+                            title={t('action.download', 'Muat turun sijil')}
                             aria-label="Muat turun sijil"
-                            className="rounded-lg bg-red-50 p-1.5 text-red-700 transition hover:bg-red-100 border border-red-100"
+                            className="rounded-lg bg-red-50 dark:bg-red-950/50 p-1.5 text-red-700 dark:text-red-300 transition hover:bg-red-100 border border-red-100 dark:border-red-900/50"
                           >
                             <Download size={14} />
                           </a>
                           <button
                             onClick={() => setTarget(r)}
-                            title="Padam sijil"
+                            title={t('action.delete', 'Padam sijil')}
                             aria-label="Padam sijil"
-                            className="rounded-lg bg-rose-50 p-1.5 text-rose-600 transition hover:bg-rose-100"
+                            className="rounded-lg bg-rose-50 dark:bg-rose-950/50 p-1.5 text-rose-600 dark:text-rose-300 transition hover:bg-rose-100 dark:hover:bg-rose-900/50"
                           >
                             <Trash2 size={14} />
                           </button>
@@ -743,8 +745,8 @@ export function Certificates() {
         onClose={() => setTarget(null)}
         onConfirm={remove}
         busy={busy}
-        title="Padam sijil ini?"
-        message={`Sijil “${target?.nama_sijil || ''}” untuk ${
+        title={lang === 'en' ? 'Delete this certificate?' : 'Padam sijil ini?'}
+        message={lang === 'en' ? `Certificate “${target?.nama_sijil || ''}” for ${target?.nama_penuh || ''} will be permanently deleted and its verification link invalidated.` : `Sijil “${target?.nama_sijil || ''}” untuk ${
           target?.nama_penuh || ''
         } akan dipadam secara kekal dan pautan awamnya tidak lagi sah.`}
       />
