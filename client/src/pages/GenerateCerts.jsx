@@ -219,37 +219,37 @@ export function GenerateCerts() {
       />
 
       {/* Konfigurasi Templat & Tarikh */}
-      <Panel className="p-6 sm:p-8 mb-6">
-        <div className="flex items-center gap-3 border-b border-slate-100 pb-5 mb-5">
-          <div className="grid h-12 w-12 place-items-center rounded-2xl bg-forest-100 text-forest-700">
-            <Sparkles size={24}/>
+      <Panel className="p-3.5 sm:p-4 mb-3">
+        <div className="flex items-center gap-2.5 border-b border-slate-100 pb-2.5 mb-3">
+          <div className="grid h-8 w-8 place-items-center rounded-xl bg-forest-100 text-forest-700 shrink-0">
+            <Sparkles size={16}/>
           </div>
           <div>
-            <h2 className="text-base font-extrabold text-forest-950">Langkah 1: Pilih Templat & Tarikh Sijil</h2>
-            <p className="text-xs text-slate-400 mt-0.5">Sistem akan memilih fail templat PDF yang sepadan dengan peringkat setiap pesilat.</p>
+            <h2 className="text-xs sm:text-sm font-extrabold text-forest-950">Langkah 1: Tetapan Templat & Tarikh Sijil</h2>
+            <p className="text-[10px] sm:text-xs text-slate-400">Padanan automatik templat PDF mengikut peringkat setiap pesilat.</p>
           </div>
         </div>
 
         {templateNames.length === 0 ? (
-          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center">
-            <AlertCircle size={32} className="mx-auto text-amber-600 mb-2"/>
-            <h3 className="font-bold text-amber-950 text-sm">Tiada Templat Sijil Ditemui</h3>
-            <p className="text-xs text-amber-800 mt-1 max-w-md mx-auto">
+          <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-center">
+            <AlertCircle size={24} className="mx-auto text-amber-600 mb-1.5"/>
+            <h3 className="font-bold text-amber-950 text-xs">Tiada Templat Sijil Ditemui</h3>
+            <p className="text-[11px] text-amber-800 mt-1 max-w-md mx-auto">
               Sila muat naik sekurang-kurangnya satu fail templat PDF pada menu Templat Sijil terlebih dahulu.
             </p>
             <Link
               to="/admin/templates"
-              className="mt-4 inline-flex items-center gap-2 rounded-xl bg-forest-900 px-4 py-2 text-xs font-bold text-white hover:bg-forest-700"
+              className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-forest-900 px-3 py-1.5 text-xs font-bold text-white hover:bg-forest-700"
             >
-              <Layers size={14}/> Pergi ke Menu Templat Sijil
+              <Layers size={13}/> Menu Templat Sijil
             </Link>
           </div>
         ) : (
-          <div className="grid gap-6 md:grid-cols-2">
-            <div>
-              <label className="mb-2 block text-xs font-bold text-slate-600">Pilih Tajuk / Kumpulan Templat *</label>
+          <div className="grid gap-3 lg:grid-cols-12 items-start">
+            <div className="lg:col-span-7">
+              <label className="mb-1 block text-[11px] font-bold text-slate-600">Tajuk / Kumpulan Templat *</label>
               <select
-                className="w-full rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-forest-950 outline-none focus:border-forest-600 focus:ring-4 focus:ring-forest-100"
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs sm:text-sm font-semibold text-forest-950 outline-none focus:border-forest-600"
                 value={selectedTemplateName}
                 onChange={e => setSelectedTemplateName(e.target.value)}
               >
@@ -258,17 +258,17 @@ export function GenerateCerts() {
                 ))}
               </select>
 
-              <div className="mt-3">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
-                  Peringkat templat tersedia (Klik untuk pilih & tapis):
+              <div className="mt-2">
+                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                  Peringkat templat tersedia (Klik untuk tapis & pilih):
                 </span>
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1.5">
                   <button
                     type="button"
                     onClick={() => handleSelectLevelChange('')}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition ${
+                    className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition ${
                       !selectedLevel
-                        ? 'bg-forest-900 text-white border-forest-900 shadow-sm'
+                        ? 'bg-forest-900 text-white border-forest-900 shadow-2xs'
                         : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
                     }`}
                   >
@@ -282,14 +282,14 @@ export function GenerateCerts() {
                         key={t.id}
                         type="button"
                         onClick={() => handleSelectLevelChip(t.peringkat)}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition inline-flex items-center gap-1.5 ${
+                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold border transition inline-flex items-center gap-1 ${
                           isSelected
-                            ? 'bg-forest-900 text-white border-forest-900 shadow-md ring-2 ring-forest-400/40'
+                            ? 'bg-forest-900 text-white border-forest-900 shadow-2xs ring-1 ring-forest-400/40'
                             : 'bg-emerald-50 text-emerald-900 border-emerald-200 hover:bg-emerald-100'
                         }`}
                       >
                         <span>{t.peringkat}</span>
-                        <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                        <span className={`px-1.5 py-0.2 rounded-full text-[9px] font-extrabold ${
                           isSelected ? 'bg-white/20 text-white' : 'bg-emerald-200/80 text-emerald-900'
                         }`}>
                           {count}
@@ -301,16 +301,16 @@ export function GenerateCerts() {
               </div>
             </div>
 
-            <div>
+            <div className="lg:col-span-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-2">
               <Input
-                label="Tarikh Dikeluarkan pada Sijil *"
+                label="Tarikh Sijil *"
                 type="date"
                 required
                 value={issueDate}
                 onChange={e => setIssueDate(e.target.value)}
               />
-              <div className="mt-3 rounded-xl bg-slate-50 p-3.5 border border-slate-200 text-xs text-slate-600 leading-relaxed">
-                <strong>Spesifikasi Janaan:</strong> Nama pesilat akan dicetak di atas garisan nama Page 1 menggunakan fon <strong>Lora (Saiz 20, #c1362d)</strong>, dan Page 2 dikekalkan sepenuhnya.
+              <div className="rounded-xl bg-slate-50 p-2.5 border border-slate-200 text-[11px] text-slate-600 leading-relaxed">
+                <strong>Spesifikasi:</strong> Fon <strong>Lora Saiz 20 (#c1362d)</strong>, Page 1 automatik 1/2 baris berpusat di atas garisan, Page 2 kekal.
               </div>
             </div>
           </div>
@@ -318,25 +318,23 @@ export function GenerateCerts() {
       </Panel>
 
       {/* Pemilihan Pesilat */}
-      <Panel>
-        <div className="flex flex-col gap-4 border-b border-slate-100 p-5 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <div className="flex items-center gap-2">
-              <Award className="text-forest-700" size={20}/>
-              <h2 className="text-sm font-extrabold text-forest-950">Langkah 2: Pilih Pesilat untuk Dijana</h2>
-              <Chip color="gold">{idsToGenerate.length} dipilih</Chip>
-            </div>
-            <p className="text-xs text-slate-400 mt-0.5">Tandakan pesilat yang layak menerima sijil ini.</p>
+      <Panel className="flex flex-col">
+        <div className="flex flex-col gap-2.5 border-b border-slate-100 p-3 sm:px-4 sm:py-2.5 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-2">
+            <Award className="text-forest-700 shrink-0" size={18}/>
+            <h2 className="text-xs sm:text-sm font-extrabold text-forest-950">Langkah 2: Pilih Pesilat untuk Dijana</h2>
+            <Chip color="gold">{idsToGenerate.length} dipilih</Chip>
           </div>
 
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full lg:w-auto">
             <SearchField
               value={searchQuery}
               onChange={setSearchQuery}
               placeholder="Cari pesilat..."
             />
             <select
-              className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-xs text-slate-600 outline-none"
+              aria-label="Tapis cawangan"
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 outline-none"
               value={selectedBranch}
               onChange={e => setSelectedBranch(e.target.value)}
             >
@@ -346,7 +344,8 @@ export function GenerateCerts() {
               ))}
             </select>
             <select
-              className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-xs text-slate-600 outline-none"
+              aria-label="Tapis peringkat"
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 outline-none"
               value={selectedLevel}
               onChange={e => handleSelectLevelChange(e.target.value)}
             >
@@ -361,14 +360,14 @@ export function GenerateCerts() {
         </div>
 
         {selectedLevel && (
-          <div className="px-5 py-2.5 bg-forest-50/70 border-b border-forest-100 flex items-center justify-between text-xs text-forest-900">
-            <span className="inline-flex items-center gap-2">
-              <Filter size={14} className="text-forest-700"/>
-              Tapisan Aktif: <strong>{selectedLevel}</strong> ({filteredStudents.length} pelajar dijumpai)
+          <div className="px-4 py-2 bg-forest-50/70 border-b border-forest-100 flex items-center justify-between text-xs text-forest-900">
+            <span className="inline-flex items-center gap-1.5 text-[11px]">
+              <Filter size={13} className="text-forest-700"/>
+              Tapisan Aktif: <strong>{selectedLevel}</strong> ({filteredStudents.length} pelajar)
             </span>
             <button
               onClick={() => handleSelectLevelChange('')}
-              className="text-forest-700 hover:text-forest-900 font-bold hover:underline"
+              className="text-forest-700 hover:text-forest-900 font-bold hover:underline text-[11px]"
             >
               Kosongkan Tapisan
             </button>
@@ -376,24 +375,24 @@ export function GenerateCerts() {
         )}
 
         {/* Quick select buttons */}
-        <div className="flex flex-wrap items-center justify-between gap-3 bg-[#FBFCFA] px-5 py-3 border-b border-slate-100 text-xs">
-          <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-2 bg-[#FBFCFA] px-4 py-2 border-b border-slate-100 text-xs">
+          <div className="flex items-center gap-2.5 text-[11px]">
             <button
               onClick={selectAllFiltered}
-              className="font-bold text-forest-800 hover:underline inline-flex items-center gap-1.5"
+              className="font-bold text-forest-800 hover:underline inline-flex items-center gap-1"
             >
-              <CheckSquare size={15}/> Pilih Semua ({filteredStudents.length})
+              <CheckSquare size={13}/> Pilih Semua ({filteredStudents.length})
             </button>
             <span className="text-slate-300">|</span>
             <button
               onClick={deselectAllFiltered}
-              className="font-bold text-slate-500 hover:underline inline-flex items-center gap-1.5"
+              className="font-bold text-slate-500 hover:underline inline-flex items-center gap-1"
             >
-              <Square size={15}/> Nyahpilih Semua
+              <Square size={13}/> Nyahpilih Semua
             </button>
           </div>
-          <span className="text-slate-400">
-            Memaparkan {filteredStudents.length} daripada {students.length} pesilat
+          <span className="text-[11px] text-slate-400">
+            {filteredStudents.length} / {students.length} pesilat
           </span>
         </div>
 
@@ -405,11 +404,11 @@ export function GenerateCerts() {
             message="Sila ubah carian atau kriteria tapisan cawangan/peringkat."
           />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[860px] text-left text-sm">
-              <thead className="bg-[#FBFCFA] text-[10px] font-extrabold uppercase tracking-[.14em] text-slate-400">
+          <div className="overflow-x-auto max-h-[calc(100vh-340px)] overflow-y-auto">
+            <table className="w-full min-w-[780px] text-left text-xs sm:text-sm">
+              <thead className="sticky top-0 z-10 bg-[#FBFCFA] text-[10px] font-extrabold uppercase tracking-[.14em] text-slate-400 border-b border-slate-100 shadow-2xs">
                 <tr>
-                  <th className="w-12 px-5 py-4 text-center">
+                  <th className="w-10 px-3.5 py-2 text-center">
                     <input
                       type="checkbox"
                       checked={filteredStudents.length > 0 && filteredStudents.every(s => selectedIds.has(s.id))}
@@ -418,14 +417,14 @@ export function GenerateCerts() {
                         else deselectAllFiltered();
                       }}
                       title="Pilih / Nyahpilih semua pesilat dalam paparan"
-                      className="h-4 w-4 rounded text-forest-700 focus:ring-forest-500 cursor-pointer"
+                      className="h-3.5 w-3.5 rounded text-forest-700 focus:ring-forest-500 cursor-pointer"
                     />
                   </th>
-                  <th className="px-5 py-4">Nama Pesilat</th>
-                  <th className="px-5 py-4">No. KP / ID</th>
-                  <th className="px-5 py-4">Cawangan</th>
-                  <th className="px-5 py-4">Peringkat</th>
-                  <th className="px-5 py-4">Padanan Templat</th>
+                  <th className="px-3.5 py-2">Nama Pesilat</th>
+                  <th className="px-3.5 py-2">No. KP / ID</th>
+                  <th className="px-3.5 py-2">Cawangan</th>
+                  <th className="px-3.5 py-2">Peringkat</th>
+                  <th className="px-3.5 py-2">Padanan Templat</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -437,36 +436,36 @@ export function GenerateCerts() {
                     <tr
                       key={student.id}
                       onClick={() => toggleSelect(student.id)}
-                      className={`cursor-pointer transition ${isChecked ? 'bg-forest-100/35' : 'hover:bg-slate-50'}`}
+                      className={`cursor-pointer transition ${isChecked ? 'bg-forest-100/30' : 'hover:bg-slate-50'}`}
                     >
-                      <td className="px-5 py-4 text-center" onClick={e => e.stopPropagation()}>
+                      <td className="px-3.5 py-2 text-center" onClick={e => e.stopPropagation()}>
                         <input
                           type="checkbox"
                           checked={isChecked}
                           onChange={() => toggleSelect(student.id)}
-                          className="h-4 w-4 rounded text-forest-700 focus:ring-forest-500 cursor-pointer"
+                          className="h-3.5 w-3.5 rounded text-forest-700 focus:ring-forest-500 cursor-pointer"
                         />
                       </td>
-                      <td className="px-5 py-4 font-bold text-forest-950">
+                      <td className="px-3.5 py-2 font-bold text-forest-950 text-xs sm:text-sm">
                         {student.nama_penuh}
                       </td>
-                      <td className="px-5 py-4 text-xs font-mono text-slate-600">
+                      <td className="px-3.5 py-2 text-xs font-mono text-slate-600 whitespace-nowrap">
                         {student.no_kp_atau_id}
                       </td>
-                      <td className="px-5 py-4 text-xs text-slate-600">
+                      <td className="px-3.5 py-2 text-xs text-slate-600 whitespace-nowrap">
                         {student.cawangan}
                       </td>
-                      <td className="px-5 py-4">
+                      <td className="px-3.5 py-2 whitespace-nowrap">
                         <Chip color="gold">{student.peringkat}</Chip>
                       </td>
-                      <td className="px-5 py-4 text-xs">
+                      <td className="px-3.5 py-2 text-xs whitespace-nowrap">
                         {matchedTemplate ? (
-                          <span className="inline-flex items-center gap-1.5 font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-100">
-                            <CheckCircle2 size={13}/> Templat Sedia ({matchedTemplate.peringkat})
+                          <span className="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100 text-[10px]">
+                            <CheckCircle2 size={12}/> Templat Sedia ({matchedTemplate.peringkat})
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1.5 font-bold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-full border border-amber-200">
-                            <AlertCircle size={13}/> Tiada Templat Padan
+                          <span className="inline-flex items-center gap-1 font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 text-[10px]">
+                            <AlertCircle size={12}/> Tiada Templat
                           </span>
                         )}
                       </td>
@@ -478,14 +477,14 @@ export function GenerateCerts() {
           </div>
         )}
 
-        {/* Tindakan Janaan */}
-        <div className="flex flex-wrap items-center justify-between gap-4 border-t border-slate-100 bg-[#FCFDFB] p-6 rounded-b-[22px]">
-          <div>
-            <div className="font-extrabold text-forest-950 text-base">
+        {/* Tindakan Janaan: Fixed at bottom */}
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-100 bg-[#FCFDFB] p-3 sm:px-4 sm:py-3 rounded-b-2xl">
+          <div className="text-center sm:text-left">
+            <div className="font-extrabold text-forest-950 text-xs sm:text-sm">
               {idsToGenerate.length} pesilat dipilih untuk janaan sijil
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Sijil yang dijana akan dimasukkan terus ke dalam senarai sijil pelajar dan boleh disemak di portal awam.
+            <p className="text-[10px] text-slate-400">
+              Sijil dijana automatik mengikut peringkat dan didaftarkan ke profil pelajar.
             </p>
           </div>
 
@@ -493,9 +492,9 @@ export function GenerateCerts() {
             onClick={handleGenerate}
             loading={generating}
             disabled={idsToGenerate.length === 0 || templateNames.length === 0}
-            className="!px-6 !py-3 text-base shadow-lg"
+            className="w-full sm:w-auto !px-5 !py-2.5 text-xs sm:text-sm font-bold shadow-md"
           >
-            <Sparkles size={18}/> {generating ? `Sedang Menjana ${idsToGenerate.length} Sijil...` : `Jana ${idsToGenerate.length} Sijil Sekarang`}
+            <Sparkles size={16}/> {generating ? `Menjana ${idsToGenerate.length} Sijil...` : `Jana ${idsToGenerate.length} Sijil Sekarang`}
           </Button>
         </div>
       </Panel>

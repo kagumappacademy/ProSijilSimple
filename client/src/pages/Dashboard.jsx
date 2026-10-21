@@ -1,9 +1,184 @@
 import React,{useEffect,useState} from 'react';
 import {motion} from 'framer-motion';
 import {Link} from 'react-router-dom';
-import {GraduationCap,Award,MapPin,ArrowUpRight,Plus,FileUp,TrendingUp,CalendarDays,ChevronRight,Activity,Layers,Sparkles} from 'lucide-react';
+import {GraduationCap,Award,MapPin,ArrowUpRight,Plus,TrendingUp,CalendarDays,ChevronRight,Layers,Sparkles} from 'lucide-react';
 import {api,fmtDate} from '../lib/api';
-import {PageIntro,Panel,Loading,Empty,Chip} from '../components/UI';
-function NumberCard({title,value,icon:Icon,tint,index}){return <motion.div initial={{opacity:0,y:20}} animate={{opacity:1,y:0}} transition={{delay:index*.1}} className="relative overflow-hidden rounded-[22px] border border-slate-100 bg-white p-6 shadow-soft"><div className="flex items-start justify-between"><div><p className="text-[12px] font-semibold text-slate-500">{title}</p><div className="mt-5 text-[37px] font-extrabold leading-none tracking-tight text-forest-950">{value.toLocaleString('ms-MY')}</div><div className="mt-3 inline-flex items-center gap-1 text-[11px] font-bold text-forest-600"><TrendingUp size={13}/> Rekod terkini</div></div><div className={`grid h-13 w-13 place-items-center rounded-2xl p-3 ${tint}`}><Icon size={24}/></div></div><div className="absolute -bottom-11 -right-11 h-28 w-28 rounded-full border-[20px] border-forest-100/40"/></motion.div>}
-function Breakdown({title,rows}){const max=Math.max(...rows.map(x=>x.total),1);return <Panel className="p-6"><h3 className="mb-7 text-base font-extrabold text-forest-950">{title}</h3>{rows.length?<div className="space-y-5">{rows.map((r,i)=><div key={i}><div className="mb-2 flex justify-between gap-2 text-xs"><span className="max-w-[80%] truncate font-semibold text-slate-600" title={r.name}>{r.name}</span><span className="font-extrabold text-forest-900">{r.total}</span></div><div className="h-2 overflow-hidden rounded-full bg-slate-100"><motion.div initial={{width:0}} animate={{width:(r.total/max*100)+'%'}} transition={{duration:.7,delay:i*.07}} className="h-full rounded-full bg-gradient-to-r from-forest-800 to-emerald-400"/></div></div>)}</div>:<Empty title="Belum ada data"/>}</Panel>}
-export function Dashboard(){const[data,setData]=useState(null);useEffect(()=>{api('/admin/dashboard').then(setData).catch(()=>{});},[]);const date=new Date().toLocaleDateString('ms-MY',{weekday:'long',day:'numeric',month:'long',year:'numeric'});return <><PageIntro eyebrow="PAPAN PEMUKA" title="Selamat kembali 👋" desc={`Berikut merupakan ringkasan pengurusan sijil. ${date}`}/>{!data?<Loading/>:<><div className="mb-7 grid gap-5 sm:grid-cols-2 xl:grid-cols-3"><NumberCard index={0} title="Jumlah Pesilat" value={data.pesilat} icon={GraduationCap} tint="bg-forest-100 text-forest-700"/><NumberCard index={1} title="Sijil Dikeluarkan" value={data.sijil} icon={Award} tint="bg-amber-50 text-amber-700"/><NumberCard index={2} title="Jumlah Cawangan" value={data.branches} icon={MapPin} tint="bg-blue-50 text-blue-700"/></div><div className="mb-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4"><Link to="/admin/pesilat" className="group flex items-center justify-between gap-3 rounded-2xl bg-forest-900 px-5 py-5 text-white transition hover:-translate-y-1 hover:bg-forest-700"><div className="flex items-center gap-3"><Plus size={20}/><span className="text-sm font-extrabold">Pesilat</span></div><ArrowUpRight size={17} className="opacity-70"/></Link><Link to="/admin/templates" className="group flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-5 text-forest-900 transition hover:-translate-y-1 hover:shadow-soft"><div className="flex items-center gap-3"><Layers size={20} className="text-forest-700"/><span className="text-sm font-extrabold">Templat Sijil</span></div><ArrowUpRight size={17} className="opacity-70"/></Link><Link to="/admin/jana-sijil" className="group flex items-center justify-between gap-3 rounded-2xl bg-gradient-to-r from-gold-500 to-amber-500 px-5 py-5 text-forest-950 transition hover:-translate-y-1 hover:shadow-soft"><div className="flex items-center gap-3"><Sparkles size={20}/><span className="text-sm font-extrabold">Jana Sijil Pukal</span></div><ArrowUpRight size={17} className="opacity-70"/></Link><Link to="/admin/sijil" className="group flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-5 py-5 text-forest-900 transition hover:-translate-y-1 hover:shadow-soft"><div className="flex items-center gap-3"><Award size={20} className="text-amber-600"/><span className="text-sm font-extrabold">Rekod Sijil</span></div><ArrowUpRight size={17} className="opacity-70"/></Link></div><div className="mb-7 grid gap-5 xl:grid-cols-2"><Breakdown title="Pesilat Mengikut Peringkat" rows={data.byLevel}/><Breakdown title="Pesilat Mengikut Cawangan" rows={data.byBranch}/></div><Panel><div className="flex items-center justify-between border-b border-slate-100 p-6"><div><h3 className="text-base font-extrabold text-forest-950">Sijil Terkini</h3><p className="mt-1 text-xs text-slate-400">Rekod sijil yang baru dikeluarkan</p></div><Link to="/admin/sijil" className="flex items-center gap-1 text-xs font-bold text-forest-700 hover:underline">Lihat semua <ChevronRight size={16}/></Link></div>{data.recent.length?<div className="divide-y divide-slate-100">{data.recent.map(r=><div key={r.id} className="flex flex-wrap items-center gap-4 px-6 py-4"><div className="grid h-11 w-11 place-items-center rounded-xl bg-amber-50 text-amber-700"><Award size={20}/></div><div className="min-w-[180px] flex-1"><div className="font-bold text-forest-950">{r.nama_penuh}</div><div className="mt-1 text-xs text-slate-400">{r.nama_sijil} • {r.cawangan}</div></div><div className="flex items-center gap-1 text-xs text-slate-400"><CalendarDays size={13}/>{fmtDate(r.tarikh_isu)}</div></div>)}</div>:<Empty title="Belum ada sijil" message="Keluarkan sijil pertama melalui menu Pengurusan Sijil."/>}</Panel></>}</>}
+import {PageIntro,Panel,Loading,Empty} from '../components/UI';
+
+function NumberCard({title,value,icon:Icon,tint,index}){
+  return (
+    <motion.div
+      initial={{opacity:0,y:10}}
+      animate={{opacity:1,y:0}}
+      transition={{delay:index*0.06}}
+      className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-3.5 sm:p-4 shadow-xs"
+    >
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">{title}</p>
+          <div className="mt-1 text-2xl sm:text-3xl font-extrabold leading-none tracking-tight text-forest-950">
+            {value.toLocaleString('ms-MY')}
+          </div>
+          <div className="mt-1.5 inline-flex items-center gap-1 text-[10px] font-bold text-forest-600">
+            <TrendingUp size={12}/> Rekod terkini
+          </div>
+        </div>
+        <div className={`grid h-11 w-11 place-items-center rounded-xl p-2.5 ${tint}`}>
+          <Icon size={22}/>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function BreakdownCard({title,rows}){
+  const max=Math.max(...rows.map(x=>x.total),1);
+  return (
+    <div className="space-y-2.5">
+      <h4 className="text-xs font-extrabold text-forest-950 uppercase tracking-wider">{title}</h4>
+      {rows.length ? (
+        <div className="space-y-2">
+          {rows.slice(0, 5).map((r,i)=>(
+            <div key={i}>
+              <div className="mb-1 flex justify-between gap-2 text-[11px]">
+                <span className="max-w-[78%] truncate font-semibold text-slate-600" title={r.name}>{r.name}</span>
+                <span className="font-extrabold text-forest-900">{r.total}</span>
+              </div>
+              <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
+                <motion.div
+                  initial={{width:0}}
+                  animate={{width:(r.total/max*100)+'%'}}
+                  transition={{duration:0.5,delay:i*0.04}}
+                  className="h-full rounded-full bg-gradient-to-r from-forest-800 to-emerald-400"
+                />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : <Empty title="Belum ada data"/>}
+    </div>
+  );
+}
+
+export function Dashboard(){
+  const [data,setData]=useState(null);
+
+  useEffect(()=>{
+    api('/admin/dashboard').then(setData).catch(()=>{});
+  },[]);
+
+  const date=new Date().toLocaleDateString('ms-MY',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+
+  return (
+    <>
+      <PageIntro
+        eyebrow="PAPAN PEMUKA"
+        title="Selamat kembali 👋"
+        desc={`Ringkasan pengurusan sijil & pesilat • ${date}`}
+      />
+
+      {!data ? <Loading/> : (
+        <div className="space-y-3.5 sm:space-y-4">
+          {/* Top 3 Stat Cards */}
+          <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
+            <NumberCard index={0} title="Jumlah Pesilat" value={data.pesilat} icon={GraduationCap} tint="bg-forest-100 text-forest-700"/>
+            <NumberCard index={1} title="Sijil Dikeluarkan" value={data.sijil} icon={Award} tint="bg-amber-50 text-amber-700"/>
+            <NumberCard index={2} title="Jumlah Cawangan" value={data.branches} icon={MapPin} tint="bg-blue-50 text-blue-700"/>
+          </div>
+
+          {/* Quick Action Navigation Buttons */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+            <Link
+              to="/admin/pesilat"
+              className="flex items-center justify-between gap-2 rounded-xl bg-forest-900 px-3.5 py-2.5 text-white transition hover:bg-forest-700 shadow-xs"
+            >
+              <div className="flex items-center gap-2">
+                <Plus size={16}/>
+                <span className="text-xs font-bold">Urus Pesilat</span>
+              </div>
+              <ArrowUpRight size={14} className="opacity-60"/>
+            </Link>
+
+            <Link
+              to="/admin/templates"
+              className="flex items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-forest-900 transition hover:bg-slate-50 shadow-xs"
+            >
+              <div className="flex items-center gap-2">
+                <Layers size={16} className="text-forest-700"/>
+                <span className="text-xs font-bold">Templat Sijil</span>
+              </div>
+              <ArrowUpRight size={14} className="opacity-60"/>
+            </Link>
+
+            <Link
+              to="/admin/jana-sijil"
+              className="flex items-center justify-between gap-2 rounded-xl bg-gradient-to-r from-gold-500 to-amber-500 px-3.5 py-2.5 text-forest-950 transition hover:opacity-95 shadow-xs"
+            >
+              <div className="flex items-center gap-2">
+                <Sparkles size={16}/>
+                <span className="text-xs font-bold">Jana Sijil Pukal</span>
+              </div>
+              <ArrowUpRight size={14} className="opacity-60"/>
+            </Link>
+
+            <Link
+              to="/admin/sijil"
+              className="flex items-center justify-between gap-2 rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-forest-900 transition hover:bg-slate-50 shadow-xs"
+            >
+              <div className="flex items-center gap-2">
+                <Award size={16} className="text-amber-600"/>
+                <span className="text-xs font-bold">Senarai Sijil</span>
+              </div>
+              <ArrowUpRight size={14} className="opacity-60"/>
+            </Link>
+          </div>
+
+          {/* 2-Column Split: Analytics (Left) & Recent Certificates (Right) */}
+          <div className="grid gap-3.5 lg:grid-cols-12">
+            {/* Left Column: Breakdowns */}
+            <Panel className="p-4 lg:col-span-7">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <BreakdownCard title="Mengikut Peringkat" rows={data.byLevel}/>
+                <BreakdownCard title="Mengikut Cawangan" rows={data.byBranch}/>
+              </div>
+            </Panel>
+
+            {/* Right Column: Sijil Terkini */}
+            <Panel className="lg:col-span-5 flex flex-col">
+              <div className="flex items-center justify-between border-b border-slate-100 p-3 sm:px-4">
+                <div>
+                  <h3 className="text-xs font-extrabold text-forest-950 uppercase tracking-wider">Sijil Terkini</h3>
+                </div>
+                <Link to="/admin/sijil" className="flex items-center gap-0.5 text-xs font-bold text-forest-700 hover:underline">
+                  Semua <ChevronRight size={14}/>
+                </Link>
+              </div>
+
+              {data.recent.length ? (
+                <div className="divide-y divide-slate-100 max-h-[260px] overflow-y-auto">
+                  {data.recent.map(r=>(
+                    <div key={r.id} className="flex items-center gap-3 px-4 py-2.5 hover:bg-slate-50 transition">
+                      <div className="grid h-8 w-8 place-items-center rounded-lg bg-amber-50 text-amber-700 shrink-0">
+                        <Award size={16}/>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-xs font-bold text-forest-950">{r.nama_penuh}</div>
+                        <div className="truncate text-[10px] text-slate-400">{r.nama_sijil} • {r.cawangan}</div>
+                      </div>
+                      <div className="flex items-center gap-1 text-[10px] text-slate-400 shrink-0">
+                        <CalendarDays size={11}/>
+                        <span>{fmtDate(r.tarikh_isu)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <Empty title="Belum ada sijil" message="Keluarkan sijil pertama melalui menu Pengurusan Sijil."/>
+              )}
+            </Panel>
+          </div>
+        </div>
+      )}
+    </>
+  );
+}

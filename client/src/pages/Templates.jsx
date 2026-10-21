@@ -235,20 +235,20 @@ export function Templates() {
       <PageIntro
         eyebrow="TEMPLAT PDF"
         title="Templat Sijil Rasmi"
-        desc="Muat naik fail templat sijil dalam bentuk PDF (2 muka surat) mengikut peringkat untuk janaan automatik."
+        desc="Fail templat PDF (2 muka surat) mengikut peringkat untuk janaan automatik."
         actions={
-          <Button onClick={() => setUploadOpen(true)}>
-            <Plus size={18}/> Muat Naik Templat
+          <Button onClick={() => setUploadOpen(true)} className="!px-3.5 !py-2 text-xs">
+            <Plus size={16}/> Muat Naik Templat
           </Button>
         }
       />
 
-      <Panel>
-        <div className="flex items-center justify-between border-b border-slate-100 p-5">
+      <Panel className="flex flex-col">
+        <div className="flex items-center justify-between border-b border-slate-100 p-3 sm:px-4 sm:py-3">
           <div className="flex items-center gap-2">
-            <Layers className="text-forest-700" size={20}/>
-            <div className="text-sm font-extrabold text-forest-950">Senarai Templat Sijil</div>
-            <Chip>{data?.rows?.length || 0} templat</Chip>
+            <Layers className="text-forest-700 shrink-0" size={18}/>
+            <div className="text-xs sm:text-sm font-extrabold text-forest-950">Senarai Templat Sijil</div>
+            <Chip color="emerald">{data?.rows?.length || 0} templat</Chip>
           </div>
         </div>
 
@@ -261,65 +261,65 @@ export function Templates() {
             message="Klik butang 'Muat Naik Templat' untuk menambah fail PDF templat sijil pertama."
           />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[800px] text-left text-sm">
-              <thead className="bg-[#FBFCFA] text-[10px] font-extrabold uppercase tracking-[.14em] text-slate-400">
+          <div className="overflow-x-auto max-h-[calc(100vh-230px)] overflow-y-auto">
+            <table className="w-full min-w-[760px] text-left text-xs sm:text-sm">
+              <thead className="sticky top-0 z-10 bg-[#FBFCFA] text-[10px] font-extrabold uppercase tracking-[.14em] text-slate-400 border-b border-slate-100 shadow-2xs">
                 <tr>
-                  <th className="px-5 py-4">Nama Templat</th>
-                  <th className="px-5 py-4">Peringkat / Bengkung</th>
-                  <th className="px-5 py-4">Fail PDF</th>
-                  <th className="px-5 py-4">Tarikh Muat Naik</th>
-                  <th className="px-5 py-4 text-center">Tindakan</th>
+                  <th className="px-3.5 py-2.5">Nama Templat</th>
+                  <th className="px-3.5 py-2.5">Peringkat / Bengkung</th>
+                  <th className="px-3.5 py-2.5">Fail PDF</th>
+                  <th className="px-3.5 py-2.5">Tarikh Muat Naik</th>
+                  <th className="px-3.5 py-2.5 text-right">Tindakan</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {data.rows.map(item => (
-                  <tr key={item.id} className="transition hover:bg-forest-100/25">
-                    <td className="px-5 py-4">
-                      <div className="font-bold text-forest-950">{item.nama_template}</div>
+                  <tr key={item.id} className="transition hover:bg-slate-50">
+                    <td className="px-3.5 py-2.5">
+                      <div className="font-bold text-forest-950 text-xs sm:text-sm">{item.nama_template}</div>
                       {item.keterangan && (
-                        <div className="text-xs text-slate-400 mt-0.5">{item.keterangan}</div>
+                        <div className="text-[10px] text-slate-400 mt-0.5">{item.keterangan}</div>
                       )}
                     </td>
-                    <td className="px-5 py-4">
+                    <td className="px-3.5 py-2.5 whitespace-nowrap">
                       <Chip color="gold">{item.peringkat}</Chip>
                     </td>
-                    <td className="px-5 py-4 text-xs text-slate-600">
-                      <div className="flex items-center gap-1.5 font-medium">
-                        <FileText size={15} className="text-forest-700"/>
+                    <td className="px-3.5 py-2.5 text-xs text-slate-600 whitespace-nowrap">
+                      <div className="flex items-center gap-1 font-medium">
+                        <FileText size={14} className="text-forest-700 shrink-0"/>
                         <span className="truncate max-w-[180px]" title={item.file_name}>{item.file_name}</span>
                       </div>
-                      <span className="text-[11px] text-slate-400">
+                      <span className="text-[10px] text-slate-400">
                         {(item.file_size / 1024).toFixed(1)} KB
                       </span>
                     </td>
-                    <td className="px-5 py-4 text-xs text-slate-500 whitespace-nowrap">
+                    <td className="px-3.5 py-2.5 text-xs text-slate-500 whitespace-nowrap">
                       {fmtDate(item.created_at.slice(0, 10))}
                     </td>
-                    <td className="px-5 py-4">
-                      <div className="flex items-center justify-center gap-2">
+                    <td className="px-3.5 py-2.5 text-right whitespace-nowrap">
+                      <div className="inline-flex items-center gap-1">
                         <a
                           href={`/api/admin/templates/${item.id}/preview`}
                           target="_blank"
                           rel="noopener noreferrer"
                           title="Lihat fail PDF asal"
-                          className="rounded-lg bg-slate-100 p-2 text-slate-600 transition hover:bg-forest-100 hover:text-forest-800"
+                          className="rounded-lg bg-slate-100 p-1.5 text-slate-600 transition hover:bg-forest-100 hover:text-forest-800"
                         >
-                          <Eye size={16}/>
+                          <Eye size={14}/>
                         </a>
                         <button
                           onClick={() => setTestTarget(item)}
                           title="Uji janaan nama pada templat"
-                          className="rounded-lg bg-emerald-50 p-2 text-emerald-700 transition hover:bg-emerald-100"
+                          className="rounded-lg bg-emerald-50 p-1.5 text-emerald-700 transition hover:bg-emerald-100"
                         >
-                          <Play size={16}/>
+                          <Play size={14}/>
                         </button>
                         <button
                           onClick={() => setDeleteTarget(item)}
                           title="Padam templat"
-                          className="rounded-lg bg-rose-50 p-2 text-rose-600 transition hover:bg-rose-100"
+                          className="rounded-lg bg-rose-50 p-1.5 text-rose-600 transition hover:bg-rose-100"
                         >
-                          <Trash2 size={16}/>
+                          <Trash2 size={14}/>
                         </button>
                       </div>
                     </td>

@@ -493,4 +493,229 @@ function StudentDetailsModal({ open, onClose, student, onEdit, onSaved }) {
 
 function StudentEditor({open,onClose,onSaved,selected}){const[form,setForm]=useState(base),[saving,setSaving]=useState(false);useEffect(()=>setForm(selected||base),[selected,open]);const set=(k,v)=>setForm(f=>({...f,[k]:v}));async function submit(e){e.preventDefault();setSaving(true);try{if(selected){await api('/admin/students/'+selected.id,{method:'PUT',body:form});toast.success('Maklumat pesilat dikemas kini.');}else{await api('/admin/students',{method:'POST',body:form});toast.success('Pesilat berjaya ditambah.');}onSaved();onClose();}catch(e){toast.error(e.message);}finally{setSaving(false);}}
  return <Modal open={open} onClose={onClose} title={selected?'Kemaskini Maklumat Pesilat':'Tambah Pesilat Baharu'}><form onSubmit={submit} className="space-y-4"><Input label="Nama Penuh Pesilat *" required placeholder="Contoh: Muhammad Adam Bin Ali" value={form.nama_penuh||''} onChange={e=>set('nama_penuh',e.target.value)}/><Input label="No. KP / ID Pesilat" placeholder="Kosongkan untuk ID automatik" value={form.no_kp_atau_id||''} onChange={e=>set('no_kp_atau_id',e.target.value)}/><div className="grid gap-4 sm:grid-cols-2"><Input label="Peringkat / Bengkung *" list="level-suggestions" required value={form.peringkat||''} onChange={e=>set('peringkat',e.target.value)}/><datalist id="level-suggestions">{['Ujian Awan Putih Cula Merah 1','Ujian Awan Putih Cula Merah 2','Ujian Awan Putih Cula Merah 3','Ujian Awan Putih Cula Hijau 1','Ujian Awan Putih Cula Hijau 2','Ujian Awan Putih Cula Hijau 3','Ujian Awan Putih Cula Kuning 1','Ujian Awan Putih Cula Kuning 2','Ujian Awan Putih Cula Kuning 3','Ujian Awan Putih Cula Hitam 1','Ujian Awan Putih Cula Hitam 2','Ujian Awan Putih Cula Hitam 3','Awan Putih Cula Merah 1','Awan Putih Cula Merah 2','Awan Putih Cula Merah 3','Awan Putih Cula Hijau 1','Awan Putih Cula Hijau 2','Awan Putih Cula Hijau 3','Awan Putih Cula Kuning 1','Awan Putih Cula Kuning 2','Awan Putih Cula Kuning 3','Awan Putih Cula Hitam 1','Awan Putih Cula Hitam 2','Awan Putih Cula Hitam 3'].map(x=><option key={x} value={x}/>)}</datalist><Input label="Nama Cawangan / Gelanggang *" required placeholder="Contoh: Skudai" value={form.cawangan||''} onChange={e=>set('cawangan',e.target.value)}/></div><Input label="Tarikh Daftar *" type="date" required value={form.tarikh_daftar||base.tarikh_daftar} onChange={e=>set('tarikh_daftar',e.target.value)}/><div className="flex justify-end gap-2 pt-4"><Button type="button" variant="secondary" onClick={onClose}>Batal</Button><Button type="submit" loading={saving}>{selected?'Simpan Perubahan':'Tambah Pesilat'}</Button></div></form></Modal>}
-export function Students(){const[data,setData]=useState(null),[q,setQ]=useState(''),[branch,setBranch]=useState(''),[level,setLevel]=useState(''),[page,setPage]=useState(1),[edit,setEdit]=useState(null),[formOpen,setFormOpen]=useState(false),[importOpen,setImportOpen]=useState(false),[deleteTarget,setDeleteTarget]=useState(null),[deleting,setDeleting]=useState(false),[viewTarget,setViewTarget]=useState(null);const fetchRows=useCallback(()=>api('/admin/students?'+new URLSearchParams({q,branch,level,page:String(page)})).then(setData).catch(e=>toast.error(e.message)),[q,branch,level,page]);useEffect(()=>{const t=setTimeout(fetchRows,180);return()=>clearTimeout(t);},[fetchRows]);async function remove(){setDeleting(true);try{await api('/admin/students/'+deleteTarget.id,{method:'DELETE'});toast.success('Pesilat dipadam bersama sijil berkaitan.');setDeleteTarget(null);fetchRows();}catch(e){toast.error(e.message);}finally{setDeleting(false);}}function openAdd(){setEdit(null);setFormOpen(true);}function openEdit(item){setEdit(item);setFormOpen(true);}return <><PageIntro eyebrow="REKOD PELAJAR" title="Pengurusan Pesilat" desc="Tambah, kemas kini, padam, import dan cari semua rekod pesilat mengikut cawangan." actions={<><a href="/api/admin/students/export" className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-bold text-forest-900 transition hover:bg-slate-50"><Download size={17}/> Export CSV</a><Button variant="secondary" onClick={()=>setImportOpen(true)}><FileUp size={17}/> Import CSV</Button><Button onClick={openAdd}><Plus size={18}/> Tambah Pesilat</Button></>}/><Panel><div className="flex flex-col gap-3 border-b border-slate-100 p-5 xl:flex-row xl:items-center xl:justify-between"><div className="flex items-center gap-2.5"><GraduationCap className="text-forest-700" size={22}/><div className="text-sm font-extrabold text-forest-950">Senarai Pelajar</div><span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-extrabold text-emerald-800">Jumlah: {data?.total||0} orang pelajar</span></div><div className="grid gap-2 sm:grid-cols-3"><SearchField value={q} onChange={v=>{setQ(v);setPage(1);}} placeholder="Cari nama atau ID..."/><select aria-label="Tapis cawangan" className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-xs text-slate-600 outline-none" value={branch} onChange={e=>{setBranch(e.target.value);setPage(1);}}><option value="">Semua Cawangan</option>{data?.branches?.map(x=><option key={x}>{x}</option>)}</select><select aria-label="Tapis peringkat" className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-xs text-slate-600 outline-none" value={level} onChange={e=>{setLevel(e.target.value);setPage(1);}}><option value="">Semua Peringkat</option>{data?.levels?.map(x=><option key={x}>{x}</option>)}</select></div></div>{!data?<Loading/>:data.rows.length?<div className="overflow-x-auto"><table className="w-full min-w-[880px] border-collapse text-left text-sm"><thead className="bg-[#FBFCFA] text-[10px] font-extrabold uppercase tracking-[.14em] text-slate-400"><tr>{['Bil.','Pesilat','ID / No. KP','Cawangan','Peringkat','Tarikh Daftar','Sijil','Tindakan'].map((x,idx)=><th key={x} className={`px-5 py-4 ${idx===0?'w-14 text-center':''}`}>{x}</th>)}</tr></thead><tbody className="divide-y divide-slate-100">{data.rows.map((r,i)=><tr key={r.id} className="transition hover:bg-forest-100/25"><td className="px-5 py-4 text-center text-xs font-bold text-slate-400 w-14">{(page-1)*20+i+1}</td><td className="max-w-[240px] px-5 py-4"><div className="flex items-center gap-3"><div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-forest-100 text-xs font-extrabold text-forest-700">{r.nama_penuh.split(' ').slice(0,2).map(x=>x[0]).join('').toUpperCase()}</div><div className="min-w-0"><button onClick={()=>setViewTarget(r)} className="truncate font-bold text-forest-950 hover:underline text-left block max-w-full" title={r.nama_penuh}>{r.nama_penuh}</button></div></div></td><td className="px-5 py-4 text-xs font-mono text-slate-600">{r.no_kp_atau_id}</td><td className="px-5 py-4 text-xs text-slate-600">{r.cawangan}</td><td className="px-5 py-4"><Chip color="gold">{r.peringkat}</Chip></td><td className="px-5 py-4 text-xs font-semibold text-forest-900 whitespace-nowrap"><div className="inline-flex items-center gap-1.5 rounded-lg bg-slate-50 px-2.5 py-1 text-slate-700 border border-slate-200"><CalendarDays size={13} className="text-forest-600"/>{fmtDate(r.tarikh_daftar)}</div></td><td className="px-5 py-4"><button type="button" onClick={()=>setViewTarget(r)} title="Lihat dan urus sijil pelajar ini" className="inline-flex items-center gap-1.5 rounded-lg bg-forest-50 px-2.5 py-1 text-xs font-extrabold text-forest-800 transition hover:bg-forest-100 hover:text-forest-900"><Award size={14} className="text-forest-700"/><span>{r.sijil_count} sijil</span></button></td><td className="px-5 py-4"><div className="flex gap-2"><button onClick={()=>setViewTarget(r)} title="Lihat butiran pesilat" aria-label="Lihat butiran pesilat" className="rounded-lg bg-blue-50 p-2 text-blue-600 transition hover:bg-blue-100"><Eye size={16}/></button><button onClick={()=>openEdit(r)} title="Kemaskini pesilat" aria-label="Kemaskini pesilat" className="rounded-lg bg-slate-100 p-2 text-slate-600 transition hover:bg-forest-100 hover:text-forest-800"><Edit3 size={16}/></button><button onClick={()=>setDeleteTarget(r)} title="Padam pesilat" aria-label="Padam pesilat" className="rounded-lg bg-rose-50 p-2 text-rose-600 transition hover:bg-rose-100"><Trash2 size={16}/></button></div></td></tr>)}</tbody></table></div>:<Empty title="Tiada rekod pesilat" message="Tambah pesilat baharu atau ubah kriteria carian."/>}<Pagination page={data?.page||1} pages={data?.pages||1} onChange={setPage}/></Panel><StudentDetailsModal open={!!viewTarget} onClose={()=>setViewTarget(null)} student={viewTarget} onEdit={openEdit} onSaved={fetchRows}/><StudentEditor open={formOpen} onClose={()=>setFormOpen(false)} onSaved={fetchRows} selected={edit}/><ImportStudentsModal open={importOpen} onClose={()=>setImportOpen(false)} onSaved={fetchRows}/><Confirm open={!!deleteTarget} onClose={()=>setDeleteTarget(null)} onConfirm={remove} busy={deleting} title="Padam pesilat ini?" message={`Anda akan memadam ${deleteTarget?.nama_penuh||'pesilat'} dan SEMUA sijil miliknya secara kekal.`}/></>}
+export function Students(){
+  const [data,setData]=useState(null),
+    [q,setQ]=useState(''),
+    [branch,setBranch]=useState(''),
+    [level,setLevel]=useState(''),
+    [page,setPage]=useState(1),
+    [edit,setEdit]=useState(null),
+    [formOpen,setFormOpen]=useState(false),
+    [importOpen,setImportOpen]=useState(false),
+    [deleteTarget,setDeleteTarget]=useState(null),
+    [deleting,setDeleting]=useState(false),
+    [viewTarget,setViewTarget]=useState(null);
+
+  const fetchRows=useCallback(()=>
+    api('/admin/students?'+new URLSearchParams({q,branch,level,page:String(page)}))
+      .then(setData)
+      .catch(e=>toast.error(e.message)),
+    [q,branch,level,page]
+  );
+
+  useEffect(()=>{
+    const t=setTimeout(fetchRows,180);
+    return()=>clearTimeout(t);
+  },[fetchRows]);
+
+  async function remove(){
+    setDeleting(true);
+    try {
+      await api('/admin/students/'+deleteTarget.id,{method:'DELETE'});
+      toast.success('Pesilat dipadam bersama sijil berkaitan.');
+      setDeleteTarget(null);
+      fetchRows();
+    } catch(e) {
+      toast.error(e.message);
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  function openAdd(){ setEdit(null); setFormOpen(true); }
+  function openEdit(item){ setEdit(item); setFormOpen(true); }
+
+  return (
+    <>
+      <PageIntro
+        eyebrow="REKOD PELAJAR"
+        title="Pengurusan Pesilat"
+        desc="Urus maklumat pesilat, sijil dan import pangkalan data."
+        actions={
+          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+            <a
+              href="/api/admin/students/export"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-forest-900 transition hover:bg-slate-50 shadow-xs"
+            >
+              <Download size={14}/> Export CSV
+            </a>
+            <Button variant="secondary" onClick={()=>setImportOpen(true)} className="!px-3 !py-2 text-xs">
+              <FileUp size={14}/> Import CSV
+            </Button>
+            <Button onClick={openAdd} className="!px-3 !py-2 text-xs">
+              <Plus size={15}/> Tambah Pesilat
+            </Button>
+          </div>
+        }
+      />
+
+      <Panel className="flex flex-col">
+        {/* Filter bar */}
+        <div className="flex flex-col gap-2.5 border-b border-slate-100 p-3 sm:px-4 sm:py-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-2">
+            <GraduationCap className="text-forest-700 shrink-0" size={20}/>
+            <div className="text-xs sm:text-sm font-extrabold text-forest-950">Senarai Pelajar</div>
+            <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[10px] sm:text-xs font-extrabold text-emerald-800">
+              {data?.total||0} orang
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full lg:w-auto">
+            <SearchField value={q} onChange={v=>{setQ(v);setPage(1);}} placeholder="Cari nama atau ID..."/>
+            <select
+              aria-label="Tapis cawangan"
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 outline-none focus:border-forest-500"
+              value={branch}
+              onChange={e=>{setBranch(e.target.value);setPage(1);}}
+            >
+              <option value="">Semua Cawangan</option>
+              {data?.branches?.map(x=><option key={x} value={x}>{x}</option>)}
+            </select>
+            <select
+              aria-label="Tapis peringkat"
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 outline-none focus:border-forest-500"
+              value={level}
+              onChange={e=>{setLevel(e.target.value);setPage(1);}}
+            >
+              <option value="">Semua Peringkat</option>
+              {data?.levels?.map(x=><option key={x} value={x}>{x}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {/* Table content: capped height on laptop for 1-screen fit, smooth touch scroll on mobile */}
+        {!data ? (
+          <Loading/>
+        ) : data.rows.length ? (
+          <div className="overflow-x-auto max-h-[calc(100vh-230px)] overflow-y-auto">
+            <table className="w-full min-w-[800px] border-collapse text-left text-xs sm:text-sm">
+              <thead className="sticky top-0 z-10 bg-[#FBFCFA] text-[10px] font-extrabold uppercase tracking-[.14em] text-slate-400 border-b border-slate-100 shadow-2xs">
+                <tr>
+                  <th className="w-12 px-3.5 py-2.5 text-center">Bil.</th>
+                  <th className="px-3.5 py-2.5">Pesilat</th>
+                  <th className="px-3.5 py-2.5">No. KP / ID</th>
+                  <th className="px-3.5 py-2.5">Cawangan</th>
+                  <th className="px-3.5 py-2.5">Peringkat</th>
+                  <th className="px-3.5 py-2.5">Tarikh Daftar</th>
+                  <th className="px-3.5 py-2.5">Sijil</th>
+                  <th className="px-3.5 py-2.5 text-right">Tindakan</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {data.rows.map((r,i)=>(
+                  <tr key={r.id} className="transition hover:bg-forest-100/20">
+                    <td className="px-3.5 py-2.5 text-center text-xs font-bold text-slate-400 w-12">
+                      {(page-1)*20+i+1}
+                    </td>
+                    <td className="max-w-[220px] px-3.5 py-2.5">
+                      <div className="flex items-center gap-2.5">
+                        <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-forest-100 text-[11px] font-extrabold text-forest-700">
+                          {r.nama_penuh.split(' ').slice(0,2).map(x=>x[0]).join('').toUpperCase()}
+                        </div>
+                        <div className="min-w-0">
+                          <button
+                            onClick={()=>setViewTarget(r)}
+                            className="truncate font-bold text-forest-950 hover:underline text-left block max-w-full text-xs sm:text-sm"
+                            title={r.nama_penuh}
+                          >
+                            {r.nama_penuh}
+                          </button>
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-3.5 py-2.5 text-xs font-mono text-slate-600 whitespace-nowrap">
+                      {r.no_kp_atau_id}
+                    </td>
+                    <td className="px-3.5 py-2.5 text-xs text-slate-600 whitespace-nowrap">
+                      {r.cawangan}
+                    </td>
+                    <td className="px-3.5 py-2.5 whitespace-nowrap">
+                      <Chip color="gold">{r.peringkat}</Chip>
+                    </td>
+                    <td className="px-3.5 py-2.5 text-xs text-slate-600 whitespace-nowrap">
+                      <div className="inline-flex items-center gap-1 rounded-md bg-slate-50 px-2 py-0.5 text-slate-700 border border-slate-200">
+                        <CalendarDays size={11} className="text-forest-600"/>
+                        <span>{fmtDate(r.tarikh_daftar)}</span>
+                      </div>
+                    </td>
+                    <td className="px-3.5 py-2.5 whitespace-nowrap">
+                      <button
+                        type="button"
+                        onClick={()=>setViewTarget(r)}
+                        title="Lihat dan urus sijil pelajar ini"
+                        className="inline-flex items-center gap-1 rounded-md bg-forest-50 px-2 py-0.5 text-xs font-bold text-forest-800 transition hover:bg-forest-100 hover:text-forest-900"
+                      >
+                        <Award size={13} className="text-forest-700"/>
+                        <span>{r.sijil_count} sijil</span>
+                      </button>
+                    </td>
+                    <td className="px-3.5 py-2.5 text-right whitespace-nowrap">
+                      <div className="inline-flex items-center gap-1">
+                        <button
+                          onClick={()=>setViewTarget(r)}
+                          title="Lihat butiran pesilat"
+                          aria-label="Lihat butiran pesilat"
+                          className="rounded-lg bg-blue-50 p-1.5 text-blue-600 transition hover:bg-blue-100"
+                        >
+                          <Eye size={14}/>
+                        </button>
+                        <button
+                          onClick={()=>openEdit(r)}
+                          title="Kemaskini pesilat"
+                          aria-label="Kemaskini pesilat"
+                          className="rounded-lg bg-slate-100 p-1.5 text-slate-600 transition hover:bg-forest-100 hover:text-forest-800"
+                        >
+                          <Edit3 size={14}/>
+                        </button>
+                        <button
+                          onClick={()=>setDeleteTarget(r)}
+                          title="Padam pesilat"
+                          aria-label="Padam pesilat"
+                          className="rounded-lg bg-rose-50 p-1.5 text-rose-600 transition hover:bg-rose-100"
+                        >
+                          <Trash2 size={14}/>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : (
+          <Empty title="Tiada rekod pesilat" message="Tambah pesilat baharu atau ubah kriteria carian."/>
+        )}
+
+        <Pagination page={data?.page||1} pages={data?.pages||1} onChange={setPage}/>
+      </Panel>
+
+      <StudentDetailsModal
+        open={!!viewTarget}
+        onClose={()=>setViewTarget(null)}
+        student={viewTarget}
+        onEdit={openEdit}
+        onSaved={fetchRows}
+      />
+      <StudentEditor open={formOpen} onClose={()=>setFormOpen(false)} onSaved={fetchRows} selected={edit}/>
+      <ImportStudentsModal open={importOpen} onClose={()=>setImportOpen(false)} onSaved={fetchRows}/>
+      <Confirm
+        open={!!deleteTarget}
+        onClose={()=>setDeleteTarget(null)}
+        onConfirm={remove}
+        busy={deleting}
+        title="Padam pesilat ini?"
+        message={`Anda akan memadam ${deleteTarget?.nama_penuh||'pesilat'} dan SEMUA sijil miliknya secara kekal.`}
+      />
+    </>
+  );
+}
