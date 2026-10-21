@@ -446,10 +446,17 @@ export function AppProvider({ children }) {
   // Apply Theme
   useEffect(() => {
     const root = document.documentElement;
+    const body = document.body;
     if (theme === 'dark') {
       root.classList.add('dark');
+      if (body) body.classList.add('dark');
+      root.setAttribute('data-theme', 'dark');
+      root.style.colorScheme = 'dark';
     } else {
       root.classList.remove('dark');
+      if (body) body.classList.remove('dark');
+      root.setAttribute('data-theme', 'light');
+      root.style.colorScheme = 'light';
     }
     localStorage.setItem('prosijil_theme', theme);
   }, [theme]);
