@@ -121,46 +121,46 @@ export function Dashboard() {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
             <Link
               to="/admin/pesilat"
-              className="flex items-center justify-between gap-2 rounded-xl bg-red-700 px-3.5 py-2.5 text-white transition hover:bg-red-800 shadow-xs active:scale-[0.98]"
+              className="flex items-center justify-between gap-2 rounded-xl border border-slate-200/90 bg-white px-3.5 py-2.5 text-slate-900 transition hover:bg-slate-50 hover:border-slate-300 shadow-2xs active:scale-[0.98]"
             >
               <div className="flex items-center gap-2">
-                <Plus size={16} />
+                <Plus size={16} className="text-red-700" />
                 <span className="text-xs font-bold">Urus Pesilat</span>
               </div>
-              <ArrowUpRight size={14} className="opacity-70" />
+              <ArrowUpRight size={14} className="opacity-50 text-slate-400" />
             </Link>
 
             <Link
               to="/admin/templates"
-              className="flex items-center justify-between gap-2 rounded-xl border border-slate-200/90 bg-white px-3.5 py-2.5 text-slate-900 transition hover:bg-slate-50 shadow-2xs active:scale-[0.98]"
+              className="flex items-center justify-between gap-2 rounded-xl border border-slate-200/90 bg-white px-3.5 py-2.5 text-slate-900 transition hover:bg-slate-50 hover:border-slate-300 shadow-2xs active:scale-[0.98]"
             >
               <div className="flex items-center gap-2">
                 <Layers size={16} className="text-red-700" />
                 <span className="text-xs font-bold">Templat Sijil</span>
               </div>
-              <ArrowUpRight size={14} className="opacity-50" />
+              <ArrowUpRight size={14} className="opacity-50 text-slate-400" />
             </Link>
 
             <Link
               to="/admin/jana-sijil"
-              className="flex items-center justify-between gap-2 rounded-xl bg-gradient-to-r from-red-600 via-rose-600 to-red-700 px-3.5 py-2.5 text-white transition hover:opacity-95 shadow-xs active:scale-[0.98]"
+              className="flex items-center justify-between gap-2 rounded-xl border border-slate-200/90 bg-white px-3.5 py-2.5 text-slate-900 transition hover:bg-slate-50 hover:border-slate-300 shadow-2xs active:scale-[0.98]"
             >
               <div className="flex items-center gap-2">
-                <Sparkles size={16} />
+                <Sparkles size={16} className="text-red-700" />
                 <span className="text-xs font-bold">Jana Sijil Pukal</span>
               </div>
-              <ArrowUpRight size={14} className="opacity-70" />
+              <ArrowUpRight size={14} className="opacity-50 text-slate-400" />
             </Link>
 
             <Link
               to="/admin/sijil"
-              className="flex items-center justify-between gap-2 rounded-xl border border-slate-200/90 bg-white px-3.5 py-2.5 text-slate-900 transition hover:bg-slate-50 shadow-2xs active:scale-[0.98]"
+              className="flex items-center justify-between gap-2 rounded-xl border border-slate-200/90 bg-white px-3.5 py-2.5 text-slate-900 transition hover:bg-slate-50 hover:border-slate-300 shadow-2xs active:scale-[0.98]"
             >
               <div className="flex items-center gap-2">
-                <Award size={16} className="text-rose-700" />
+                <Award size={16} className="text-red-700" />
                 <span className="text-xs font-bold">Senarai Sijil</span>
               </div>
-              <ArrowUpRight size={14} className="opacity-50" />
+              <ArrowUpRight size={14} className="opacity-50 text-slate-400" />
             </Link>
           </div>
 
