@@ -55,6 +55,13 @@ const defaults = {
 for (const [key, value] of Object.entries(defaults)) {
  db.prepare('INSERT OR IGNORE INTO settings (key,value) VALUES (?,?)').run(key, value);
 }
+
+// Pastikan akaun admin lalai sedia ada sekiranya pangkalan data baru diwujudkan
+const adminCount = db.prepare('SELECT count(*) AS n FROM admin_users').get()?.n || 0;
+if (adminCount === 0) {
+  db.prepare('INSERT OR IGNORE INTO admin_users (username, password_hash) VALUES (?, ?)')
+    .run('KagumProsijil', '$2b$12$d/mpnJbDSg6Jzwc.sz9EzeB6AAxVyMoIRQw7/1A26dDr8zpbD0L/S');
+}
 export function getSettings() {
  return Object.fromEntries(db.prepare('SELECT key,value FROM settings').all().map(x => [x.key,x.value]));
 }
