@@ -31,27 +31,35 @@ const items = [
 
 function Sidebar({ close, logout, user }) {
   return (
-    <div className="flex h-full flex-col overflow-y-auto">
-      <div className="relative flex items-center justify-center border-b border-white/10 px-4 py-4">
+    <div className="flex h-full flex-col overflow-y-auto bg-white">
+      {/* Top red accent line */}
+      <div className="h-1 w-full bg-gradient-to-r from-red-600 via-rose-600 to-red-700 shrink-0" />
+
+      {/* Brand Header */}
+      <div className="relative flex items-center justify-center border-b border-slate-100 px-4 py-3.5 bg-[#FCFDFB]">
         <Link to="/" onClick={close} className="flex items-center justify-center mx-auto text-center">
-          <Logo light small center />
+          <Logo small center />
         </Link>
         {close && (
           <button
             onClick={close}
             aria-label="Tutup menu"
-            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-white/70 hover:bg-white/10 hover:text-white lg:hidden"
+            className="absolute right-3 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-slate-400 hover:bg-red-50 hover:text-red-700 lg:hidden transition"
           >
-            <X size={19} />
+            <X size={18} />
           </button>
         )}
       </div>
 
-      <div className="flex-1 px-3 py-4">
-        <span className="px-3 text-[9px] font-extrabold uppercase tracking-[0.2em] text-white/40">
-          MENU UTAMA
-        </span>
-        <nav className="mt-2 space-y-1">
+      {/* Menu Navigation */}
+      <div className="flex-1 px-3 py-3.5">
+        <div className="flex items-center gap-2 px-3 mb-2">
+          <span className="h-1.5 w-1.5 rounded-full bg-red-600" />
+          <span className="text-[9px] font-extrabold uppercase tracking-[0.2em] text-red-700">
+            MENU UTAMA
+          </span>
+        </div>
+        <nav className="space-y-1">
           {items.map(({ to, icon: Icon, label, end }) => (
             <NavLink
               key={to}
@@ -61,47 +69,64 @@ function Sidebar({ close, logout, user }) {
               className={({ isActive }) =>
                 `group flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold transition-all ${
                   isActive
-                    ? 'bg-white text-red-950 shadow-sm font-bold'
-                    : 'text-white/75 hover:bg-white/10 hover:text-white'
+                    ? 'bg-red-700 text-white shadow-xs font-bold'
+                    : 'text-slate-600 hover:bg-red-50 hover:text-red-700'
                 }`
               }
             >
-              <Icon size={16} className="shrink-0" />
-              <span className="flex-1 truncate">{label}</span>
-              <ChevronRight size={13} className="opacity-0 group-hover:opacity-100 shrink-0 transition" />
+              {({ isActive }) => (
+                <>
+                  <Icon
+                    size={16}
+                    className={`shrink-0 transition-colors ${
+                      isActive ? 'text-white' : 'text-slate-400 group-hover:text-red-700'
+                    }`}
+                  />
+                  <span className="flex-1 truncate">{label}</span>
+                  <ChevronRight
+                    size={13}
+                    className={`shrink-0 transition-all ${
+                      isActive
+                        ? 'text-white/80 opacity-100'
+                        : 'opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 text-red-600'
+                    }`}
+                  />
+                </>
+              )}
             </NavLink>
           ))}
         </nav>
 
-        <div className="my-4 h-px bg-white/10" />
+        <div className="my-3.5 h-px bg-slate-100" />
 
         <a
           href="/"
           target="_blank"
           rel="noopener noreferrer"
           onClick={close}
-          className="flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-white/75 hover:bg-white/10 hover:text-white transition"
+          className="group flex items-center gap-2.5 rounded-xl px-3 py-2 text-xs font-semibold text-slate-600 hover:bg-red-50 hover:text-red-700 transition border border-transparent hover:border-red-100"
         >
-          <ExternalLink size={16} className="shrink-0" />
+          <ExternalLink size={16} className="shrink-0 text-slate-400 group-hover:text-red-700 transition" />
           <span className="truncate">Lihat Portal Awam</span>
         </a>
       </div>
 
-      <div className="p-3 mt-auto border-t border-white/10 bg-black/15">
-        <div className="rounded-xl border border-white/10 bg-white/5 p-2.5">
+      {/* User profile at bottom */}
+      <div className="p-3 mt-auto border-t border-slate-100 bg-[#FCFDFB]">
+        <div className="rounded-xl border border-red-100 bg-red-50/60 p-2.5 shadow-2xs">
           <div className="flex items-center gap-2.5">
-            <div className="grid h-8 w-8 place-items-center rounded-lg bg-red-500 text-xs font-extrabold text-white shadow-xs shrink-0">
+            <div className="grid h-8 w-8 place-items-center rounded-lg bg-red-700 text-xs font-extrabold text-white shadow-xs shrink-0">
               {(user?.username || 'A')[0].toUpperCase()}
             </div>
             <div className="min-w-0 flex-1">
-              <div className="truncate text-xs font-bold text-white">{user?.username || 'Admin'}</div>
-              <div className="text-[10px] text-white/50">Pentadbir Akademi</div>
+              <div className="truncate text-xs font-bold text-slate-900">{user?.username || 'Admin'}</div>
+              <div className="text-[10px] font-semibold text-red-700">Pentadbir Akademi</div>
             </div>
             <button
               onClick={logout}
               aria-label="Log keluar"
               title="Log keluar"
-              className="rounded-lg p-1.5 text-white/50 hover:bg-white/10 hover:text-white transition"
+              className="rounded-lg p-1.5 text-slate-400 hover:bg-red-100 hover:text-red-700 transition"
             >
               <LogOut size={16} />
             </button>
@@ -131,7 +156,7 @@ export function AdminLayout({ user, onLogout }) {
 
   return (
     <div className="min-h-screen bg-[#FBFBFD]">
-      <aside className="fixed inset-y-0 left-0 z-50 hidden w-[230px] bg-red-900 lg:block shadow-md border-r border-red-950/20">
+      <aside className="fixed inset-y-0 left-0 z-50 hidden w-[230px] bg-white lg:block shadow-sm border-r border-slate-200/80">
         <Sidebar user={user} logout={logout} />
       </aside>
 
@@ -140,7 +165,7 @@ export function AdminLayout({ user, onLogout }) {
           className="fixed inset-0 z-[90] bg-slate-950/50 backdrop-blur-xs lg:hidden"
           onClick={() => setOpen(false)}
         >
-          <aside className="h-full w-[260px] bg-red-900 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+          <aside className="h-full w-[260px] bg-white shadow-2xl border-r border-slate-200" onClick={(e) => e.stopPropagation()}>
             <Sidebar user={user} close={() => setOpen(false)} logout={logout} />
           </aside>
         </div>

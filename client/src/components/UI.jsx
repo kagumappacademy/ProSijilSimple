@@ -12,7 +12,9 @@ export function Logo({ light = false, small = false, center = false, className =
       <img
         src="/logo-prosilat.png"
         alt="Logo ProSilat"
-        className={`${small ? 'h-8 sm:h-9' : 'h-10 sm:h-12'} w-auto object-contain shrink-0`}
+        className={`${small ? 'h-8 sm:h-9' : 'h-10 sm:h-12'} w-auto object-contain shrink-0 ${
+          !light ? 'filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.12)]' : ''
+        }`}
       />
       <div className="leading-tight">
         <span
