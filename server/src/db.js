@@ -58,7 +58,7 @@ for (const [key, value] of Object.entries(defaults)) {
 
 // Pastikan akaun admin KagumProsijil sentiasa sedia ada dan dikemaskini
 db.prepare('INSERT INTO admin_users (username, password_hash) VALUES (?, ?) ON CONFLICT(username) DO UPDATE SET password_hash=excluded.password_hash')
-  .run('KagumProsijil', '$2b$12$d/mpnJbDSg6Jzwc.sz9EzeB6AAxVyMoIRQw7/1A26dDr8zpbD0L/S');
+  .run('KagumProsijil', '$2b$12$m.gOPB24d1olq2e5HQc00OfdsGvthuhyxkkd3OgI3KC2QFW..Zi4u');
 db.prepare("DELETE FROM admin_users WHERE username = 'admin'").run();
 export function getSettings() {
  return Object.fromEntries(db.prepare('SELECT key,value FROM settings').all().map(x => [x.key,x.value]));
