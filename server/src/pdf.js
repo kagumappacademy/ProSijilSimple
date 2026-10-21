@@ -10,7 +10,7 @@ function drawCenteredFit(doc, text, y, width, fontSize=31) {
  doc.fontSize(size).fillColor(DEEP).text(text, 78, y, { width, align:'center', lineBreak:false });
 }
 export function createCertificatePdf(res, student, certificate, settings, download=true) {
- const DEEP = /^#[0-9a-fA-F]{6}$/.test(settings.tema_warna||'') ? settings.tema_warna : '#123E35';
+ const DEEP = /^#[0-9a-fA-F]{6}$/.test(settings.tema_warna||'') ? settings.tema_warna : '#991B1B';
  const rawName = (student?.nama_penuh || 'Pesilat').trim();
  const safeName = rawName.replace(/[/\\?%*:|"<>]/g, '').replace(/\s+/g, ' ').trim() || 'Sijil';
  const filename = `${safeName}.pdf`;

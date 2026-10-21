@@ -31,7 +31,7 @@ export function Login({ onLogin }) {
   return (
     <div className="grid min-h-screen bg-canvas lg:grid-cols-2">
       <aside className="mesh-bg relative hidden flex-col justify-between overflow-hidden p-8 lg:p-10 xl:p-12 text-white lg:flex">
-        <div className="dot-grid absolute inset-0 opacity-25" />
+        <div className="dot-grid absolute inset-0 opacity-20" />
         <div className="pointer-events-none absolute -bottom-28 -right-28 h-[400px] w-[400px] rounded-full border-[50px] border-white/5" />
         <div className="relative">
           <Link to="/">
@@ -39,13 +39,13 @@ export function Login({ onLogin }) {
           </Link>
         </div>
         <div className="relative max-w-lg">
-          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-gold-400/30 bg-white/5 px-3.5 py-1.5 text-xs font-bold tracking-widest text-gold-400">
+          <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-rose-400/30 bg-white/10 px-3.5 py-1.5 text-xs font-semibold tracking-wider text-rose-200 backdrop-blur-sm">
             <ShieldCheck size={14} /> PORTAL PENTADBIR
           </div>
           <h1 className="text-3xl lg:text-4xl xl:text-5xl font-extrabold leading-tight tracking-tight">
-            Urus sijil dengan lebih <span className="text-gold-400">mudah & teratur.</span>
+            Urus sijil dengan lebih <span className="text-rose-300">mudah & teratur.</span>
           </h1>
-          <p className="mt-4 max-w-md text-sm leading-7 text-white/60">
+          <p className="mt-4 max-w-md text-sm leading-7 text-white/70">
             Satu platform untuk mengurus rekod pesilat, mengeluarkan sijil, dan memperkasakan akademi silat anda.
           </p>
         </div>
@@ -63,7 +63,7 @@ export function Login({ onLogin }) {
           <div className="mb-5 flex items-center justify-between">
             <Link
               to="/"
-              className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 transition hover:text-forest-700"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 transition hover:text-red-700"
             >
               <ArrowLeft size={14} /> Ke Halaman Utama
             </Link>
@@ -73,10 +73,10 @@ export function Login({ onLogin }) {
           </div>
 
           <div className="mb-6">
-            <div className="mb-1 text-[11px] font-extrabold uppercase tracking-[.2em] text-forest-600">
+            <div className="mb-1 text-[11px] font-extrabold uppercase tracking-[0.2em] text-red-600">
               SELAMAT KEMBALI
             </div>
-            <h2 className="text-2xl font-extrabold tracking-tight text-forest-950 sm:text-3xl">
+            <h2 className="text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl">
               Log Masuk Admin
             </h2>
             <p className="mt-1 text-xs text-slate-500">
@@ -117,8 +117,8 @@ export function Login({ onLogin }) {
             </Button>
           </form>
 
-          <div className="mt-5 flex items-start gap-2.5 rounded-xl bg-forest-100/70 p-3 text-xs leading-5 text-forest-800">
-            <Lock className="mt-0.5 shrink-0" size={15} />
+          <div className="mt-5 flex items-start gap-2.5 rounded-xl bg-red-50 p-3 text-xs leading-5 text-red-900 border border-red-100">
+            <Lock className="mt-0.5 shrink-0 text-red-600" size={15} />
             <span>Khas untuk kakitangan yang diberi kuasa sahaja. Sesi ditamatkan automatik selepas 8 jam.</span>
           </div>
         </motion.div>

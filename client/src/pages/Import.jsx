@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { api } from '../lib/api';
 import { PageIntro, Panel, Button, Chip } from '../components/UI';
 
-const demo = '\uFEFFnama_penuh,no_kp_atau_id,peringkat,cawangan\r\n"Muhammad Adam Bin Ali",,"Awan Putih Cula Merah 1","Skudai"\r\n"Siti Aisyah Binti Ahmad","010203041234","Awan Putih Cula Kuning 2","Kulai"\r\n';
+const demo = '\uFEFFnama_penuh,no_kp_atau_id,peringkat,cawangan\r\n"Muhammad Adam Bin Ali",,"Ujian Awan Putih Cula Merah 1","Skudai"\r\n"Siti Aisyah Binti Ahmad","010203041234","Ujian Awan Putih Cula Kuning 2","Kulai"\r\n';
 
 function csvDownload() {
   const blob = new Blob([demo], { type: 'text/csv;charset=utf-8' });
@@ -55,17 +55,20 @@ export function ImportCSV() {
       <div className="grid gap-3.5 sm:gap-4 xl:grid-cols-[1.3fr_1fr]">
         <Panel className="p-4 sm:p-5">
           <div className="mb-3.5 flex items-center gap-3">
-            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-forest-100 text-forest-700">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-red-50 text-red-700 border border-red-100">
               <FileUp size={20} />
             </div>
             <div>
-              <h2 className="text-sm font-extrabold text-forest-950">Muat Naik Fail CSV</h2>
+              <h2 className="text-sm font-extrabold text-slate-950">Muat Naik Fail CSV</h2>
               <p className="text-[11px] text-slate-400">Format .csv (UTF-8), maksimum 10MB.</p>
             </div>
           </div>
 
           <label
-            onDragOver={(e) => { e.preventDefault(); setDrag(true); }}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDrag(true);
+            }}
             onDragLeave={() => setDrag(false)}
             onDrop={(e) => {
               e.preventDefault();
@@ -75,19 +78,19 @@ export function ImportCSV() {
             }}
             className={`flex min-h-[160px] sm:min-h-[190px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-4 sm:p-6 text-center transition ${
               drag
-                ? 'border-forest-600 bg-forest-100'
-                : 'border-slate-200 bg-slate-50/70 hover:border-forest-500 hover:bg-forest-100/40'
+                ? 'border-red-600 bg-red-50'
+                : 'border-slate-200 bg-slate-50/70 hover:border-red-500 hover:bg-red-50/40'
             }`}
           >
-            <div className="grid h-12 w-12 place-items-center rounded-xl bg-white text-forest-700 shadow-xs">
+            <div className="grid h-12 w-12 place-items-center rounded-xl bg-white text-red-700 shadow-xs border border-slate-100">
               <UploadCloud size={24} />
             </div>
-            <h3 className="mt-3 text-sm font-extrabold text-forest-950">
+            <h3 className="mt-3 text-sm font-extrabold text-slate-950">
               {file ? file.name : 'Seret fail CSV ke sini'}
             </h3>
-            <p className="mt-1 text-xs text-slate-400">atau klik untuk memilih fail daripada peranti</p>
+            <p className="mt-1 text-xs text-slate-400">atau klik untuk memilih fail daripada komputer</p>
             {file && (
-              <span className="mt-2.5 rounded-full bg-forest-100 px-3 py-1 text-[11px] font-bold text-forest-700">
+              <span className="mt-2.5 rounded-full bg-red-50 px-3 py-1 text-[11px] font-bold text-red-700 border border-red-200">
                 {(file.size / 1024).toFixed(1)} KB • Fail Dipilih
               </span>
             )}
@@ -125,8 +128,8 @@ export function ImportCSV() {
                   ['Berjaya', result.inserted],
                   ['Dilangkau', result.skipped],
                 ].map(([label, count]) => (
-                  <div key={label} className="rounded-lg bg-white p-2.5 shadow-xs">
-                    <div className="text-lg font-extrabold text-forest-900">{count}</div>
+                  <div key={label} className="rounded-lg bg-white p-2.5 shadow-xs border border-emerald-100/60">
+                    <div className="text-lg font-extrabold text-slate-900">{count}</div>
                     <div className="text-[10px] text-slate-500">{label}</div>
                   </div>
                 ))}
@@ -146,8 +149,8 @@ export function ImportCSV() {
         <div className="space-y-3.5">
           <Panel className="p-4 sm:p-5">
             <div className="flex items-center gap-2">
-              <FileSpreadsheet size={18} className="text-forest-700" />
-              <h3 className="text-xs font-extrabold uppercase tracking-wider text-forest-950">
+              <FileSpreadsheet size={18} className="text-red-700" />
+              <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-950">
                 Panduan Format CSV
               </h3>
             </div>
@@ -157,7 +160,7 @@ export function ImportCSV() {
 
             <div className="mt-3 overflow-x-auto rounded-xl border border-slate-200">
               <table className="w-full text-left text-xs">
-                <thead className="bg-forest-900 text-white">
+                <thead className="bg-red-900 text-white">
                   <tr>
                     <th className="py-2 px-3 font-semibold text-[11px]">Kolum</th>
                     <th className="py-2 px-3 font-semibold text-[11px]">Status</th>
@@ -173,7 +176,9 @@ export function ImportCSV() {
                     <tr key={name}>
                       <td className="py-1.5 px-3 font-medium text-slate-700 text-xs">{name}</td>
                       <td className="py-1.5 px-3">
-                        <Chip color={color} className="text-[10px] px-2 py-0.5">{val}</Chip>
+                        <Chip color={color} className="text-[10px] px-2 py-0.5">
+                          {val}
+                        </Chip>
                       </td>
                     </tr>
                   ))}
@@ -181,14 +186,14 @@ export function ImportCSV() {
               </table>
             </div>
 
-            <div className="mt-3 flex gap-2.5 rounded-xl bg-forest-100/70 p-3 text-xs leading-5 text-forest-800">
-              <Info size={16} className="mt-0.5 shrink-0" />
+            <div className="mt-3 flex gap-2.5 rounded-xl bg-red-50/80 p-3 text-xs leading-5 text-red-900 border border-red-100">
+              <Info size={16} className="mt-0.5 shrink-0 text-red-600" />
               <span>Jika tiada No. KP / ID, sistem akan menjana ID unik secara automatik (contoh: PS-A1B2C3D4).</span>
             </div>
           </Panel>
 
           <Panel className="p-4 sm:p-5">
-            <h3 className="text-xs font-extrabold uppercase tracking-wider text-forest-950">
+            <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-950">
               Proses Ringkas 3 Langkah
             </h3>
             <div className="mt-3 space-y-2.5">
@@ -198,11 +203,11 @@ export function ImportCSV() {
                 ['3', 'Semak rekod', 'Rekod pendua dilangkau secara pintar.'],
               ].map(([n, title, desc]) => (
                 <div key={n} className="flex items-center gap-2.5">
-                  <div className="grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-amber-50 text-[11px] font-extrabold text-amber-700">
+                  <div className="grid h-6 w-6 shrink-0 place-items-center rounded-lg bg-red-50 text-[11px] font-extrabold text-red-700 border border-red-100">
                     {n}
                   </div>
                   <div className="flex-1 text-xs">
-                    <span className="font-bold text-forest-950">{title}</span>
+                    <span className="font-bold text-slate-900">{title}</span>
                     <span className="text-slate-400"> — {desc}</span>
                   </div>
                 </div>

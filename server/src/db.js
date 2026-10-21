@@ -50,7 +50,7 @@ const defaults = {
  sub_organisasi: 'Pusat Latihan Silat Pintar',
  nama_penandatangan: 'Pengarah Akademi',
  jawatan_penandatangan: 'Pengarah Program',
- tema_warna: '#174b40'
+ tema_warna: '#991b1b'
 };
 for (const [key, value] of Object.entries(defaults)) {
  db.prepare('INSERT OR IGNORE INTO settings (key,value) VALUES (?,?)').run(key, value);

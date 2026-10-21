@@ -74,9 +74,9 @@ function getRankMeta(rank) {
     };
   }
   return {
-    chip: 'forest',
-    border: 'border-slate-200 hover:border-forest-400',
-    badge: 'bg-forest-50 text-forest-700 border-forest-200',
+    chip: 'red',
+    border: 'border-slate-200 hover:border-red-400',
+    badge: 'bg-red-50 text-red-700 border-red-200',
     dot: 'bg-forest-600',
     category: 'lain',
   };
@@ -128,14 +128,14 @@ function UploadTemplateModal({ open, onClose, onSaved }) {
       <form onSubmit={submit} className="space-y-3.5">
         <div>
           <label className="mb-1.5 block text-xs font-bold text-slate-600">Fail Templat PDF (2 Muka Surat) *</label>
-          <label className="flex min-h-[120px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/70 p-4 text-center transition hover:border-forest-600">
-            <UploadCloud size={26} className="text-forest-700 mb-1.5" />
-            <div className="text-xs sm:text-sm font-bold text-forest-950">
+          <label className="flex min-h-[120px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/70 p-4 text-center transition hover:border-red-600">
+            <UploadCloud size={26} className="text-red-700 mb-1.5" />
+            <div className="text-xs sm:text-sm font-bold text-slate-950">
               {file ? file.name : 'Pilih atau seret fail PDF templat sijil'}
             </div>
             <p className="mt-1 text-[11px] text-slate-400">PDF standard (sehingga 10MB). Muka surat 1 mengandungi ruangan nama.</p>
             {file && (
-              <span className="mt-2 text-[11px] font-semibold text-forest-700 bg-forest-100 px-2.5 py-0.5 rounded-full">
+              <span className="mt-2 text-[11px] font-semibold text-red-700 bg-red-50 px-2.5 py-0.5 rounded-full">
                 {(file.size / 1024).toFixed(1)} KB • Sedia dimuat naik
               </span>
             )}
@@ -159,7 +159,7 @@ function UploadTemplateModal({ open, onClose, onSaved }) {
         <div>
           <label className="mb-1.5 block text-xs font-bold text-slate-600">Padanan Peringkat Pesilat *</label>
           <select
-            className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs sm:text-sm text-ink outline-none focus:border-forest-600 focus:ring-4 focus:ring-forest-100"
+            className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs sm:text-sm text-ink outline-none focus:border-red-600 focus:ring-4 focus:ring-red-100"
             value={peringkat}
             onChange={(e) => setPeringkat(e.target.value)}
           >
@@ -243,7 +243,7 @@ function TestGenerateModal({ open, onClose, template }) {
     <Modal open={open} onClose={onClose} title="Uji Cuba Janaan Templat">
       <div className="space-y-3.5">
         <div className="rounded-xl bg-slate-50 p-3.5 border border-slate-200">
-          <div className="font-bold text-forest-950 text-xs sm:text-sm">{template.nama_template}</div>
+          <div className="font-bold text-slate-950 text-xs sm:text-sm">{template.nama_template}</div>
           <div className="text-[11px] text-slate-500 mt-0.5">Peringkat: {template.peringkat}</div>
         </div>
 
@@ -367,8 +367,8 @@ export function Templates() {
         <div className="border-b border-slate-100 p-3 sm:px-4 sm:py-3 space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <Layers className="text-forest-700 shrink-0" size={18} />
-              <div className="text-xs sm:text-sm font-extrabold text-forest-950">
+              <Layers className="text-red-700 shrink-0" size={18} />
+              <div className="text-xs sm:text-sm font-extrabold text-slate-950">
                 Koleksi Templat Sijil
               </div>
               <Chip color="emerald">{filteredTemplates.length} daripada {data?.rows?.length || 0}</Chip>
@@ -381,8 +381,8 @@ export function Templates() {
                 onClick={() => setViewMode('grid')}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition ${
                   viewMode === 'grid'
-                    ? 'bg-white text-forest-900 shadow-xs'
-                    : 'text-slate-500 hover:text-forest-800'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'text-slate-500 hover:text-red-800'
                 }`}
                 title="Paparan Kotak (Grid Sijil)"
               >
@@ -394,8 +394,8 @@ export function Templates() {
                 onClick={() => setViewMode('table')}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition ${
                   viewMode === 'table'
-                    ? 'bg-white text-forest-900 shadow-xs'
-                    : 'text-slate-500 hover:text-forest-800'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'text-slate-500 hover:text-red-800'
                 }`}
                 title="Paparan Jadual"
               >
@@ -422,7 +422,7 @@ export function Templates() {
                   onClick={() => setFilterCula(tab.id)}
                   className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition ${
                     filterCula === tab.id
-                      ? 'bg-forest-900 text-white shadow-xs'
+                      ? 'bg-red-700 text-white shadow-xs'
                       : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/70'
                   }`}
                 >
@@ -441,7 +441,7 @@ export function Templates() {
                   placeholder="Cari templat..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-white pl-8 pr-3 py-1.5 text-xs text-forest-950 placeholder:text-slate-400 outline-none focus:border-forest-600 focus:ring-2 focus:ring-forest-100"
+                  className="w-full rounded-xl border border-slate-200 bg-white pl-8 pr-3 py-1.5 text-xs text-slate-950 placeholder:text-slate-400 outline-none focus:border-red-600 focus:ring-2 focus:ring-red-100"
                 />
               </div>
 
@@ -450,7 +450,7 @@ export function Templates() {
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 outline-none focus:border-forest-600"
+                  className="rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 outline-none focus:border-red-600"
                 >
                   <option value="peringkat">Urutan Peringkat</option>
                   <option value="terkini">Terkini Dimuat Naik</option>
@@ -489,7 +489,7 @@ export function Templates() {
                   >
                     <div>
                       {/* Live Certificate Visual Preview (Visible from outside) */}
-                      <div className="relative aspect-[1/1.38] w-full overflow-hidden rounded-xl border border-slate-200/90 bg-slate-50 shadow-2xs group-hover:border-forest-400 transition">
+                      <div className="relative aspect-[1/1.38] w-full overflow-hidden rounded-xl border border-slate-200/90 bg-slate-50 shadow-2xs group-hover:border-red-400 transition">
                         <PdfThumbnail
                           url={previewUrl}
                           title={item.nama_template}
@@ -507,12 +507,12 @@ export function Templates() {
                         </div>
 
                         {/* Hover Overlay with Quick Action to view full PDF */}
-                        <div className="absolute inset-0 z-20 flex items-center justify-center bg-forest-950/60 opacity-0 backdrop-blur-[2px] transition duration-200 group-hover:opacity-100">
+                        <div className="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/60 opacity-0 backdrop-blur-[2px] transition duration-200 group-hover:opacity-100">
                           <a
                             href={previewUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 rounded-xl bg-white px-3.5 py-2 text-xs font-bold text-forest-900 shadow-lg transition hover:bg-forest-100"
+                            className="inline-flex items-center gap-1.5 rounded-xl bg-white px-3.5 py-2 text-xs font-bold text-slate-900 shadow-lg transition hover:bg-red-50"
                           >
                             <ExternalLink size={14} /> Buka PDF Penuh
                           </a>
@@ -522,7 +522,7 @@ export function Templates() {
                       {/* Certificate Metadata */}
                       <div className="mt-2.5 space-y-1">
                         <h3
-                          className="text-xs sm:text-sm font-extrabold text-forest-950 line-clamp-2 leading-snug"
+                          className="text-xs sm:text-sm font-extrabold text-slate-950 line-clamp-2 leading-snug"
                           title={item.nama_template}
                         >
                           {item.nama_template}
@@ -557,7 +557,7 @@ export function Templates() {
                         href={previewUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="rounded-lg bg-slate-100 p-2 text-slate-600 transition hover:bg-forest-100 hover:text-forest-800"
+                        className="rounded-lg bg-slate-100 p-2 text-slate-600 transition hover:bg-red-50 hover:text-red-800"
                         title="Lihat fail PDF asal"
                       >
                         <Eye size={14} />
@@ -604,7 +604,7 @@ export function Templates() {
                         </div>
                       </td>
                       <td className="px-3.5 py-2.5">
-                        <div className="font-bold text-forest-950 text-xs sm:text-sm">{item.nama_template}</div>
+                        <div className="font-bold text-slate-950 text-xs sm:text-sm">{item.nama_template}</div>
                         {item.keterangan && (
                           <div className="text-[10px] text-slate-400 mt-0.5">{item.keterangan}</div>
                         )}
@@ -614,7 +614,7 @@ export function Templates() {
                       </td>
                       <td className="px-3.5 py-2.5 text-xs text-slate-600 whitespace-nowrap">
                         <div className="flex items-center gap-1 font-medium">
-                          <FileText size={14} className="text-forest-700 shrink-0" />
+                          <FileText size={14} className="text-red-700 shrink-0" />
                           <span className="truncate max-w-[180px]" title={item.file_name}>
                             {item.file_name}
                           </span>
@@ -633,7 +633,7 @@ export function Templates() {
                             target="_blank"
                             rel="noopener noreferrer"
                             title="Lihat fail PDF asal"
-                            className="rounded-lg bg-slate-100 p-1.5 text-slate-600 transition hover:bg-forest-100 hover:text-forest-800"
+                            className="rounded-lg bg-slate-100 p-1.5 text-slate-600 transition hover:bg-red-50 hover:text-red-800"
                           >
                             <Eye size={14} />
                           </a>

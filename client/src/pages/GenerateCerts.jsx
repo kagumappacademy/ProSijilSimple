@@ -65,10 +65,10 @@ function getRankMeta(rank) {
     };
   }
   return {
-    chip: 'forest',
-    border: 'border-slate-200 hover:border-forest-400',
-    activeBorder: 'border-forest-600 ring-2 ring-forest-400/40 bg-forest-50/40',
-    badge: 'bg-forest-50 text-forest-700 border-forest-200',
+    chip: 'red',
+    border: 'border-slate-200 hover:border-red-400',
+    activeBorder: 'border-red-600 ring-2 ring-forest-400/40 bg-red-50/40',
+    badge: 'bg-red-50 text-red-700 border-red-200',
     dot: 'bg-forest-600',
   };
 }
@@ -321,7 +321,7 @@ export function GenerateCerts() {
         action={
           <Link
             to="/admin/templates"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-forest-900 transition hover:bg-slate-50"
+            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-900 transition hover:bg-slate-50"
           >
             <Layers size={15} /> Urus Templat PDF
           </Link>
@@ -332,11 +332,11 @@ export function GenerateCerts() {
       <Panel className="p-3.5 sm:p-4 mb-3">
         <div className="flex items-center justify-between border-b border-slate-100 pb-2.5 mb-3">
           <div className="flex items-center gap-2">
-            <div className="grid h-7 w-7 place-items-center rounded-lg bg-forest-100 text-forest-700 shrink-0">
+            <div className="grid h-7 w-7 place-items-center rounded-lg bg-red-50 text-red-700 shrink-0">
               <Sparkles size={15} />
             </div>
             <div>
-              <h2 className="text-xs sm:text-sm font-extrabold text-forest-950">
+              <h2 className="text-xs sm:text-sm font-extrabold text-slate-950">
                 Langkah 1: Pilih Templat Sijil & Tarikh
               </h2>
               <p className="text-[10px] text-slate-400">
@@ -360,7 +360,7 @@ export function GenerateCerts() {
             </p>
             <Link
               to="/admin/templates"
-              className="mt-2.5 inline-flex items-center gap-1.5 rounded-lg bg-forest-900 px-3 py-1.5 text-xs font-bold text-white hover:bg-forest-700"
+              className="mt-2.5 inline-flex items-center gap-1.5 rounded-lg bg-red-700 px-3 py-1.5 text-xs font-bold text-white hover:bg-red-700"
             >
               <Layers size={13} /> Menu Templat Sijil
             </Link>
@@ -374,7 +374,7 @@ export function GenerateCerts() {
                   Tajuk / Kumpulan Sijil Rasmi *
                 </label>
                 <select
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs sm:text-sm font-semibold text-forest-950 outline-none focus:border-forest-600"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs sm:text-sm font-semibold text-slate-950 outline-none focus:border-red-600"
                   value={selectedTemplateName}
                   onChange={(e) => setSelectedTemplateName(e.target.value)}
                 >
@@ -395,7 +395,7 @@ export function GenerateCerts() {
                   required
                   value={issueDate}
                   onChange={(e) => setIssueDate(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs sm:text-sm text-forest-950 outline-none focus:border-forest-600"
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs sm:text-sm text-slate-950 outline-none focus:border-red-600"
                 />
               </div>
             </div>
@@ -403,8 +403,8 @@ export function GenerateCerts() {
             {/* Kotak Pratonton Visual Templat Dari Luar ("view dari luar pilih template yang mana satu") */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[11px] font-extrabold uppercase tracking-wider text-forest-950 flex items-center gap-1.5">
-                  <Eye size={13} className="text-forest-700" />
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-950 flex items-center gap-1.5">
+                  <Eye size={13} className="text-red-700" />
                   Kotak Pilihan Templat (Pratonton Langsung Dari Luar):
                 </span>
                 <span className="text-[10px] text-slate-400">
@@ -420,13 +420,13 @@ export function GenerateCerts() {
                   onClick={() => handleSelectLevelChange('')}
                   className={`group relative flex flex-col justify-between rounded-xl border p-2 text-left transition-all ${
                     !selectedLevel
-                      ? 'border-forest-600 bg-forest-50/80 ring-2 ring-forest-400/40 shadow-xs'
+                      ? 'border-red-600 bg-red-50/80 ring-2 ring-forest-400/40 shadow-xs'
                       : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
                   }`}
                 >
-                  <div className="aspect-[1/1.35] w-full rounded-lg border border-dashed border-forest-300 bg-forest-100/50 flex flex-col items-center justify-center p-2 text-center">
-                    <Sparkles size={20} className="text-forest-700 mb-1" />
-                    <span className="text-[11px] font-extrabold text-forest-950 leading-tight">
+                  <div className="aspect-[1/1.35] w-full rounded-lg border border-dashed border-red-300 bg-red-50/50 flex flex-col items-center justify-center p-2 text-center">
+                    <Sparkles size={20} className="text-red-700 mb-1" />
+                    <span className="text-[11px] font-extrabold text-slate-950 leading-tight">
                       Semua Peringkat
                     </span>
                     <span className="mt-1 text-[9px] text-slate-500">
@@ -434,11 +434,11 @@ export function GenerateCerts() {
                     </span>
                   </div>
                   <div className="mt-1.5 flex items-center justify-between">
-                    <span className="text-[10px] font-bold text-forest-900">
+                    <span className="text-[10px] font-bold text-slate-900">
                       {students.length} Pelajar
                     </span>
                     {!selectedLevel && (
-                      <span className="text-[9px] font-extrabold text-forest-700 bg-forest-200/80 px-1.5 py-0.2 rounded-full">
+                      <span className="text-[9px] font-extrabold text-red-700 bg-red-200/80 px-1.5 py-0.2 rounded-full">
                         Aktif
                       </span>
                     )}
@@ -486,7 +486,7 @@ export function GenerateCerts() {
 
                         {/* Selection checkmark icon */}
                         {isSelected && (
-                          <div className="absolute bottom-1 right-1 z-10 bg-forest-700 text-white p-0.5 rounded-full shadow-xs">
+                          <div className="absolute bottom-1 right-1 z-10 bg-red-700 text-white p-0.5 rounded-full shadow-xs">
                             <CheckCircle2 size={12} />
                           </div>
                         )}
@@ -494,14 +494,14 @@ export function GenerateCerts() {
 
                       {/* Card Details */}
                       <div className="mt-1.5">
-                        <div className="text-[10px] font-extrabold text-forest-950 truncate" title={template.peringkat}>
+                        <div className="text-[10px] font-extrabold text-slate-950 truncate" title={template.peringkat}>
                           {template.peringkat}
                         </div>
                         <div className="flex items-center justify-between text-[9px] text-slate-500 mt-0.5">
                           <span>{count} pesilat</span>
                           <span
                             className={`font-bold ${
-                              isSelected ? 'text-forest-700' : 'text-slate-400'
+                              isSelected ? 'text-red-700' : 'text-slate-400'
                             }`}
                           >
                             {isSelected ? 'Dipilih' : 'Pilih'}
@@ -522,8 +522,8 @@ export function GenerateCerts() {
         {/* Toolbar Carian & Tapisan */}
         <div className="flex flex-col gap-2.5 border-b border-slate-100 p-3 sm:px-4 sm:py-2.5 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-2">
-            <Award className="text-forest-700 shrink-0" size={17} />
-            <h2 className="text-xs sm:text-sm font-extrabold text-forest-950">
+            <Award className="text-red-700 shrink-0" size={17} />
+            <h2 className="text-xs sm:text-sm font-extrabold text-slate-950">
               Langkah 2: Pilih Pesilat untuk Dijana
             </h2>
             <Chip color="gold">{idsToGenerate.length} dipilih</Chip>
@@ -565,14 +565,14 @@ export function GenerateCerts() {
         </div>
 
         {selectedLevel && (
-          <div className="px-4 py-1.5 bg-forest-50/70 border-b border-forest-100 flex items-center justify-between text-xs text-forest-900">
+          <div className="px-4 py-1.5 bg-red-50/70 border-b border-red-100 flex items-center justify-between text-xs text-slate-900">
             <span className="inline-flex items-center gap-1.5 text-[11px]">
-              <Filter size={12} className="text-forest-700" />
+              <Filter size={12} className="text-red-700" />
               Tapisan Aktif: <strong>{selectedLevel}</strong> ({filteredStudents.length} pelajar)
             </span>
             <button
               onClick={() => handleSelectLevelChange('')}
-              className="text-forest-700 hover:text-forest-900 font-bold hover:underline text-[11px]"
+              className="text-red-700 hover:text-slate-900 font-bold hover:underline text-[11px]"
             >
               Kosongkan Tapisan
             </button>
@@ -585,7 +585,7 @@ export function GenerateCerts() {
             <button
               type="button"
               onClick={selectCurrentPage}
-              className="font-bold text-forest-800 hover:underline inline-flex items-center gap-1"
+              className="font-bold text-red-800 hover:underline inline-flex items-center gap-1"
             >
               <CheckSquare size={12} /> Pilih Laman Ini ({pageStudents.length})
             </button>
@@ -593,7 +593,7 @@ export function GenerateCerts() {
             <button
               type="button"
               onClick={selectAllFiltered}
-              className="font-bold text-forest-800 hover:underline inline-flex items-center gap-1"
+              className="font-bold text-red-800 hover:underline inline-flex items-center gap-1"
             >
               <CheckSquare size={12} /> Pilih Semua Rekod ({filteredStudents.length})
             </button>
@@ -637,7 +637,7 @@ export function GenerateCerts() {
                         else deselectCurrentPage();
                       }}
                       title="Pilih / Nyahpilih semua pesilat dalam laman ini"
-                      className="h-3.5 w-3.5 rounded text-forest-700 focus:ring-forest-500 cursor-pointer"
+                      className="h-3.5 w-3.5 rounded text-red-700 focus:ring-red-500 cursor-pointer"
                     />
                   </th>
                   <th className="w-12 px-2 py-2 text-center">No.</th>
@@ -660,7 +660,7 @@ export function GenerateCerts() {
                       key={student.id}
                       onClick={() => toggleSelect(student.id)}
                       className={`cursor-pointer transition ${
-                        isChecked ? 'bg-forest-100/30' : 'hover:bg-slate-50'
+                        isChecked ? 'bg-red-50/30' : 'hover:bg-slate-50'
                       }`}
                     >
                       <td className="px-3.5 py-1.5 text-center" onClick={(e) => e.stopPropagation()}>
@@ -668,13 +668,13 @@ export function GenerateCerts() {
                           type="checkbox"
                           checked={isChecked}
                           onChange={() => toggleSelect(student.id)}
-                          className="h-3.5 w-3.5 rounded text-forest-700 focus:ring-forest-500 cursor-pointer"
+                          className="h-3.5 w-3.5 rounded text-red-700 focus:ring-red-500 cursor-pointer"
                         />
                       </td>
                       <td className="px-2 py-1.5 text-center text-[11px] text-slate-400 font-mono">
                         {rowNumber}
                       </td>
-                      <td className="px-3.5 py-1.5 font-bold text-forest-950 text-xs sm:text-sm">
+                      <td className="px-3.5 py-1.5 font-bold text-slate-950 text-xs sm:text-sm">
                         {student.nama_penuh}
                       </td>
                       <td className="px-3.5 py-1.5 text-xs font-mono text-slate-600 whitespace-nowrap">
@@ -746,7 +746,7 @@ export function GenerateCerts() {
                       onClick={() => setCurrentPage(pNum)}
                       className={`h-6 w-6 rounded-md text-[11px] font-bold transition ${
                         currentPage === pNum
-                          ? 'bg-forest-900 text-white shadow-xs'
+                          ? 'bg-red-700 text-white shadow-xs'
                           : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
                       }`}
                     >
@@ -773,7 +773,7 @@ export function GenerateCerts() {
         {/* Tindakan Janaan: Fixed at bottom */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-3 border-t border-slate-100 bg-[#FCFDFB] p-3 sm:px-4 sm:py-2.5 rounded-b-2xl">
           <div className="text-center sm:text-left">
-            <div className="font-extrabold text-forest-950 text-xs sm:text-sm">
+            <div className="font-extrabold text-slate-950 text-xs sm:text-sm">
               {idsToGenerate.length} pesilat dipilih untuk janaan sijil
             </div>
             <p className="text-[10px] text-slate-400">
@@ -803,7 +803,7 @@ export function GenerateCerts() {
               <CheckCircle2 size={22} />
             </div>
             <div>
-              <h3 className="text-base font-extrabold text-forest-950">Janaan Sijil Selesai!</h3>
+              <h3 className="text-base font-extrabold text-slate-950">Janaan Sijil Selesai!</h3>
               <p className="text-xs text-slate-500">
                 Sebanyak <strong>{result.successCount}</strong> sijil telah berjaya dijana dan didaftarkan ke pangkalan data.
               </p>
@@ -812,7 +812,7 @@ export function GenerateCerts() {
 
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 mb-4">
             <div className="rounded-xl bg-white p-3 border border-emerald-100 shadow-xs">
-              <div className="text-xl font-extrabold text-forest-950">{result.total}</div>
+              <div className="text-xl font-extrabold text-slate-950">{result.total}</div>
               <div className="text-[10px] text-slate-400 mt-0.5">Jumlah Dipilih</div>
             </div>
             <div className="rounded-xl bg-white p-3 border border-emerald-100 shadow-xs">
@@ -842,14 +842,14 @@ export function GenerateCerts() {
 
           {result.generatedTokens?.length > 0 && (
             <div className="rounded-xl bg-white p-3.5 border border-emerald-100 mb-4 text-xs">
-              <div className="font-bold mb-2.5 text-forest-950 flex items-center justify-between">
+              <div className="font-bold mb-2.5 text-slate-950 flex items-center justify-between">
                 <span>Senarai Fail Sijil PDF Dijana ({result.generatedTokens.length} fail mengikut nama pesilat):</span>
               </div>
               <div className="max-h-56 overflow-y-auto space-y-1.5 pr-1 divide-y divide-slate-100">
                 {result.generatedTokens.map((item, idx) => (
                   <div key={idx} className="flex items-center justify-between pt-1.5 first:pt-0 gap-2">
                     <div className="flex items-center gap-1.5 truncate min-w-0">
-                      <FileText size={14} className="text-forest-700 shrink-0" />
+                      <FileText size={14} className="text-red-700 shrink-0" />
                       <span className="font-semibold text-slate-800 truncate text-[11px]" title={`${item.nama}.pdf`}>
                         {item.nama}.pdf
                       </span>
@@ -859,7 +859,7 @@ export function GenerateCerts() {
                         href={`/api/public/certificates/${item.token}/download?preview=1`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-forest-100 text-slate-700 font-bold inline-flex items-center gap-1 text-[11px]"
+                        className="px-2 py-0.5 rounded-lg bg-slate-100 hover:bg-red-50 text-slate-700 font-bold inline-flex items-center gap-1 text-[11px]"
                         title="Lihat Sijil"
                       >
                         <Eye size={12} /> Lihat
@@ -882,7 +882,7 @@ export function GenerateCerts() {
           <div className="flex flex-wrap gap-2.5">
             <Link
               to="/admin/sijil"
-              className="inline-flex items-center gap-1.5 rounded-xl bg-forest-900 px-4 py-2 text-xs font-bold text-white transition hover:bg-forest-700"
+              className="inline-flex items-center gap-1.5 rounded-xl bg-red-700 px-4 py-2 text-xs font-bold text-white transition hover:bg-red-700"
             >
               <Award size={15} /> Lihat Rekod Sijil Baharu <ArrowRight size={14} />
             </Link>
@@ -890,7 +890,7 @@ export function GenerateCerts() {
               href="/"
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-forest-900 transition hover:bg-slate-50"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-900 transition hover:bg-slate-50"
             >
               Semak di Portal Awam
             </a>

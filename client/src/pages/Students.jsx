@@ -70,16 +70,16 @@ function ImportStudentsModal({ open, onClose, onSaved }) {
             if (f) setFile(f);
           }}
           className={`flex min-h-[160px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-6 text-center transition ${
-            drag ? 'border-forest-600 bg-forest-100' : 'border-slate-200 bg-slate-50/70 hover:border-forest-500 hover:bg-forest-100/40'
+            drag ? 'border-red-600 bg-red-50' : 'border-slate-200 bg-slate-50/70 hover:border-red-500 hover:bg-red-50/40'
           }`}
         >
-          <UploadCloud size={32} className="text-forest-700 mb-2"/>
-          <div className="text-sm font-bold text-forest-950">
+          <UploadCloud size={32} className="text-red-700 mb-2"/>
+          <div className="text-sm font-bold text-slate-950">
             {file ? file.name : 'Seret fail CSV ke sini atau klik untuk pilih'}
           </div>
           <p className="mt-1 text-xs text-slate-400">Format .csv (UTF-8), saiz maksimum 10MB</p>
           {file && (
-            <span className="mt-2 text-xs font-bold text-forest-800 bg-forest-100 px-3 py-1 rounded-full">
+            <span className="mt-2 text-xs font-bold text-red-800 bg-red-50 px-3 py-1 rounded-full">
               {(file.size / 1024).toFixed(1)} KB • Fail Dipilih
             </span>
           )}
@@ -112,7 +112,7 @@ function ImportStudentsModal({ open, onClose, onSaved }) {
             </div>
             <div className="mt-3 grid grid-cols-3 gap-2.5 text-center">
               <div className="rounded-xl bg-white p-3 border border-emerald-100">
-                <div className="text-xl font-extrabold text-forest-900">{result.total}</div>
+                <div className="text-xl font-extrabold text-slate-900">{result.total}</div>
                 <div className="text-[11px] text-slate-500 mt-0.5">Jumlah Baris</div>
               </div>
               <div className="rounded-xl bg-white p-3 border border-emerald-100">
@@ -198,7 +198,7 @@ function EditCertModal({ open, onClose, cert, onSaved }) {
             type="file"
             accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg"
             onChange={e => setFile(e.target.files?.[0] || null)}
-            className="w-full text-xs text-slate-500 file:mr-3 file:rounded-lg file:border-0 file:bg-forest-100 file:px-4 file:py-2 file:font-bold file:text-forest-900"
+            className="w-full text-xs text-slate-500 file:mr-3 file:rounded-lg file:border-0 file:bg-red-50 file:px-4 file:py-2 file:font-bold file:text-slate-900"
           />
           <p className="mt-1 text-[11px] text-slate-400">Biarkan kosong jika tidak mahu menggantikan fail sedia ada.</p>
         </div>
@@ -271,7 +271,7 @@ function QuickAddCertModal({ open, onClose, student, onSaved }) {
             type="file"
             accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg"
             onChange={e => setFile(e.target.files?.[0] || null)}
-            className="w-full text-xs text-slate-500 file:mr-3 file:rounded-lg file:border-0 file:bg-forest-100 file:px-4 file:py-2 file:font-bold file:text-forest-900"
+            className="w-full text-xs text-slate-500 file:mr-3 file:rounded-lg file:border-0 file:bg-red-50 file:px-4 file:py-2 file:font-bold file:text-slate-900"
           />
           <p className="mt-1 text-[11px] text-slate-400">Jika kosong, PDF sijil rasmi dijana secara automatik.</p>
         </div>
@@ -329,13 +329,13 @@ function StudentDetailsModal({ open, onClose, student, onEdit, onSaved }) {
     <>
       <Modal open={open} onClose={onClose} title="Butiran & Sijil Pesilat" wide>
         <div className="space-y-6">
-          <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-forest-50 p-4 border border-forest-100">
+          <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-red-50 p-4 border border-red-100">
             <div className="flex items-center gap-3.5 min-w-0">
-              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-forest-800 text-sm font-extrabold text-white">
+              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-red-700 text-sm font-extrabold text-white">
                 {student.nama_penuh.split(' ').slice(0, 2).map(x => x[0]).join('').toUpperCase()}
               </div>
               <div className="min-w-0">
-                <h3 className="text-base font-extrabold text-forest-950 truncate">{student.nama_penuh}</h3>
+                <h3 className="text-base font-extrabold text-slate-950 truncate">{student.nama_penuh}</h3>
                 <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-slate-500">
                   <span className="font-mono font-bold text-slate-600">{student.no_kp_atau_id}</span>
                   <span>•</span>
@@ -354,19 +354,19 @@ function StudentDetailsModal({ open, onClose, student, onEdit, onSaved }) {
           <div className="grid grid-cols-2 gap-3 text-xs bg-slate-50 p-3.5 rounded-xl border border-slate-200">
             <div>
               <span className="text-slate-400 block mb-0.5">Tarikh Daftar</span>
-              <strong className="text-forest-950">{fmtDate(student.tarikh_daftar)}</strong>
+              <strong className="text-slate-950">{fmtDate(student.tarikh_daftar)}</strong>
             </div>
             <div>
               <span className="text-slate-400 block mb-0.5">Bilangan Sijil Terkini</span>
-              <strong className="text-forest-950">{certs.length} sijil</strong>
+              <strong className="text-slate-950">{certs.length} sijil</strong>
             </div>
           </div>
 
           <div>
             <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
               <div className="flex items-center gap-2">
-                <Award className="text-forest-700" size={18}/>
-                <h4 className="text-sm font-extrabold text-forest-950">
+                <Award className="text-red-700" size={18}/>
+                <h4 className="text-sm font-extrabold text-slate-950">
                   Senarai Sijil Pesilat ({certs.length})
                 </h4>
               </div>
@@ -380,7 +380,7 @@ function StudentDetailsModal({ open, onClose, student, onEdit, onSaved }) {
             ) : certs.length === 0 ? (
               <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/60 p-8 text-center">
                 <Award size={28} className="mx-auto text-slate-400 mb-2"/>
-                <div className="font-bold text-forest-950 text-xs">Belum Mempunyai Sijil</div>
+                <div className="font-bold text-slate-950 text-xs">Belum Mempunyai Sijil</div>
                 <p className="text-[11px] text-slate-400 mt-1 max-w-xs mx-auto">
                   Pelajar ini belum dikeluarkan sebarang sijil. Klik butang "+ Tambah Sijil" di atas untuk mengeluarkan sijil baharu.
                 </p>
@@ -390,14 +390,14 @@ function StudentDetailsModal({ open, onClose, student, onEdit, onSaved }) {
                 {certs.map(c => (
                   <div
                     key={c.id}
-                    className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200/90 bg-[#FCFDFB] p-3.5 transition hover:border-forest-600 hover:bg-forest-50/20"
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200/90 bg-[#FCFDFB] p-3.5 transition hover:border-red-600 hover:bg-red-50/30"
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-forest-100 text-forest-700">
+                      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-red-50 text-red-700">
                         <FileText size={19}/>
                       </div>
                       <div className="min-w-0">
-                        <div className="font-bold text-forest-950 text-sm truncate" title={c.nama_sijil}>
+                        <div className="font-bold text-slate-950 text-sm truncate" title={c.nama_sijil}>
                           {c.nama_sijil}
                         </div>
                         <div className="flex items-center gap-2 text-[11px] text-slate-500 mt-0.5">
@@ -418,7 +418,7 @@ function StudentDetailsModal({ open, onClose, student, onEdit, onSaved }) {
                         target="_blank"
                         rel="noopener noreferrer"
                         title="Lihat sijil PDF"
-                        className="rounded-lg bg-slate-100 p-2 text-slate-600 transition hover:bg-forest-100 hover:text-forest-800"
+                        className="rounded-lg bg-slate-100 p-2 text-slate-600 transition hover:bg-red-50 hover:text-red-800"
                       >
                         <Eye size={15}/>
                       </a>
@@ -545,7 +545,7 @@ export function Students(){
           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
             <a
               href="/api/admin/students/export"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-forest-900 transition hover:bg-slate-50 shadow-xs"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-900 transition hover:bg-slate-50 shadow-xs"
             >
               <Download size={14}/> Export CSV
             </a>
@@ -563,8 +563,8 @@ export function Students(){
         {/* Filter bar */}
         <div className="flex flex-col gap-2.5 border-b border-slate-100 p-3 sm:px-4 sm:py-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-2">
-            <GraduationCap className="text-forest-700 shrink-0" size={20}/>
-            <div className="text-xs sm:text-sm font-extrabold text-forest-950">Senarai Pelajar</div>
+            <GraduationCap className="text-red-700 shrink-0" size={20}/>
+            <div className="text-xs sm:text-sm font-extrabold text-slate-950">Senarai Pelajar</div>
             <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[10px] sm:text-xs font-extrabold text-emerald-800">
               {data?.total||0} orang
             </span>
@@ -574,7 +574,7 @@ export function Students(){
             <SearchField value={q} onChange={v=>{setQ(v);setPage(1);}} placeholder="Cari nama atau ID..."/>
             <select
               aria-label="Tapis cawangan"
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 outline-none focus:border-forest-500"
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 outline-none focus:border-red-500"
               value={branch}
               onChange={e=>{setBranch(e.target.value);setPage(1);}}
             >
@@ -583,7 +583,7 @@ export function Students(){
             </select>
             <select
               aria-label="Tapis peringkat"
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 outline-none focus:border-forest-500"
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 outline-none focus:border-red-500"
               value={level}
               onChange={e=>{setLevel(e.target.value);setPage(1);}}
             >
@@ -613,19 +613,19 @@ export function Students(){
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {data.rows.map((r,i)=>(
-                  <tr key={r.id} className="transition hover:bg-forest-100/20">
+                  <tr key={r.id} className="transition hover:bg-red-50/30">
                     <td className="px-3.5 py-2.5 text-center text-xs font-bold text-slate-400 w-12">
                       {(page-1)*20+i+1}
                     </td>
                     <td className="max-w-[220px] px-3.5 py-2.5">
                       <div className="flex items-center gap-2.5">
-                        <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-forest-100 text-[11px] font-extrabold text-forest-700">
+                        <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-red-50 text-[11px] font-extrabold text-red-700">
                           {r.nama_penuh.split(' ').slice(0,2).map(x=>x[0]).join('').toUpperCase()}
                         </div>
                         <div className="min-w-0">
                           <button
                             onClick={()=>setViewTarget(r)}
-                            className="truncate font-bold text-forest-950 hover:underline text-left block max-w-full text-xs sm:text-sm"
+                            className="truncate font-bold text-slate-950 hover:underline text-left block max-w-full text-xs sm:text-sm"
                             title={r.nama_penuh}
                           >
                             {r.nama_penuh}
@@ -644,7 +644,7 @@ export function Students(){
                     </td>
                     <td className="px-3.5 py-2.5 text-xs text-slate-600 whitespace-nowrap">
                       <div className="inline-flex items-center gap-1 rounded-md bg-slate-50 px-2 py-0.5 text-slate-700 border border-slate-200">
-                        <CalendarDays size={11} className="text-forest-600"/>
+                        <CalendarDays size={11} className="text-red-600"/>
                         <span>{fmtDate(r.tarikh_daftar)}</span>
                       </div>
                     </td>
@@ -653,9 +653,9 @@ export function Students(){
                         type="button"
                         onClick={()=>setViewTarget(r)}
                         title="Lihat dan urus sijil pelajar ini"
-                        className="inline-flex items-center gap-1 rounded-md bg-forest-50 px-2 py-0.5 text-xs font-bold text-forest-800 transition hover:bg-forest-100 hover:text-forest-900"
+                        className="inline-flex items-center gap-1 rounded-md bg-red-50 px-2 py-0.5 text-xs font-bold text-red-800 transition hover:bg-red-50 hover:text-slate-900"
                       >
-                        <Award size={13} className="text-forest-700"/>
+                        <Award size={13} className="text-red-700"/>
                         <span>{r.sijil_count} sijil</span>
                       </button>
                     </td>
@@ -673,7 +673,7 @@ export function Students(){
                           onClick={()=>openEdit(r)}
                           title="Kemaskini pesilat"
                           aria-label="Kemaskini pesilat"
-                          className="rounded-lg bg-slate-100 p-1.5 text-slate-600 transition hover:bg-forest-100 hover:text-forest-800"
+                          className="rounded-lg bg-slate-100 p-1.5 text-slate-600 transition hover:bg-red-50 hover:text-red-800"
                         >
                           <Edit3 size={14}/>
                         </button>

@@ -69,11 +69,11 @@ export function Settings() {
         <div className="grid gap-3.5 sm:gap-4 xl:grid-cols-[1.3fr_0.85fr]">
           <Panel className="p-4 sm:p-5">
             <div className="mb-3.5 flex items-center gap-3">
-              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-forest-100 text-forest-700">
+              <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-red-50 text-red-700 border border-red-100">
                 <FileText size={20} />
               </div>
               <div>
-                <h2 className="text-sm font-extrabold text-forest-950">Butiran Sijil Rasmi</h2>
+                <h2 className="text-sm font-extrabold text-slate-950">Butiran Sijil Rasmi</h2>
                 <p className="text-[11px] text-slate-400">Digunakan ketika sistem menjana PDF secara automatik.</p>
               </div>
             </div>
@@ -87,21 +87,21 @@ export function Settings() {
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-bold text-slate-600">Warna Tema</label>
+                <label className="mb-1 block text-xs font-bold text-slate-600">Warna Tema Sijil</label>
                 <div className="flex items-center gap-2.5">
                   <input
                     type="color"
                     aria-label="Pilih warna tema"
-                    value={data.tema_warna || '#174b40'}
+                    value={data.tema_warna || '#991b1b'}
                     onChange={(e) => setData((x) => ({ ...x, tema_warna: e.target.value }))}
-                    className="h-9 w-12 cursor-pointer rounded-lg border border-slate-200 p-0.5"
+                    className="h-9 w-12 cursor-pointer rounded-lg border border-slate-200 p-0.5 shadow-2xs"
                   />
                   <input
                     value={data.tema_warna || ''}
                     onChange={(e) => setData((x) => ({ ...x, tema_warna: e.target.value }))}
-                    className="w-28 rounded-xl border border-slate-200 px-3 py-2 text-xs font-mono outline-none focus:border-forest-600"
+                    className="w-28 rounded-xl border border-slate-200 px-3 py-2 text-xs font-mono outline-none focus:border-red-600"
                   />
-                  <span className="text-[11px] text-slate-400">Warna aksen utama sijil</span>
+                  <span className="text-[11px] text-slate-400">Warna rasmi PDF (Merah #991b1b)</span>
                 </div>
               </div>
 
@@ -116,11 +116,11 @@ export function Settings() {
           <div className="space-y-3.5">
             <Panel className="p-4 sm:p-5">
               <div className="mb-3 flex items-center gap-2.5">
-                <div className="grid h-8 w-8 place-items-center rounded-lg bg-forest-100 text-forest-700">
+                <div className="grid h-8 w-8 place-items-center rounded-lg bg-red-50 text-red-700 border border-red-100">
                   <KeyRound size={16} />
                 </div>
                 <div>
-                  <h2 className="text-xs font-extrabold uppercase tracking-wider text-forest-950">Tukar Kata Laluan</h2>
+                  <h2 className="text-xs font-extrabold uppercase tracking-wider text-slate-950">Tukar Kata Laluan</h2>
                   <p className="text-[11px] text-slate-400">Kemaskini kata laluan akaun pentadbir.</p>
                 </div>
               </div>
@@ -158,7 +158,7 @@ export function Settings() {
               </form>
             </Panel>
 
-            <div className="flex gap-3 rounded-2xl border border-amber-100 bg-amber-50/80 p-3.5">
+            <div className="flex gap-3 rounded-2xl border border-amber-200/80 bg-amber-50/70 p-3.5">
               <ShieldCheck className="shrink-0 text-amber-700 mt-0.5" size={18} />
               <div>
                 <div className="text-xs font-extrabold text-amber-900">Nota Keselamatan</div>
