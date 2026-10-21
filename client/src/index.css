@@ -19,42 +19,11 @@ html {
   scroll-behavior: smooth;
 }
 
-body, .responsive-bg {
+body {
   margin: 0;
   min-width: 320px;
   background-color: #fbfbfd;
   color: #0f172a;
-  background-image: url('/bg-mobile.png');
-  background-size: cover;
-  background-position: center top;
-  background-repeat: no-repeat;
-  transition: background-color 0.2s ease, color 0.2s ease;
-}
-
-@media (min-width: 768px) {
-  body, .responsive-bg {
-    background-image: url('/bg-desktop.png');
-    background-position: center center;
-    background-attachment: fixed;
-  }
-}
-
-html.dark {
-  color-scheme: dark;
-  background-color: #0b0f17;
-  color: #f1f5f9;
-}
-
-html.dark body,
-html.dark .responsive-bg {
-  background-color: #0b0f17 !important;
-  background-image: none !important;
-  color: #f1f5f9;
-}
-
-html.dark ::selection {
-  background: #7f1d1d;
-  color: #fecaca;
 }
 
 button, a, input, select {

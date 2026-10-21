@@ -3,7 +3,7 @@ import { FileUp, Download, FileSpreadsheet, CheckCircle2, AlertCircle, ArrowRigh
 import { toast } from 'sonner';
 import { api } from '../lib/api';
 import { PageIntro, Panel, Button, Chip } from '../components/UI';
-import { useLanguage } from '../lib/i18n';
+import { useLang } from '../lib/i18n';
 
 const demo = '\uFEFFnama_penuh,no_kp_atau_id,peringkat,cawangan\r\n"Muhammad Adam Bin Ali",,"Ujian Awan Putih Cula Merah 1","Skudai"\r\n"Siti Aisyah Binti Ahmad","010203041234","Ujian Awan Putih Cula Kuning 2","Kulai"\r\n';
 
@@ -18,14 +18,14 @@ function csvDownload() {
 }
 
 export function ImportCSV() {
-  const { t, lang } = useLanguage();
+  const { t, lang } = useLang();
   const [file, setFile] = useState(null);
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState(null);
   const [drag, setDrag] = useState(false);
 
   async function submit() {
-    if (!file) return toast.error(lang === 'en' ? 'Please select a CSV file first.' : 'Sila pilih fail CSV terlebih dahulu.');
+    if (!file) return toast.error(lang === 'eng' ? 'Please select a CSV file first.' : 'Sila pilih fail CSV terlebih dahulu.');
     const body = new FormData();
     body.append('file', file);
     setBusy(true);
@@ -33,7 +33,7 @@ export function ImportCSV() {
     try {
       const r = await api('/admin/students/import', { method: 'POST', body });
       setResult(r);
-      toast.success(lang === 'en' ? `Import completed: ${r.inserted} records added.` : `Import selesai: ${r.inserted} rekod baharu.`);
+      toast.success(lang === 'eng' ? `Import completed: ${r.inserted} new records.` : `Import selesai: ${r.inserted} rekod baharu.`);
     } catch (e) {
       toast.error(e.message);
     } finally {
@@ -44,12 +44,12 @@ export function ImportCSV() {
   return (
     <>
       <PageIntro
-        eyebrow={t('import.eyebrow', 'KEMASUKAN DATA PUKAL')}
-        title={t('import.title', 'Import Pesilat Melalui CSV')}
-        desc={t('import.desc', 'Muat naik fail CSV untuk memasukkan ratusan rekod pesilat secara serentak ke dalam sistem.')}
+        eyebrow={t('importEyebrow')}
+        title={t('importTitle')}
+        desc={t('importDesc')}
         action={
           <Button variant="secondary" onClick={csvDownload} className="text-xs">
-            <Download size={15} /> {t('import.downloadTemplate', 'Muat Turun Contoh Templat CSV')}
+            <Download size={15} /> {t('btnDownloadSampleCsv')}
           </Button>
         }
       />
@@ -57,14 +57,16 @@ export function ImportCSV() {
       <div className="grid gap-3.5 sm:gap-4 xl:grid-cols-[1.3fr_1fr]">
         <Panel className="p-4 sm:p-5">
           <div className="mb-3.5 flex items-center gap-3">
-            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-red-50 dark:bg-red-950/50 text-red-700 dark:text-red-300 border border-red-100 dark:border-red-900/50">
+            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-red-50 text-red-700 border border-red-100">
               <FileUp size={20} />
             </div>
             <div>
-              <h2 className="text-sm font-extrabold text-slate-950 dark:text-slate-100">
-                {lang === 'en' ? 'Upload CSV File' : 'Muat Naik Fail CSV'}
+              <h2 className="text-sm font-extrabold text-slate-950">
+                {lang === 'eng' ? 'Upload CSV File' : 'Muat Naik Fail CSV'}
               </h2>
-              <p className="text-[11px] text-slate-400 dark:text-slate-500">Format .csv (UTF-8), max 10MB.</p>
+              <p className="text-[11px] text-slate-400">
+                {lang === 'eng' ? 'Format .csv (UTF-8), max 10MB.' : 'Format .csv (UTF-8), maksimum 10MB.'}
+              </p>
             </div>
           </div>
 
@@ -82,22 +84,20 @@ export function ImportCSV() {
             }}
             className={`flex min-h-[160px] sm:min-h-[190px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-4 sm:p-6 text-center transition ${
               drag
-                ? 'border-red-600 bg-red-50 dark:bg-red-950/40'
-                : 'border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 hover:border-red-500 hover:bg-red-50/40'
+                ? 'border-red-600 bg-red-50'
+                : 'border-slate-200 bg-slate-50/70 hover:border-red-500 hover:bg-red-50/40'
             }`}
           >
-            <div className="grid h-12 w-12 place-items-center rounded-xl bg-white dark:bg-slate-800 text-red-700 dark:text-red-400 shadow-xs border border-slate-100 dark:border-slate-700">
+            <div className="grid h-12 w-12 place-items-center rounded-xl bg-white text-red-700 shadow-xs border border-slate-100">
               <UploadCloud size={24} />
             </div>
-            <h3 className="mt-3 text-sm font-extrabold text-slate-950 dark:text-slate-100">
-              {file ? file.name : (lang === 'en' ? 'Drag CSV file here' : 'Seret fail CSV ke sini')}
+            <h3 className="mt-3 text-sm font-extrabold text-slate-950">
+              {file ? file.name : t('dropCsvTitle')}
             </h3>
-            <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">
-              {lang === 'en' ? 'or click to browse from computer' : 'atau klik untuk memilih fail daripada komputer'}
-            </p>
+            <p className="mt-1 text-xs text-slate-400">{t('dropCsvDesc')}</p>
             {file && (
-              <span className="mt-2.5 rounded-full bg-red-50 dark:bg-red-950/50 px-3 py-1 text-[11px] font-bold text-red-700 dark:text-red-300 border border-red-200 dark:border-red-900/50">
-                {(file.size / 1024).toFixed(1)} KB • {lang === 'en' ? 'File Selected' : 'Fail Dipilih'}
+              <span className="mt-2.5 rounded-full bg-red-50 px-3 py-1 text-[11px] font-bold text-red-700 border border-red-200">
+                {(file.size / 1024).toFixed(1)} KB • {lang === 'eng' ? 'File Selected' : 'Fail Dipilih'}
               </span>
             )}
             <input
@@ -115,34 +115,34 @@ export function ImportCSV() {
                 onClick={() => setFile(null)}
                 className="text-xs font-semibold text-slate-400 hover:text-rose-600 px-3 py-2"
               >
-                {t('action.cancel', 'Batal')}
+                {t('btnCancel')}
               </button>
             )}
             <Button onClick={submit} loading={busy} disabled={!file} className="text-xs">
-              <FileUp size={15} /> {lang === 'en' ? 'Import Now' : 'Import Sekarang'}
+              <FileUp size={15} /> {t('btnUploadProcess')}
             </Button>
           </div>
 
           {result && (
-            <div className="mt-4 rounded-xl border border-emerald-100 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-950/40 p-4">
-              <div className="flex items-center gap-2 text-xs font-extrabold text-emerald-800 dark:text-emerald-300">
-                <CheckCircle2 size={17} /> {lang === 'en' ? 'Import Completed' : 'Import Selesai'}
+            <div className="mt-4 rounded-xl border border-emerald-100 bg-emerald-50 p-4">
+              <div className="flex items-center gap-2 text-xs font-extrabold text-emerald-800">
+                <CheckCircle2 size={17} /> Import Selesai
               </div>
               <div className="mt-3 grid grid-cols-3 gap-2 text-center">
                 {[
-                  [lang === 'en' ? 'Total' : 'Jumlah', result.total],
-                  [lang === 'en' ? 'Success' : 'Berjaya', result.inserted],
-                  [lang === 'en' ? 'Skipped' : 'Dilangkau', result.skipped],
+                  ['Jumlah', result.total],
+                  ['Berjaya', result.inserted],
+                  ['Dilangkau', result.skipped],
                 ].map(([label, count]) => (
-                  <div key={label} className="rounded-lg bg-white dark:bg-slate-900 p-2.5 shadow-xs border border-emerald-100/60 dark:border-emerald-900/40">
-                    <div className="text-lg font-extrabold text-slate-900 dark:text-slate-100">{count}</div>
-                    <div className="text-[10px] text-slate-500 dark:text-slate-400">{label}</div>
+                  <div key={label} className="rounded-lg bg-white p-2.5 shadow-xs border border-emerald-100/60">
+                    <div className="text-lg font-extrabold text-slate-900">{count}</div>
+                    <div className="text-[10px] text-slate-500">{label}</div>
                   </div>
                 ))}
               </div>
               {result.errors?.length > 0 && (
-                <div className="mt-3 text-[11px] leading-5 text-amber-900 dark:text-amber-300">
-                  <strong>{lang === 'en' ? 'Notice:' : 'Perhatian:'}</strong>
+                <div className="mt-3 text-[11px] leading-5 text-amber-900">
+                  <strong>Perhatian:</strong>
                   {result.errors.map((s, i) => (
                     <div key={i}>• {s}</div>
                   ))}

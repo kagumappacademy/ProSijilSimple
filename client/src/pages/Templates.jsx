@@ -19,7 +19,7 @@ import { toast } from 'sonner';
 import { api, fmtDate } from '../lib/api';
 import { PageIntro, Panel, Button, Input, Modal, Confirm, Loading, Empty, Chip } from '../components/UI';
 import { PdfThumbnail } from '../components/PdfThumbnail';
-import { useLanguage } from '../lib/i18n';
+import { useLang } from '../lib/i18n';
 
 const LEVEL_LIST = [
   'Ujian Awan Putih Cula Merah 1',
@@ -273,7 +273,7 @@ function TestGenerateModal({ open, onClose, template }) {
 }
 
 export function Templates() {
-  const { t, lang } = useLanguage();
+  const { t, lang } = useLang();
   const [data, setData] = useState(null);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -301,7 +301,7 @@ export function Templates() {
     setDeleting(true);
     try {
       await api('/admin/templates/' + deleteTarget.id, { method: 'DELETE' });
-      toast.success('Templat berjaya dipadam.');
+      toast.success(lang === 'eng' ? 'Certificate template deleted.' : 'Templat berjaya dipadam.');
       setDeleteTarget(null);
       loadTemplates();
     } catch (err) {
@@ -354,55 +354,55 @@ export function Templates() {
   return (
     <>
       <PageIntro
-        eyebrow={t('templates.eyebrow', 'PENGURUSAN DOKUMEN')}
-        title={t('templates.title', 'Templat Sijil PDF')}
-        desc={t('templates.desc', 'Muat naik fail templat sijil PDF rasmi untuk setiap cawangan dan peringkat ujian.')}
+        eyebrow={t('templatesEyebrow')}
+        title={t('templatesTitle')}
+        desc={t('templatesDesc')}
         action={
           <Button onClick={() => setUploadOpen(true)} className="!px-3.5 !py-2 text-xs">
-            <Plus size={15} /> {t('templates.uploadBtn', 'Muat Naik Templat')}
+            <Plus size={15} /> {t('btnUploadTemplate')}
           </Button>
         }
       />
 
       <Panel className="flex flex-col">
         {/* Header & Filter Controls Bar */}
-        <div className="border-b border-slate-100 dark:border-slate-800 p-3 sm:px-4 sm:py-3 space-y-3">
+        <div className="border-b border-slate-100 p-3 sm:px-4 sm:py-3 space-y-3">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex items-center gap-2">
-              <Layers className="text-red-700 dark:text-red-400 shrink-0" size={18} />
-              <div className="text-xs sm:text-sm font-extrabold text-slate-950 dark:text-slate-100">
-                {lang === 'en' ? 'Certificate Template Collection' : 'Koleksi Templat Sijil'}
+              <Layers className="text-red-700 shrink-0" size={18} />
+              <div className="text-xs sm:text-sm font-extrabold text-slate-950">
+                {lang === 'eng' ? 'Certificate Templates Collection' : 'Koleksi Templat Sijil'}
               </div>
-              <Chip color="emerald">{filteredTemplates.length} {lang === 'en' ? 'of' : 'daripada'} {data?.rows?.length || 0}</Chip>
+              <Chip color="emerald">{filteredTemplates.length} {lang === 'eng' ? 'of' : 'daripada'} {data?.rows?.length || 0}</Chip>
             </div>
 
             {/* View Switcher: Kotak (Grid) vs Jadual (List) */}
-            <div className="flex items-center gap-1.5 bg-slate-100/80 dark:bg-slate-800 p-0.5 rounded-xl text-xs">
+            <div className="flex items-center gap-1.5 bg-slate-100/80 p-0.5 rounded-xl text-xs">
               <button
                 type="button"
                 onClick={() => setViewMode('grid')}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition ${
                   viewMode === 'grid'
-                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
-                    : 'text-slate-500 dark:text-slate-400 hover:text-red-800 dark:hover:text-white'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'text-slate-500 hover:text-red-800'
                 }`}
-                title="Paparan Kotak (Grid Sijil)"
+                title={lang === 'eng' ? 'Grid View' : 'Paparan Kotak (Grid Sijil)'}
               >
                 <LayoutGrid size={14} />
-                <span>{lang === 'en' ? 'Cards' : 'Kotak'}</span>
+                <span>{lang === 'eng' ? 'Grid' : 'Kotak'}</span>
               </button>
               <button
                 type="button"
                 onClick={() => setViewMode('table')}
                 className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition ${
                   viewMode === 'table'
-                    ? 'bg-white dark:bg-slate-900 text-slate-900 dark:text-white shadow-xs'
-                    : 'text-slate-500 dark:text-slate-400 hover:text-red-800 dark:hover:text-white'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'text-slate-500 hover:text-red-800'
                 }`}
-                title="Paparan Jadual"
+                title={lang === 'eng' ? 'Table View' : 'Paparan Jadual'}
               >
                 <List size={14} />
-                <span>{lang === 'en' ? 'Table' : 'Jadual'}</span>
+                <span>{lang === 'eng' ? 'Table' : 'Jadual'}</span>
               </button>
             </div>
           </div>
@@ -412,11 +412,11 @@ export function Templates() {
             {/* Cula Tabs */}
             <div className="flex flex-wrap items-center gap-1.5">
               {[
-                { id: 'semua', label: lang === 'en' ? 'All' : 'Semua' },
-                { id: 'merah', label: 'Cula Merah', dot: 'bg-rose-500' },
-                { id: 'hijau', label: 'Cula Hijau', dot: 'bg-emerald-500' },
-                { id: 'kuning', label: 'Cula Kuning', dot: 'bg-amber-400' },
-                { id: 'hitam', label: 'Cula Hitam', dot: 'bg-slate-800' },
+                { id: 'semua', label: lang === 'eng' ? 'All' : 'Semua' },
+                { id: 'merah', label: lang === 'eng' ? 'Red Stripe' : 'Cula Merah', dot: 'bg-rose-500' },
+                { id: 'hijau', label: lang === 'eng' ? 'Green Stripe' : 'Cula Hijau', dot: 'bg-emerald-500' },
+                { id: 'kuning', label: lang === 'eng' ? 'Yellow Stripe' : 'Cula Kuning', dot: 'bg-amber-400' },
+                { id: 'hitam', label: lang === 'eng' ? 'Black Stripe' : 'Cula Hitam', dot: 'bg-slate-800' },
               ].map((tab) => (
                 <button
                   key={tab.id}
@@ -425,7 +425,7 @@ export function Templates() {
                   className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition ${
                     filterCula === tab.id
                       ? 'bg-red-700 text-white shadow-xs'
-                      : 'bg-slate-50 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-200/70 dark:border-slate-700'
+                      : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/70'
                   }`}
                 >
                   {tab.dot && <span className={`h-2 w-2 rounded-full ${tab.dot}`} />}
@@ -440,23 +440,23 @@ export function Templates() {
                 <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
                 <input
                   type="text"
-                  placeholder={lang === 'en' ? 'Search templates...' : 'Cari templat...'}
+                  placeholder={lang === 'eng' ? 'Search templates...' : 'Cari templat...'}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 pl-8 pr-3 py-1.5 text-xs text-slate-950 dark:text-slate-100 placeholder:text-slate-400 outline-none focus:border-red-600"
+                  className="w-full rounded-xl border border-slate-200 bg-white pl-8 pr-3 py-1.5 text-xs text-slate-950 placeholder:text-slate-400 outline-none focus:border-red-600 focus:ring-2 focus:ring-red-100"
                 />
               </div>
 
-              <div className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400">
+              <div className="flex items-center gap-1 text-xs text-slate-500">
                 <ArrowUpDown size={13} className="text-slate-400 shrink-0" />
                 <select
                   value={sortBy}
                   onChange={(e) => setSortBy(e.target.value)}
-                  className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-2.5 py-1.5 text-xs font-semibold text-slate-800 dark:text-slate-200 outline-none"
+                  className="rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 outline-none focus:border-red-600"
                 >
-                  <option value="peringkat">{lang === 'en' ? 'Sort by Rank' : 'Susun: Peringkat'}</option>
-                  <option value="terkini">{lang === 'en' ? 'Sort by Latest' : 'Susun: Terkini'}</option>
-                  <option value="nama">{lang === 'en' ? 'Sort by Name' : 'Susun: Nama'}</option>
+                  <option value="peringkat">{lang === 'eng' ? 'Rank Order' : 'Urutan Peringkat'}</option>
+                  <option value="terkini">{lang === 'eng' ? 'Recently Uploaded' : 'Terkini Dimuat Naik'}</option>
+                  <option value="nama">{lang === 'eng' ? 'Template Name (A-Z)' : 'Nama Templat (A-Z)'}</option>
                 </select>
               </div>
             </div>
@@ -673,8 +673,8 @@ export function Templates() {
         onClose={() => setDeleteTarget(null)}
         onConfirm={handleDelete}
         busy={deleting}
-        title="Padam templat sijil ini?"
-        message={`Templat “${deleteTarget?.nama_template || ''}” (${deleteTarget?.peringkat || ''}) akan dipadam daripada sistem.`}
+        title={lang === 'eng' ? 'Delete this certificate template?' : 'Padam templat sijil ini?'}
+        message={lang === 'eng' ? `Template "${deleteTarget?.nama_template || ''}" (${deleteTarget?.peringkat || ''}) will be permanently deleted.` : `Templat “${deleteTarget?.nama_template || ''}” (${deleteTarget?.peringkat || ''}) akan dipadam daripada sistem.`}
       />
     </>
   );

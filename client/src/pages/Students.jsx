@@ -4,7 +4,7 @@ import {Plus,Download,Edit3,Trash2,GraduationCap,Search,Filter,FileUp,IdCard,Eye
 import {toast} from 'sonner';
 import {api,fmtDate} from '../lib/api';
 import {PageIntro,Panel,Button,Input,Select,Modal,Confirm,Loading,Empty,SearchField,Pagination,Chip} from '../components/UI';
-import { useLanguage } from '../lib/i18n';
+import {useLang} from '../lib/i18n';
 const base={nama_penuh:'',no_kp_atau_id:'',peringkat:'Awan Putih',cawangan:'',tarikh_daftar:new Date().toISOString().slice(0,10)};
 
 const demoCsv = '\uFEFFnama_penuh,no_kp_atau_id,peringkat,cawangan,tarikh_daftar\r\n"Muhammad Adam Bin Ali","080102011234","Awan Putih","Skudai","2026-10-21"\r\n"Siti Aisyah Binti Ahmad","","Awan Kuning","Kulai","2026-10-21"\r\n';
@@ -492,10 +492,52 @@ function StudentDetailsModal({ open, onClose, student, onEdit, onSaved }) {
   );
 }
 
-function StudentEditor({open,onClose,onSaved,selected}){const[form,setForm]=useState(base),[saving,setSaving]=useState(false);useEffect(()=>setForm(selected||base),[selected,open]);const set=(k,v)=>setForm(f=>({...f,[k]:v}));async function submit(e){e.preventDefault();setSaving(true);try{if(selected){await api('/admin/students/'+selected.id,{method:'PUT',body:form});toast.success('Maklumat pesilat dikemas kini.');}else{await api('/admin/students',{method:'POST',body:form});toast.success('Pesilat berjaya ditambah.');}onSaved();onClose();}catch(e){toast.error(e.message);}finally{setSaving(false);}}
- return <Modal open={open} onClose={onClose} title={selected?'Kemaskini Maklumat Pesilat':'Tambah Pesilat Baharu'}><form onSubmit={submit} className="space-y-4"><Input label="Nama Penuh Pesilat *" required placeholder="Contoh: Muhammad Adam Bin Ali" value={form.nama_penuh||''} onChange={e=>set('nama_penuh',e.target.value)}/><Input label="No. KP / ID Pesilat" placeholder="Kosongkan untuk ID automatik" value={form.no_kp_atau_id||''} onChange={e=>set('no_kp_atau_id',e.target.value)}/><div className="grid gap-4 sm:grid-cols-2"><Input label="Peringkat / Bengkung *" list="level-suggestions" required value={form.peringkat||''} onChange={e=>set('peringkat',e.target.value)}/><datalist id="level-suggestions">{['Ujian Awan Putih Cula Merah 1','Ujian Awan Putih Cula Merah 2','Ujian Awan Putih Cula Merah 3','Ujian Awan Putih Cula Hijau 1','Ujian Awan Putih Cula Hijau 2','Ujian Awan Putih Cula Hijau 3','Ujian Awan Putih Cula Kuning 1','Ujian Awan Putih Cula Kuning 2','Ujian Awan Putih Cula Kuning 3','Ujian Awan Putih Cula Hitam 1','Ujian Awan Putih Cula Hitam 2','Ujian Awan Putih Cula Hitam 3','Awan Putih Cula Merah 1','Awan Putih Cula Merah 2','Awan Putih Cula Merah 3','Awan Putih Cula Hijau 1','Awan Putih Cula Hijau 2','Awan Putih Cula Hijau 3','Awan Putih Cula Kuning 1','Awan Putih Cula Kuning 2','Awan Putih Cula Kuning 3','Awan Putih Cula Hitam 1','Awan Putih Cula Hitam 2','Awan Putih Cula Hitam 3'].map(x=><option key={x} value={x}/>)}</datalist><Input label="Nama Cawangan / Gelanggang *" required placeholder="Contoh: Skudai" value={form.cawangan||''} onChange={e=>set('cawangan',e.target.value)}/></div><Input label="Tarikh Daftar *" type="date" required value={form.tarikh_daftar||base.tarikh_daftar} onChange={e=>set('tarikh_daftar',e.target.value)}/><div className="flex justify-end gap-2 pt-4"><Button type="button" variant="secondary" onClick={onClose}>Batal</Button><Button type="submit" loading={saving}>{selected?'Simpan Perubahan':'Tambah Pesilat'}</Button></div></form></Modal>}
+function StudentEditor({open,onClose,onSaved,selected}){
+  const { t, lang } = useLang();
+  const [form,setForm]=useState(base),[saving,setSaving]=useState(false);
+  useEffect(()=>setForm(selected||base),[selected,open]);
+  const set=(k,v)=>setForm(f=>({...f,[k]:v}));
+  async function submit(e){
+    e.preventDefault();
+    setSaving(true);
+    try{
+      if(selected){
+        await api('/admin/students/'+selected.id,{method:'PUT',body:form});
+        toast.success(lang === 'eng' ? 'Student information updated.' : 'Maklumat pesilat dikemas kini.');
+      }else{
+        await api('/admin/students',{method:'POST',body:form});
+        toast.success(lang === 'eng' ? 'Student successfully registered.' : 'Pesilat berjaya ditambah.');
+      }
+      onSaved();
+      onClose();
+    }catch(e){
+      toast.error(e.message);
+    }finally{
+      setSaving(false);
+    }
+  }
+  return (
+    <Modal open={open} onClose={onClose} title={selected ? t('modalEditTitle') : t('modalRegisterTitle')}>
+      <form onSubmit={submit} className="space-y-4">
+        <Input label={`${t('fullNameLabel')} *`} required placeholder="Contoh: Muhammad Adam Bin Ali" value={form.nama_penuh||''} onChange={e=>set('nama_penuh',e.target.value)}/>
+        <Input label={t('idNumberLabel')} placeholder={lang === 'eng' ? 'Leave blank for automatic ID' : 'Kosongkan untuk ID automatik'} value={form.no_kp_atau_id||''} onChange={e=>set('no_kp_atau_id',e.target.value)}/>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Input label={`${t('levelLabel')} *`} list="level-suggestions" required value={form.peringkat||''} onChange={e=>set('peringkat',e.target.value)}/>
+          <datalist id="level-suggestions">{['Ujian Awan Putih Cula Merah 1','Ujian Awan Putih Cula Merah 2','Ujian Awan Putih Cula Merah 3','Ujian Awan Putih Cula Hijau 1','Ujian Awan Putih Cula Hijau 2','Ujian Awan Putih Cula Hijau 3','Ujian Awan Putih Cula Kuning 1','Ujian Awan Putih Cula Kuning 2','Ujian Awan Putih Cula Kuning 3','Ujian Awan Putih Cula Hitam 1','Ujian Awan Putih Cula Hitam 2','Ujian Awan Putih Cula Hitam 3','Awan Putih Cula Merah 1','Awan Putih Cula Merah 2','Awan Putih Cula Merah 3','Awan Putih Cula Hijau 1','Awan Putih Cula Hijau 2','Awan Putih Cula Hijau 3','Awan Putih Cula Kuning 1','Awan Putih Cula Kuning 2','Awan Putih Cula Kuning 3','Awan Putih Cula Hitam 1','Awan Putih Cula Hitam 2','Awan Putih Cula Hitam 3'].map(x=><option key={x} value={x}/>)}</datalist>
+          <Input label={`${t('branchLabel')} *`} required placeholder="Contoh: Skudai" value={form.cawangan||''} onChange={e=>set('cawangan',e.target.value)}/>
+        </div>
+        <Input label={`${t('dateRegLabel')} *`} type="date" required value={form.tarikh_daftar||base.tarikh_daftar} onChange={e=>set('tarikh_daftar',e.target.value)}/>
+        <div className="flex justify-end gap-2 pt-4">
+          <Button type="button" variant="secondary" onClick={onClose}>{t('btnCancel')}</Button>
+          <Button type="submit" loading={saving}>{selected ? (lang === 'eng' ? 'Save Changes' : 'Simpan Perubahan') : t('btnRegisterStudent')}</Button>
+        </div>
+      </form>
+    </Modal>
+  );
+}
+
 export function Students(){
-  const { t, lang } = useLanguage();
+  const { t, lang } = useLang();
   const [data,setData]=useState(null),
     [q,setQ]=useState(''),
     [branch,setBranch]=useState(''),
@@ -516,15 +558,15 @@ export function Students(){
   );
 
   useEffect(()=>{
-    const tTimer=setTimeout(fetchRows,180);
-    return()=>clearTimeout(tTimer);
+    const t=setTimeout(fetchRows,180);
+    return()=>clearTimeout(t);
   },[fetchRows]);
 
   async function remove(){
     setDeleting(true);
     try {
       await api('/admin/students/'+deleteTarget.id,{method:'DELETE'});
-      toast.success(lang === 'en' ? 'Student deleted with associated certificates.' : 'Pesilat dipadam bersama sijil berkaitan.');
+      toast.success(lang === 'eng' ? 'Student deleted along with associated certificates.' : 'Pesilat dipadam bersama sijil berkaitan.');
       setDeleteTarget(null);
       fetchRows();
     } catch(e) {
@@ -540,22 +582,22 @@ export function Students(){
   return (
     <>
       <PageIntro
-        eyebrow={t('students.eyebrow', 'PANGKALAN DATA PESILAT')}
-        title={t('students.title', 'Pengurusan Pesilat')}
-        desc={t('students.desc', 'Daftar, kemaskini maklumat pesilat, dan urus rekod sijil setiap pesilat secara teratur.')}
+        eyebrow={t('studentsEyebrow')}
+        title={t('studentsTitle')}
+        desc={t('studentsDesc')}
         actions={
           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
             <a
               href="/api/admin/students/export"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-xs font-bold text-slate-900 dark:text-slate-100 transition hover:bg-slate-50 dark:hover:bg-slate-800 shadow-xs"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-900 transition hover:bg-slate-50 shadow-xs"
             >
-              <Download size={14}/> {t('certs.exportCsv', 'Export CSV')}
+              <Download size={14}/> Export CSV
             </a>
             <Button variant="secondary" onClick={()=>setImportOpen(true)} className="!px-3 !py-2 text-xs">
-              <FileUp size={14}/> {t('nav.import', 'Import CSV')}
+              <FileUp size={14}/> {t('btnImportCSV')}
             </Button>
             <Button onClick={openAdd} className="!px-3 !py-2 text-xs">
-              <Plus size={15}/> {t('students.addBtn', 'Tambah Pesilat')}
+              <Plus size={15}/> {t('btnRegisterStudent')}
             </Button>
           </div>
         }
@@ -563,35 +605,33 @@ export function Students(){
 
       <Panel className="flex flex-col">
         {/* Filter bar */}
-        <div className="flex flex-col gap-2.5 border-b border-slate-100 dark:border-slate-800 p-3 sm:px-4 sm:py-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-col gap-2.5 border-b border-slate-100 p-3 sm:px-4 sm:py-3 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-2">
-            <GraduationCap className="text-red-700 dark:text-red-400 shrink-0" size={20}/>
-            <div className="text-xs sm:text-sm font-extrabold text-slate-950 dark:text-slate-100">
-              {lang === 'en' ? 'Student List' : 'Senarai Pelajar'}
-            </div>
-            <span className="inline-flex items-center rounded-full border border-emerald-200 dark:border-emerald-900/50 bg-emerald-50 dark:bg-emerald-950/40 px-2.5 py-0.5 text-[10px] sm:text-xs font-extrabold text-emerald-800 dark:text-emerald-300">
-              {data?.total||0} {lang === 'en' ? 'students' : 'orang'}
+            <GraduationCap className="text-red-700 shrink-0" size={20}/>
+            <div className="text-xs sm:text-sm font-extrabold text-slate-950">{lang === 'eng' ? 'Students List' : 'Senarai Pelajar'}</div>
+            <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[10px] sm:text-xs font-extrabold text-emerald-800">
+              {data?.total||0} {lang === 'eng' ? 'students' : 'orang'}
             </span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full lg:w-auto">
-            <SearchField value={q} onChange={v=>{setQ(v);setPage(1);}} placeholder={t('action.searchPlaceholder', 'Cari nama atau No. KP...')}/>
+            <SearchField value={q} onChange={v=>{setQ(v);setPage(1);}} placeholder={t('searchPlaceholder')}/>
             <select
               aria-label="Tapis cawangan"
-              className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-xs text-slate-700 dark:text-slate-200 outline-none focus:border-red-500"
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 outline-none focus:border-red-500"
               value={branch}
               onChange={e=>{setBranch(e.target.value);setPage(1);}}
             >
-              <option value="">{t('action.allBranches', 'Semua Cawangan')}</option>
+              <option value="">{t('allBranches')}</option>
               {data?.branches?.map(x=><option key={x} value={x}>{x}</option>)}
             </select>
             <select
               aria-label="Tapis peringkat"
-              className="rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-xs text-slate-700 dark:text-slate-200 outline-none focus:border-red-500"
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 outline-none focus:border-red-500"
               value={level}
               onChange={e=>{setLevel(e.target.value);setPage(1);}}
             >
-              <option value="">{t('action.allRanks', 'Semua Peringkat')}</option>
+              <option value="">{t('allLevels')}</option>
               {data?.levels?.map(x=><option key={x} value={x}>{x}</option>)}
             </select>
           </div>
@@ -603,33 +643,33 @@ export function Students(){
         ) : data.rows.length ? (
           <div className="overflow-x-auto max-h-[calc(100vh-230px)] overflow-y-auto">
             <table className="w-full min-w-[800px] border-collapse text-left text-xs sm:text-sm">
-              <thead className="sticky top-0 z-10 bg-[#FBFCFA] dark:bg-slate-900 text-[10px] font-extrabold uppercase tracking-[.14em] text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-slate-800 shadow-2xs">
+              <thead className="sticky top-0 z-10 bg-[#FBFCFA] text-[10px] font-extrabold uppercase tracking-[.14em] text-slate-400 border-b border-slate-100 shadow-2xs">
                 <tr>
-                  <th className="w-12 px-3.5 py-2.5 text-center">{t('th.no', 'Bil.')}</th>
-                  <th className="px-3.5 py-2.5">{t('th.name', 'Pesilat')}</th>
-                  <th className="px-3.5 py-2.5">{t('th.ic', 'No. KP / ID')}</th>
-                  <th className="px-3.5 py-2.5">{t('th.branch', 'Cawangan')}</th>
-                  <th className="px-3.5 py-2.5">{t('th.rank', 'Peringkat')}</th>
-                  <th className="px-3.5 py-2.5">{t('students.regDate', 'Tarikh Daftar')}</th>
-                  <th className="px-3.5 py-2.5">{lang === 'en' ? 'Certs' : 'Sijil'}</th>
-                  <th className="px-3.5 py-2.5 text-right">{t('th.action', 'Tindakan')}</th>
+                  <th className="w-12 px-3.5 py-2.5 text-center">{t('thNo')}</th>
+                  <th className="px-3.5 py-2.5">{t('thName')}</th>
+                  <th className="px-3.5 py-2.5">{t('thId')}</th>
+                  <th className="px-3.5 py-2.5">{t('thBranch')}</th>
+                  <th className="px-3.5 py-2.5">{t('thLevel')}</th>
+                  <th className="px-3.5 py-2.5">{t('thDateReg')}</th>
+                  <th className="px-3.5 py-2.5">{t('thCerts')}</th>
+                  <th className="px-3.5 py-2.5 text-right">{t('thActions')}</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              <tbody className="divide-y divide-slate-100">
                 {data.rows.map((r,i)=>(
-                  <tr key={r.id} className="transition hover:bg-red-50/30 dark:hover:bg-slate-800/60">
+                  <tr key={r.id} className="transition hover:bg-red-50/30">
                     <td className="px-3.5 py-2.5 text-center text-xs font-bold text-slate-400 w-12">
                       {(page-1)*20+i+1}
                     </td>
                     <td className="max-w-[220px] px-3.5 py-2.5">
                       <div className="flex items-center gap-2.5">
-                        <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-red-50 dark:bg-red-950/50 text-[11px] font-extrabold text-red-700 dark:text-red-300">
+                        <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-red-50 text-[11px] font-extrabold text-red-700">
                           {r.nama_penuh.split(' ').slice(0,2).map(x=>x[0]).join('').toUpperCase()}
                         </div>
                         <div className="min-w-0">
                           <button
                             onClick={()=>setViewTarget(r)}
-                            className="truncate font-bold text-slate-950 dark:text-slate-100 hover:underline text-left block max-w-full text-xs sm:text-sm"
+                            className="truncate font-bold text-slate-950 hover:underline text-left block max-w-full text-xs sm:text-sm"
                             title={r.nama_penuh}
                           >
                             {r.nama_penuh}
@@ -637,18 +677,18 @@ export function Students(){
                         </div>
                       </div>
                     </td>
-                    <td className="px-3.5 py-2.5 text-xs font-mono text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                    <td className="px-3.5 py-2.5 text-xs font-mono text-slate-600 whitespace-nowrap">
                       {r.no_kp_atau_id}
                     </td>
-                    <td className="px-3.5 py-2.5 text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap">
+                    <td className="px-3.5 py-2.5 text-xs text-slate-600 whitespace-nowrap">
                       {r.cawangan}
                     </td>
                     <td className="px-3.5 py-2.5 whitespace-nowrap">
                       <Chip color="gold">{r.peringkat}</Chip>
                     </td>
-                    <td className="px-3.5 py-2.5 text-xs text-slate-600 dark:text-slate-400 whitespace-nowrap">
-                      <div className="inline-flex items-center gap-1 rounded-md bg-slate-50 dark:bg-slate-800 px-2 py-0.5 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700">
-                        <CalendarDays size={11} className="text-red-600 dark:text-red-400"/>
+                    <td className="px-3.5 py-2.5 text-xs text-slate-600 whitespace-nowrap">
+                      <div className="inline-flex items-center gap-1 rounded-md bg-slate-50 px-2 py-0.5 text-slate-700 border border-slate-200">
+                        <CalendarDays size={11} className="text-red-600"/>
                         <span>{fmtDate(r.tarikh_daftar)}</span>
                       </div>
                     </td>
@@ -656,36 +696,36 @@ export function Students(){
                       <button
                         type="button"
                         onClick={()=>setViewTarget(r)}
-                        title="Lihat dan urus sijil pelajar ini"
-                        className="inline-flex items-center gap-1 rounded-md bg-red-50 dark:bg-red-950/40 px-2 py-0.5 text-xs font-bold text-red-800 dark:text-red-300 transition hover:bg-red-100 dark:hover:bg-red-900/50"
+                        title={lang === 'eng' ? 'View and manage student certificates' : 'Lihat dan urus sijil pelajar ini'}
+                        className="inline-flex items-center gap-1 rounded-md bg-red-50 px-2 py-0.5 text-xs font-bold text-red-800 transition hover:bg-red-50 hover:text-slate-900"
                       >
-                        <Award size={13} className="text-red-700 dark:text-red-400"/>
-                        <span>{r.sijil_count} {lang === 'en' ? 'certs' : 'sijil'}</span>
+                        <Award size={13} className="text-red-700"/>
+                        <span>{r.sijil_count} {t('thCerts').toLowerCase()}</span>
                       </button>
                     </td>
                     <td className="px-3.5 py-2.5 text-right whitespace-nowrap">
                       <div className="inline-flex items-center gap-1">
                         <button
                           onClick={()=>setViewTarget(r)}
-                          title={t('action.view', 'Lihat butiran pesilat')}
-                          aria-label={t('action.view', 'Lihat butiran pesilat')}
-                          className="rounded-lg bg-blue-50 dark:bg-blue-950/50 p-1.5 text-blue-600 dark:text-blue-300 transition hover:bg-blue-100"
+                          title={t('btnViewCerts')}
+                          aria-label={t('btnViewCerts')}
+                          className="rounded-lg bg-blue-50 p-1.5 text-blue-600 transition hover:bg-blue-100"
                         >
                           <Eye size={14}/>
                         </button>
                         <button
                           onClick={()=>openEdit(r)}
-                          title={t('action.edit', 'Kemaskini pesilat')}
-                          aria-label={t('action.edit', 'Kemaskini pesilat')}
-                          className="rounded-lg bg-slate-100 dark:bg-slate-800 p-1.5 text-slate-600 dark:text-slate-300 transition hover:bg-red-50 hover:text-red-800 dark:hover:bg-red-950/40 dark:hover:text-red-300"
+                          title={t('btnEdit')}
+                          aria-label={t('btnEdit')}
+                          className="rounded-lg bg-slate-100 p-1.5 text-slate-600 transition hover:bg-red-50 hover:text-red-800"
                         >
                           <Edit3 size={14}/>
                         </button>
                         <button
                           onClick={()=>setDeleteTarget(r)}
-                          title={t('action.delete', 'Padam pesilat')}
-                          aria-label={t('action.delete', 'Padam pesilat')}
-                          className="rounded-lg bg-rose-50 dark:bg-rose-950/50 p-1.5 text-rose-600 dark:text-rose-300 transition hover:bg-rose-100 dark:hover:bg-rose-900/50"
+                          title={t('btnDelete')}
+                          aria-label={t('btnDelete')}
+                          className="rounded-lg bg-rose-50 p-1.5 text-rose-600 transition hover:bg-rose-100"
                         >
                           <Trash2 size={14}/>
                         </button>
@@ -697,7 +737,7 @@ export function Students(){
             </table>
           </div>
         ) : (
-          <Empty title={lang === 'en' ? 'No student records' : 'Tiada rekod pesilat'} message={lang === 'en' ? 'Add a new student or change search filters.' : 'Tambah pesilat baharu atau ubah kriteria carian.'}/>
+          <Empty title={t('noStudentsFound')} message={t('noStudentsFoundDesc')}/>
         )}
 
         <Pagination page={data?.page||1} pages={data?.pages||1} onChange={setPage}/>
@@ -717,8 +757,8 @@ export function Students(){
         onClose={()=>setDeleteTarget(null)}
         onConfirm={remove}
         busy={deleting}
-        title={t('students.deleteConfirmTitle', 'Padam pesilat ini?')}
-        message={lang === 'en' ? `You will permanently delete ${deleteTarget?.nama_penuh||'this student'} and ALL their certificates.` : `Anda akan memadam ${deleteTarget?.nama_penuh||'pesilat'} dan SEMUA sijil miliknya secara kekal.`}
+        title={t('confirmDeleteStudentTitle')}
+        message={lang === 'eng' ? `You will delete ${deleteTarget?.nama_penuh||'student'} and ALL associated certificates permanently.` : `Anda akan memadam ${deleteTarget?.nama_penuh||'pesilat'} dan SEMUA sijil miliknya secara kekal.`}
       />
     </>
   );

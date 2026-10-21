@@ -1,12 +1,8 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Loader2, X, Search, ChevronLeft, ChevronRight, Inbox, AlertTriangle } from 'lucide-react';
-import { useLanguage } from '../lib/i18n';
 
 export function Logo({ light = false, small = false, center = false, className = '' }) {
-  const { lang, t } = useLanguage();
-  const isEng = lang === 'en';
-
   return (
     <div
       className={`flex items-center gap-2 select-none ${
@@ -24,24 +20,18 @@ export function Logo({ light = false, small = false, center = false, className =
         <span
           className={`block ${
             small ? 'text-xs sm:text-[13px]' : 'text-base sm:text-lg'
-          } font-black tracking-tight whitespace-nowrap ${light ? 'text-white' : 'text-slate-950 dark:text-slate-100'}`}
+          } font-black tracking-tight whitespace-nowrap ${light ? 'text-white' : 'text-slate-950'}`}
         >
           AKADEMI <span className={light ? 'text-red-400' : 'text-red-700'}>PROSILAT</span>
         </span>
         <span
           className={`block ${
-            small
-              ? isEng
-                ? 'text-[7px] sm:text-[7.5px] tracking-[0.01em]'
-                : 'text-[7.5px] sm:text-[8px] tracking-[0.04em]'
-              : isEng
-              ? 'text-[7.5px] sm:text-[8px] tracking-[0.03em]'
-              : 'text-[8.5px] sm:text-[9px] tracking-[0.08em]'
+            small ? 'text-[7.5px] sm:text-[8px] tracking-[0.06em]' : 'text-[8.5px] sm:text-[9px] tracking-[0.14em]'
           } uppercase font-bold whitespace-nowrap ${
-            light ? 'text-white/70' : 'text-slate-500 dark:text-slate-400'
+            light ? 'text-white/70' : 'text-slate-500'
           }`}
         >
-          {t('brand.subtitle', 'Sistem Pengurusan Sijil')}
+          Sistem Pengurusan Sijil
         </span>
       </div>
     </div>
@@ -51,9 +41,9 @@ export function Logo({ light = false, small = false, center = false, className =
 export function Button({ children, variant = 'primary', loading = false, className = '', ...props }) {
   const types = {
     primary: 'bg-red-700 text-white hover:bg-red-800 shadow-xs focus:ring-4 focus:ring-red-500/15',
-    secondary: 'bg-white text-slate-800 border border-slate-200/90 hover:bg-slate-50 hover:border-slate-300 shadow-2xs dark:bg-slate-800 dark:text-slate-100 dark:border-slate-700 dark:hover:bg-slate-700',
-    ghost: 'text-slate-700 hover:bg-red-50 hover:text-red-700 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-red-400',
-    danger: 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200/80 dark:bg-rose-950/50 dark:text-rose-300 dark:border-rose-900/60',
+    secondary: 'bg-white text-slate-800 border border-slate-200/90 hover:bg-slate-50 hover:border-slate-300 shadow-2xs',
+    ghost: 'text-slate-700 hover:bg-red-50 hover:text-red-700',
+    danger: 'bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200/80',
     gold: 'bg-red-600 text-white hover:bg-red-700 shadow-xs',
   };
 
@@ -72,12 +62,12 @@ export function Button({ children, variant = 'primary', loading = false, classNa
 export function Input({ label, error, className = '', ...props }) {
   return (
     <label className="block space-y-1">
-      {label && <span className="block text-[11px] font-bold text-slate-600 dark:text-slate-300">{label}</span>}
+      {label && <span className="block text-[11px] font-bold text-slate-600">{label}</span>}
       <input
         {...props}
-        className={`w-full rounded-xl border border-slate-200/90 bg-white px-3.5 py-2 text-xs sm:text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-red-600 focus:ring-4 focus:ring-red-500/10 dark:bg-slate-850 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-500 ${className}`}
+        className={`w-full rounded-xl border border-slate-200/90 bg-white px-3.5 py-2 text-xs sm:text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-red-600 focus:ring-4 focus:ring-red-500/10 ${className}`}
       />
-      {error && <span className="text-[11px] text-rose-600 dark:text-rose-400">{error}</span>}
+      {error && <span className="text-[11px] text-rose-600">{error}</span>}
     </label>
   );
 }
@@ -85,10 +75,10 @@ export function Input({ label, error, className = '', ...props }) {
 export function Select({ label, children, className = '', ...props }) {
   return (
     <label className="block space-y-1">
-      {label && <span className="block text-[11px] font-bold text-slate-600 dark:text-slate-300">{label}</span>}
+      {label && <span className="block text-[11px] font-bold text-slate-600">{label}</span>}
       <select
         {...props}
-        className={`w-full rounded-xl border border-slate-200/90 bg-white px-3.5 py-2 text-xs sm:text-sm text-slate-900 outline-none focus:border-red-600 focus:ring-4 focus:ring-red-500/10 dark:bg-slate-850 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100 ${className}`}
+        className={`w-full rounded-xl border border-slate-200/90 bg-white px-3.5 py-2 text-xs sm:text-sm text-slate-900 outline-none focus:border-red-600 focus:ring-4 focus:ring-red-500/10 ${className}`}
       >
         {children}
       </select>
@@ -106,12 +96,12 @@ export function PageIntro({ eyebrow, title, desc, action, actions }) {
     >
       <div>
         {eyebrow && (
-          <div className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-red-600 dark:text-red-400 mb-0.5">
+          <div className="text-[10px] font-extrabold uppercase tracking-[0.18em] text-red-600 mb-0.5">
             {eyebrow}
           </div>
         )}
-        <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-950 dark:text-slate-100">{title}</h1>
-        {desc && <p className="text-xs sm:text-[13px] text-slate-500 dark:text-slate-400 mt-0.5 max-w-2xl">{desc}</p>}
+        <h1 className="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-950">{title}</h1>
+        {desc && <p className="text-xs sm:text-[13px] text-slate-500 mt-0.5 max-w-2xl">{desc}</p>}
       </div>
       {acts && <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">{acts}</div>}
     </motion.div>
@@ -120,7 +110,7 @@ export function PageIntro({ eyebrow, title, desc, action, actions }) {
 
 export function Panel({ children, className = '' }) {
   return (
-    <div className={`rounded-2xl border border-slate-200/80 bg-white shadow-apple dark:bg-slate-900 dark:border-slate-800 dark:shadow-none ${className}`}>
+    <div className={`rounded-2xl border border-slate-200/80 bg-white shadow-apple ${className}`}>
       {children}
     </div>
   );
@@ -149,10 +139,10 @@ export function Chip({ children, color = 'emerald', className = '' }) {
 export function Empty({ title = 'Belum ada data', message = 'Rekod akan dipaparkan di sini.', icon: Icon = Inbox }) {
   return (
     <div className="flex flex-col items-center justify-center px-4 py-8 sm:py-12 text-center">
-      <div className="mb-2.5 flex h-11 w-11 items-center justify-center rounded-2xl bg-red-50 text-red-700 border border-red-100 dark:bg-red-950/40 dark:text-red-400 dark:border-red-900/40">
+      <div className="mb-2.5 flex h-11 w-11 items-center justify-center rounded-2xl bg-red-50 text-red-700 border border-red-100">
         <Icon size={20} />
       </div>
-      <h3 className="font-bold text-slate-900 dark:text-slate-100 text-xs sm:text-sm">{title}</h3>
+      <h3 className="font-bold text-slate-900 text-xs sm:text-sm">{title}</h3>
       <p className="mt-1 max-w-xs text-xs text-slate-400">{message}</p>
     </div>
   );
@@ -160,9 +150,9 @@ export function Empty({ title = 'Belum ada data', message = 'Rekod akan dipapark
 
 export function Loading() {
   return (
-    <div className="flex items-center justify-center p-8 text-red-700 dark:text-red-400">
+    <div className="flex items-center justify-center p-8 text-red-700">
       <Loader2 className="animate-spin" size={22} />
-      <span className="ml-2.5 text-xs font-semibold text-slate-600 dark:text-slate-400">Sedang memuatkan...</span>
+      <span className="ml-2.5 text-xs font-semibold text-slate-600">Sedang memuatkan...</span>
     </div>
   );
 }
@@ -170,8 +160,8 @@ export function Loading() {
 export function Pagination({ page, pages, onChange }) {
   if (pages <= 1) return null;
   return (
-    <div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800 bg-[#FCFDFB] dark:bg-slate-900/60 px-4 py-2 text-xs">
-      <span className="text-xs text-slate-500 dark:text-slate-400">
+    <div className="flex items-center justify-between border-t border-slate-100 bg-[#FCFDFB] px-4 py-2 text-xs">
+      <span className="text-xs text-slate-500">
         Halaman <strong>{page}</strong> daripada <strong>{pages}</strong>
       </span>
       <div className="flex gap-1.5">
@@ -201,16 +191,16 @@ export function Modal({ open, onClose, title, children, wide = false }) {
       <motion.div
         initial={{ opacity: 0, scale: 0.97, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
-        className={`max-h-[92vh] w-full overflow-y-auto rounded-2xl sm:rounded-3xl bg-white dark:bg-slate-900 p-4 sm:p-6 shadow-2xl border border-slate-200/70 dark:border-slate-800 ${
+        className={`max-h-[92vh] w-full overflow-y-auto rounded-2xl sm:rounded-3xl bg-white p-4 sm:p-6 shadow-2xl border border-slate-200/70 ${
           wide ? 'max-w-2xl' : 'max-w-lg'
         }`}
       >
-        <div className="mb-4 flex items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-800 pb-3">
-          <h2 className="text-sm sm:text-base font-extrabold tracking-tight text-slate-950 dark:text-slate-100">{title}</h2>
+        <div className="mb-4 flex items-center justify-between gap-3 border-b border-slate-100 pb-3">
+          <h2 className="text-sm sm:text-base font-extrabold tracking-tight text-slate-950">{title}</h2>
           <button
             onClick={onClose}
             aria-label="Tutup"
-            className="rounded-xl p-1.5 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-700 dark:hover:text-slate-200 transition"
+            className="rounded-xl p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition"
           >
             <X size={18} />
           </button>
@@ -232,12 +222,12 @@ export function Confirm({
   return (
     <Modal open={open} onClose={onClose} title={title}>
       <div className="flex gap-3">
-        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-rose-50 text-rose-600 border border-rose-200/70 dark:bg-rose-950/50 dark:text-rose-400 dark:border-rose-900/60">
+        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-rose-50 text-rose-600 border border-rose-200/70">
           <AlertTriangle size={18} />
         </div>
-        <p className="pt-0.5 text-xs sm:text-sm leading-6 text-slate-600 dark:text-slate-300">{message}</p>
+        <p className="pt-0.5 text-xs sm:text-sm leading-6 text-slate-600">{message}</p>
       </div>
-      <div className="mt-5 flex justify-end gap-2 border-t border-slate-100 dark:border-slate-800 pt-3">
+      <div className="mt-5 flex justify-end gap-2 border-t border-slate-100 pt-3">
         <Button variant="secondary" onClick={onClose} className="text-xs">
           Batal
         </Button>
@@ -258,7 +248,7 @@ export function SearchField({ value, onChange, placeholder = 'Cari rekod...' }) 
         value={value}
         onChange={(e) => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full min-w-0 rounded-xl border border-slate-200/90 bg-white py-2 pl-8 pr-3 text-xs sm:text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-red-600 focus:ring-4 focus:ring-red-500/10 dark:bg-slate-850 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-100 dark:placeholder:text-slate-500 sm:min-w-[200px]"
+        className="w-full min-w-0 rounded-xl border border-slate-200/90 bg-white py-2 pl-8 pr-3 text-xs sm:text-sm text-slate-900 outline-none transition-all placeholder:text-slate-400 focus:border-red-600 focus:ring-4 focus:ring-red-500/10 sm:min-w-[200px]"
       />
     </div>
   );

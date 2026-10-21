@@ -23,9 +23,7 @@ import {
 import { toast } from 'sonner';
 import { api, certDownload, fmtDate } from '../lib/api';
 import { Logo, Button, Chip, Empty } from '../components/UI';
-import { useLanguage } from '../lib/i18n';
-import { LanguageToggle } from '../components/LanguageToggle';
-import { ThemeToggle } from '../components/ThemeToggle';
+import { useLang, LanguageSwitcher, LiveClock } from '../lib/i18n';
 
 const rise = {
   hidden: { opacity: 0, y: 18 },
@@ -34,29 +32,8 @@ const rise = {
 
 const stagger = { hidden: {}, show: { transition: { staggerChildren: 0.08 } } };
 
-const steps = [
-  {
-    icon: Search,
-    num: '01',
-    title: 'Cari nama pesilat',
-    text: 'Masukkan nama penuh atau nombor ID pesilat pada ruangan carian pintar.',
-  },
-  {
-    icon: FileCheck2,
-    num: '02',
-    title: 'Semak sijil',
-    text: 'Lihat profil pesilat serta senarai sijil digital rasmi yang telah dikeluarkan.',
-  },
-  {
-    icon: Download,
-    num: '03',
-    title: 'Muat turun PDF',
-    text: 'Dapatkan dokumen sijil berkualiti tinggi dengan hanya satu klik mudah.',
-  },
-];
-
 function PublicNav() {
-  const { t } = useLanguage();
+  const { t } = useLang();
 
   return (
     <header className="absolute inset-x-0 top-0 z-30">
@@ -66,23 +43,27 @@ function PublicNav() {
         </Link>
         <nav className="hidden items-center gap-7 text-xs font-semibold text-white/80 md:flex">
           <a href="/#cara" className="transition hover:text-rose-200">
-            {t('public.howTo', 'Cara Semakan')}
+            {t('navHowToCheck')}
           </a>
           <a href="/#kelebihan" className="transition hover:text-rose-200">
-            {t('public.features', 'Kelebihan')}
+            {t('navBenefits')}
           </a>
           <a href="/#tentang" className="transition hover:text-rose-200">
-            {t('public.about', 'Tentang Kami')}
+            {t('navAboutUs')}
           </a>
         </nav>
-        <div className="flex items-center gap-2 sm:gap-2.5">
-          <LanguageToggle className="border-white/20 bg-white/10 text-white" />
-          <ThemeToggle className="border-white/20 bg-white/10 text-white hover:bg-white/20" />
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Live Clock & Date on Front Page */}
+          <LiveClock light showDate={true} className="hidden lg:inline-flex" />
+
+          {/* Language Switcher [ BM | ENG ] */}
+          <LanguageSwitcher light />
+
           <Link
             to="/admin/login"
             className="flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-xs font-bold text-white transition hover:bg-white/20 backdrop-blur-sm shadow-xs"
           >
-            <LockKeyhole size={13} /> {t('public.adminLogin', 'Admin')} <ArrowUpRight size={13} />
+            <LockKeyhole size={13} /> {t('btnAdminLogin')} <ArrowUpRight size={13} />
           </Link>
         </div>
       </div>
@@ -91,8 +72,9 @@ function PublicNav() {
 }
 
 function SearchResult({ records, loading, q, searched }) {
-  const { t, lang } = useLanguage();
+  const { t, lang } = useLang();
   if (!searched) return null;
+
   return (
     <div id="hasil-carian" className="mx-auto w-full max-w-4xl px-4 pt-6 sm:px-6">
       <AnimatePresence mode="wait">
@@ -101,34 +83,31 @@ function SearchResult({ records, loading, q, searched }) {
             key="loading"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 text-center shadow-apple"
+            className="rounded-2xl border border-slate-200/80 bg-white p-8 text-center shadow-apple"
           >
-            <Loader2 className="mx-auto animate-spin text-red-600 dark:text-red-400" size={26} />
-            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400 font-medium">
-              {t('public.searching', 'Sedang menyemak rekod rasmi...')}
-            </p>
+            <Loader2 className="mx-auto animate-spin text-red-600" size={26} />
+            <p className="mt-2 text-xs text-slate-500 font-medium">{t('btnSearching')}</p>
           </motion.div>
         ) : records.length ? (
           <motion.div key="records" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}>
             <div className="mb-4 flex items-center gap-2">
-              <CheckCircle2 className="text-emerald-600 dark:text-emerald-400" size={18} />
-              <h2 className="text-lg font-extrabold text-slate-950 dark:text-slate-100">
-                {t('public.recordsFound', 'Rekod Ditemui')}
-              </h2>
-              <Chip color="red">{records.length} {lang === 'en' ? 'students' : 'pesilat'}</Chip>
+              <CheckCircle2 className="text-emerald-600" size={18} />
+              <h2 className="text-lg font-extrabold text-slate-950">{t('recordsFoundHeading')}</h2>
+              <Chip color="red">{records.length} {t('studentBadge')}</Chip>
             </div>
             <div className="space-y-4">
               {records.map((p) => (
-                <div key={p.id} className="overflow-hidden rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-apple">
-                  <div className="flex flex-wrap items-center gap-3 border-b border-slate-100 dark:border-slate-800 bg-[#FCFDFB] dark:bg-slate-900/60 p-4 sm:p-5">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-red-50 dark:bg-red-950/50 text-red-700 dark:text-red-300 border border-red-100 dark:border-red-900/50">
+                <div key={p.id} className="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-apple">
+                  <div className="flex flex-wrap items-center gap-3 border-b border-slate-100 bg-[#FCFDFB] p-4 sm:p-5">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-700 border border-red-100">
                       <GraduationCap size={22} />
                     </div>
                     <div className="min-w-0 flex-1">
-                      <h3 className="text-base font-extrabold leading-snug text-slate-950 dark:text-slate-100">{p.nama_penuh}</h3>
-                      <div className="mt-1 flex flex-wrap items-center gap-2.5 text-xs text-slate-500 dark:text-slate-400">
+                      {/* Name preserved as strictly requested */}
+                      <h3 className="text-base font-extrabold leading-snug text-slate-950">{p.nama_penuh}</h3>
+                      <div className="mt-1 flex flex-wrap items-center gap-2.5 text-xs text-slate-500">
                         {p.no_kp_atau_id && (
-                          <span className="inline-flex items-center gap-1 font-semibold text-slate-700 dark:text-slate-300">
+                          <span className="inline-flex items-center gap-1 font-semibold text-slate-700">
                             <IdCard size={13} />
                             {p.no_kp_atau_id}
                           </span>
@@ -139,31 +118,31 @@ function SearchResult({ records, loading, q, searched }) {
                         </span>
                         <Chip color="gold">{p.peringkat}</Chip>
                         {p.tarikh_daftar && (
-                          <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 dark:bg-slate-800 px-2 py-0.5 font-bold text-slate-700 dark:text-slate-300">
+                          <span className="inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 font-bold text-slate-700">
                             <CalendarDays size={12} />
-                            {lang === 'en' ? 'Registered:' : 'Tarikh Daftar:'} {fmtDate(p.tarikh_daftar)}
+                            {t('dateRegPrefix')} {fmtDate(p.tarikh_daftar)}
                           </span>
                         )}
                       </div>
                     </div>
-                    <Chip color="emerald">{p.certificates.length} {lang === 'en' ? 'certs' : 'sijil'}</Chip>
+                    <Chip color="emerald">{p.certificates.length} {t('thCerts')}</Chip>
                   </div>
                   <div className="p-4 sm:p-5">
-                    <h4 className="mb-3 text-[11px] font-extrabold uppercase tracking-wider text-slate-400 dark:text-slate-500">
-                      {t('public.certList', 'Senarai Sijil Digital Rasmi')}
+                    <h4 className="mb-3 text-[11px] font-extrabold uppercase tracking-wider text-slate-400">
+                      {t('certsEarnedHeading')}
                     </h4>
                     {p.certificates.length ? (
                       <div className="space-y-2.5">
                         {p.certificates.map((c) => (
                           <div
                             key={c.id}
-                            className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200/70 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-800/50 p-3 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+                            className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200/70 bg-slate-50/70 p-3 hover:bg-slate-50 transition"
                           >
-                            <div className="grid h-9 w-9 place-items-center rounded-lg bg-white dark:bg-slate-900 text-red-700 dark:text-red-400 shadow-2xs border border-slate-200/60 dark:border-slate-700">
+                            <div className="grid h-9 w-9 place-items-center rounded-lg bg-white text-red-700 shadow-2xs border border-slate-200/60">
                               <FileText size={18} />
                             </div>
                             <div className="min-w-[150px] flex-1">
-                              <div className="text-sm font-bold text-slate-950 dark:text-slate-100">{c.nama_sijil}</div>
+                              <div className="text-sm font-bold text-slate-950">{c.nama_sijil}</div>
                               <div className="mt-0.5 flex items-center gap-1 text-[11px] text-slate-400">
                                 <CalendarDays size={11} />
                                 {fmtDate(c.tarikh_isu)}
@@ -174,15 +153,15 @@ function SearchResult({ records, loading, q, searched }) {
                               href={certDownload(c.public_token)}
                               download={`${p.nama_penuh}.pdf`}
                             >
-                              <Download size={14} /> {t('public.downloadPdf', 'Muat Turun PDF')}
+                              <Download size={14} /> {t('downloadPdfBtn')}
                             </a>
                           </div>
                         ))}
                       </div>
                     ) : (
                       <Empty
-                        title={lang === 'en' ? 'No certificates issued yet' : 'Belum mempunyai sijil'}
-                        message={lang === 'en' ? 'Please contact the academy administrator if certificate is missing.' : 'Hubungi pihak akademi sekiranya sijil masih belum dipaparkan.'}
+                        title={lang === 'eng' ? 'No certificates yet' : 'Belum mempunyai sijil'}
+                        message={lang === 'eng' ? 'Contact the academy if certificates are not yet displayed.' : 'Hubungi pihak akademi sekiranya sijil masih belum dipaparkan.'}
                       />
                     )}
                   </div>
@@ -195,16 +174,16 @@ function SearchResult({ records, loading, q, searched }) {
             key="empty"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 px-6 py-8 text-center shadow-apple"
+            className="rounded-2xl border border-slate-200/80 bg-white px-6 py-8 text-center shadow-apple"
           >
-            <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-xl bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 border border-amber-200/60 dark:border-amber-900/50">
+            <div className="mx-auto mb-3 grid h-12 w-12 place-items-center rounded-xl bg-amber-50 text-amber-600 border border-amber-200/60">
               <Search size={22} />
             </div>
-            <h3 className="text-base font-extrabold text-slate-950 dark:text-slate-100">
-              {t('public.noRecords', 'Tiada rekod ditemui')}
-            </h3>
-            <p className="mx-auto mt-2 max-w-md text-xs leading-6 text-slate-500 dark:text-slate-400">
-              {t('public.noRecordsDesc', 'Semak ejaan nama penuh atau nombor ID. Sila hubungi pihak akademi jika sijil belum didaftarkan.')}
+            <h3 className="text-base font-extrabold text-slate-950">{t('noStudentsFound')}</h3>
+            <p className="mx-auto mt-2 max-w-md text-xs leading-6 text-slate-500">
+              {lang === 'eng'
+                ? `Check spelling of full name or ID "${q}". If certificate has not been issued yet, please contact the academy.`
+                : `Semak ejaan nama penuh atau nombor ID “${q}”. Jika sijil belum dikeluarkan, sila hubungi pihak akademi.`}
             </p>
           </motion.div>
         )}
@@ -214,7 +193,7 @@ function SearchResult({ records, loading, q, searched }) {
 }
 
 export function Home() {
-  const { t, lang } = useLanguage();
+  const { t, lang } = useLang();
   const [q, setQ] = useState('');
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
@@ -229,7 +208,7 @@ export function Home() {
 
   async function search(e) {
     e.preventDefault();
-    if (q.trim().length < 3) return toast.error(lang === 'en' ? 'Enter full name or ID (minimum 3 characters).' : 'Masukkan nama penuh atau ID (minima 3 aksara).');
+    if (q.trim().length < 3) return toast.error(lang === 'eng' ? 'Enter full name or ID (minimum 3 characters).' : 'Masukkan nama penuh atau ID (minima 3 aksara).');
     setLoading(true);
     setSearched(true);
     try {
@@ -244,8 +223,29 @@ export function Home() {
     }
   }
 
+  const stepsList = [
+    {
+      icon: Search,
+      num: '01',
+      title: lang === 'eng' ? 'Search student name' : 'Cari nama pesilat',
+      text: lang === 'eng' ? 'Enter full name or student ID number into the smart search field.' : 'Masukkan nama penuh atau nombor ID pesilat pada ruangan carian pintar.',
+    },
+    {
+      icon: FileCheck2,
+      num: '02',
+      title: lang === 'eng' ? 'Verify certificates' : 'Semak sijil',
+      text: lang === 'eng' ? 'View student profile and list of official digital certificates issued.' : 'Lihat profil pesilat serta senarai sijil digital rasmi yang telah dikeluarkan.',
+    },
+    {
+      icon: Download,
+      num: '03',
+      title: lang === 'eng' ? 'Download PDF' : 'Muat turun PDF',
+      text: lang === 'eng' ? 'Download high-quality certificate documents with a single click.' : 'Dapatkan dokumen sijil berkualiti tinggi dengan hanya satu klik mudah.',
+    },
+  ];
+
   return (
-    <div className="min-h-screen bg-[#FBFBFD] dark:bg-[#0b0f17] text-slate-900 dark:text-slate-100 transition-colors">
+    <div className="min-h-screen bg-[#FBFBFD]">
       <PublicNav />
       <main>
         {/* Apple/Android Style Hero Section with Crimson/Ruby Red Mesh */}
@@ -258,71 +258,73 @@ export function Home() {
 
           <div className="relative mx-auto grid max-w-7xl items-center gap-8 px-4 sm:px-8 lg:grid-cols-[1.2fr_0.8fr] lg:gap-12 lg:px-12">
             <motion.div initial="hidden" animate="show" variants={stagger}>
-              <motion.div
-                variants={rise}
-                className="mb-4 inline-flex items-center gap-2 rounded-full border border-rose-300/30 bg-white/10 px-3.5 py-1.5 text-xs font-semibold text-rose-200 backdrop-blur-md shadow-xs"
-              >
-                <span className="h-2 w-2 animate-pulse rounded-full bg-rose-300" /> {t('public.badge', 'SISTEM SIJIL DIGITAL PESILAT')}{' '}
-                <ChevronRight size={14} />
-              </motion.div>
+              {/* Live Clock & Date Badge directly on front page */}
+              <div className="mb-4 flex flex-wrap items-center gap-2.5">
+                <motion.div
+                  variants={rise}
+                  className="inline-flex items-center gap-2 rounded-full border border-rose-300/30 bg-white/10 px-3.5 py-1.5 text-xs font-semibold text-rose-200 backdrop-blur-md shadow-xs"
+                >
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-rose-300" /> {t('heroEyebrow')}{' '}
+                  <ChevronRight size={14} />
+                </motion.div>
+                <LiveClock light showDate={true} />
+              </div>
 
               <motion.h1
                 variants={rise}
                 className="max-w-3xl text-balance text-[clamp(2.2rem,4.5vw,4.5rem)] font-extrabold leading-[1.12] tracking-[-0.05em]"
               >
-                {lang === 'en' ? (
-                  <>Every achievement, <span className="text-rose-300">a proud moment.</span></>
-                ) : (
-                  <>Setiap pencapaian, <span className="text-rose-300">satu kebanggaan.</span></>
-                )}
+                {t('heroHeading1')} <span className="text-rose-300">{t('heroHeading2')}</span>
               </motion.h1>
 
               <motion.p variants={rise} className="mt-3.5 max-w-xl text-sm leading-6 text-white/80 sm:text-base">
-                {lang === 'en'
-                  ? 'Quickly, securely, and officially verify and download your child\'s silat achievements.'
-                  : 'Semak dan muat turun sijil pencapaian silat anak anda dengan pantas, selamat dan rasmi.'}
+                {t('heroSubtitle')}
               </motion.p>
 
               {/* Apple-style Clean Floating Search Box */}
               <motion.form
                 variants={rise}
                 onSubmit={search}
-                className="mt-6 max-w-xl rounded-2xl border border-white/20 bg-white/95 dark:bg-slate-900/95 p-1.5 shadow-2xl backdrop-blur-md"
+                className="mt-6 max-w-xl rounded-2xl border border-white/20 bg-white/95 p-1.5 shadow-2xl backdrop-blur-md"
               >
                 <div className="flex items-center gap-2">
                   <Search size={18} className="ml-3 shrink-0 text-slate-400" />
                   <input
-                    aria-label={t('public.searchPlaceholder', 'Nama penuh atau nombor ID pesilat...')}
-                    placeholder={t('public.searchPlaceholder', 'Nama penuh atau nombor ID pesilat...')}
-                    className="w-full min-w-0 flex-1 bg-transparent px-2 py-2 text-xs sm:text-sm font-semibold text-slate-900 dark:text-slate-100 outline-none placeholder:font-normal placeholder:text-slate-400"
+                    aria-label={t('searchBoxTitle')}
+                    placeholder={t('searchPlaceholderPublic')}
+                    className="w-full min-w-0 flex-1 bg-transparent px-2 py-2 text-xs sm:text-sm font-semibold text-slate-900 outline-none placeholder:font-normal placeholder:text-slate-400"
                     value={q}
                     onChange={(e) => setQ(e.target.value)}
                   />
                   <Button type="submit" loading={loading} className="!rounded-xl !px-3 sm:!px-5 text-xs">
-                    {t('public.searchBtn', 'Semak')} <ArrowRight size={14} />
+                    {lang === 'eng' ? 'Search' : 'Semak'} <ArrowRight size={14} />
                   </Button>
                 </div>
               </motion.form>
 
               <motion.p variants={rise} className="mt-3 flex items-center gap-2 text-xs text-white/50">
                 <ShieldCheck size={14} className="text-rose-300" />{' '}
-                {lang === 'en' ? 'Fast search using full student name or ID number only.' : 'Carian pantas menggunakan nama penuh atau ID pesilat sahaja.'}
+                {lang === 'eng'
+                  ? 'Fast search using student full name or ID number only.'
+                  : 'Carian pantas menggunakan nama penuh atau ID pesilat sahaja.'}
               </motion.p>
 
               <motion.div variants={rise} className="mt-6 flex flex-wrap items-center gap-6">
                 <div>
                   <div className="text-xl sm:text-2xl font-extrabold text-white">
-                    {latest === null ? '—' : latest.toLocaleString(lang === 'en' ? 'en-US' : 'ms-MY')}
+                    {latest === null ? '—' : latest.toLocaleString(lang === 'eng' ? 'en-US' : 'ms-MY')}
                     <span className="text-rose-300">+</span>
                   </div>
-                  <span className="text-[11px] text-white/50">{lang === 'en' ? 'Certificates issued' : 'Sijil dikeluarkan'}</span>
+                  <span className="text-[11px] text-white/50">{t('statCerts')}</span>
                 </div>
                 <div className="h-6 w-px bg-white/20" />
                 <div>
                   <div className="text-xl sm:text-2xl font-extrabold text-white">
                     100<span className="text-rose-300">%</span>
                   </div>
-                  <span className="text-[11px] text-white/50">{lang === 'en' ? 'Digital & accessible' : 'Digital & mudah dicapai'}</span>
+                  <span className="text-[11px] text-white/50">
+                    {lang === 'eng' ? 'Digital & easily accessible' : 'Digital & mudah dicapai'}
+                  </span>
                 </div>
               </motion.div>
             </motion.div>
@@ -341,20 +343,30 @@ export function Home() {
                   <div className="relative mt-2 text-[9px] font-extrabold tracking-[0.2em] text-red-700">
                     AKADEMI PRO SILAT
                   </div>
-                  <div className="relative mt-6 text-2xl font-extrabold tracking-tight">SIJIL</div>
-                  <div className="relative mt-0.5 text-base font-bold tracking-[0.15em] text-red-800">PENGHARGAAN</div>
+                  <div className="relative mt-6 text-2xl font-extrabold tracking-tight">
+                    {lang === 'eng' ? 'CERTIFICATE' : 'SIJIL'}
+                  </div>
+                  <div className="relative mt-0.5 text-base font-bold tracking-[0.15em] text-red-800">
+                    {lang === 'eng' ? 'OF APPRECIATION' : 'PENGHARGAAN'}
+                  </div>
                   <div className="relative mx-auto mt-4 h-px w-24 bg-red-700" />
-                  <div className="relative mt-4 text-[9px] text-slate-500">Dengan sukacitanya dianugerahkan kepada</div>
-                  <div className="relative mt-2 font-serif text-xl font-bold italic text-red-900">PESILAT CEMERLANG</div>
-                  <div className="relative mt-2 text-[11px] font-semibold text-slate-700">Sijil Kenaikan Bengkung</div>
+                  <div className="relative mt-4 text-[9px] text-slate-500">
+                    {lang === 'eng' ? 'Proudly awarded to' : 'Dengan sukacitanya dianugerahkan kepada'}
+                  </div>
+                  <div className="relative mt-2 font-serif text-xl font-bold italic text-red-900">
+                    PESILAT CEMERLANG
+                  </div>
+                  <div className="relative mt-2 text-[11px] font-semibold text-slate-700">
+                    {lang === 'eng' ? 'Belt Promotion Certificate' : 'Sijil Kenaikan Bengkung'}
+                  </div>
                   <div className="relative mt-6 flex justify-between text-[8px] text-slate-500">
                     <span>
                       ________________
                       <br />
-                      Pengarah Akademi
+                      {lang === 'eng' ? 'Academy Director' : 'Pengarah Akademi'}
                     </span>
                     <span className="grid h-10 w-10 place-items-center rounded-full border-2 border-red-700 font-extrabold text-red-700">
-                      RASMI
+                      {lang === 'eng' ? 'OFFICIAL' : 'RASMI'}
                     </span>
                   </div>
                 </div>
@@ -364,8 +376,12 @@ export function Home() {
                   <CheckCircle2 size={20} />
                 </div>
                 <div>
-                  <div className="text-xs font-extrabold text-slate-900">Disahkan Digital</div>
-                  <div className="text-[10px] text-slate-400">Sijil rasmi sedia dimuat turun</div>
+                  <div className="text-xs font-extrabold text-slate-900">
+                    {lang === 'eng' ? 'Digitally Verified' : 'Disahkan Digital'}
+                  </div>
+                  <div className="text-[10px] text-slate-400">
+                    {lang === 'eng' ? 'Official certificate ready to download' : 'Sijil rasmi sedia dimuat turun'}
+                  </div>
                 </div>
               </div>
             </motion.div>
@@ -379,16 +395,21 @@ export function Home() {
         {/* 3 Langkah Semakan: Apple-inspired cards */}
         <section id="cara" className="mx-auto max-w-7xl px-4 py-16 sm:px-8 lg:px-12">
           <div className="mx-auto max-w-2xl text-center">
-            <div className="text-[11px] font-extrabold uppercase tracking-wider text-red-600">MUDAH & PANTAS</div>
+            <div className="text-[11px] font-extrabold uppercase tracking-wider text-red-600">
+              {lang === 'eng' ? 'SIMPLE & FAST' : 'MUDAH & PANTAS'}
+            </div>
             <h2 className="mt-2 text-2xl font-extrabold tracking-tight text-slate-950 sm:text-3xl">
-              Semak sijil dalam <span className="text-red-600">3 langkah.</span>
+              {lang === 'eng' ? 'Check certificates in ' : 'Semak sijil dalam '}
+              <span className="text-red-600">{lang === 'eng' ? '3 steps.' : '3 langkah.'}</span>
             </h2>
             <p className="mt-2 text-xs leading-6 text-slate-500">
-              Tiada pendaftaran akaun diperlukan untuk ibu bapa. Carian yang mudah, pengalaman yang lancar.
+              {lang === 'eng'
+                ? 'No account registration required for parents. Easy search, seamless experience.'
+                : 'Tiada pendaftaran akaun diperlukan untuk ibu bapa. Carian yang mudah, pengalaman yang lancar.'}
             </p>
           </div>
           <div className="mt-8 grid gap-4 md:grid-cols-3">
-            {steps.map((s, i) => (
+            {stepsList.map((s, i) => (
               <motion.div
                 key={s.num}
                 initial={{ opacity: 0, y: 15 }}
@@ -421,26 +442,38 @@ export function Home() {
                 </div>
               </div>
               <div className="absolute bottom-4 left-5 right-5 flex justify-between text-[11px] font-semibold text-white/70">
-                <span>AKADEMI PROSILAT</span>
-                <span>MUDAH • SELAMAT • RASMI</span>
+                <span>{t('brandName')}</span>
+                <span>{lang === 'eng' ? 'EASY • SECURE • OFFICIAL' : 'MUDAH • SELAMAT • RASMI'}</span>
               </div>
             </div>
             <div>
               <div className="text-[11px] font-extrabold uppercase tracking-wider text-red-600">
-                DIBINA UNTUK KOMUNITI SILAT
+                {lang === 'eng' ? 'BUILT FOR SILAT COMMUNITY' : 'DIBINA UNTUK KOMUNITI SILAT'}
               </div>
               <h2 className="mt-2 max-w-xl text-2xl font-extrabold leading-snug tracking-tight text-slate-950 sm:text-3xl">
-                Menghargai setiap usaha dan <span className="text-red-600">kejayaan pesilat.</span>
+                {lang === 'eng' ? 'Honoring every effort and ' : 'Menghargai setiap usaha dan '}
+                <span className="text-red-600">
+                  {lang === 'eng' ? 'achievement of students.' : 'kejayaan pesilat.'}
+                </span>
               </h2>
               <p className="mt-3 text-xs leading-6 text-slate-500">
-                Portal berpusat yang membantu pihak akademi mengurus rekod sijil dan memudahkan ibu bapa mendapatkan dokumen pencapaian pada bila-bila masa.
+                {lang === 'eng'
+                  ? 'A centralized portal that helps the academy manage certificate records and makes it easy for parents to access achievement documents anytime.'
+                  : 'Portal berpusat yang membantu pihak akademi mengurus rekod sijil dan memudahkan ibu bapa mendapatkan dokumen pencapaian pada bila-bila masa.'}
               </p>
               <div className="mt-5 space-y-3.5">
-                {[
-                  ['Sijil boleh dimuat turun sebagai PDF', 'Disimpan secara digital supaya mudah dicetak dan dikongsi.'],
-                  ['Semakan kesahihan sijil', 'Setiap sijil mempunyai pautan pengesahan rasmi tersendiri.'],
-                  ['Mesra telefon pintar & laptop', 'Akses lancar dari telefon, tablet dan komputer riba.'],
-                ].map(([a, b]) => (
+                {(lang === 'eng'
+                  ? [
+                      ['Certificates downloadable as PDF', 'Digitally preserved for convenient printing and sharing.'],
+                      ['Certificate authenticity verification', 'Each certificate has its own official verification link.'],
+                      ['Mobile & laptop friendly', 'Seamless access from smartphones, tablets, and laptops.'],
+                    ]
+                  : [
+                      ['Sijil boleh dimuat turun sebagai PDF', 'Disimpan secara digital supaya mudah dicetak dan dikongsi.'],
+                      ['Semakan kesahihan sijil', 'Setiap sijil mempunyai pautan pengesahan rasmi tersendiri.'],
+                      ['Mesra telefon pintar & laptop', 'Akses lancar dari telefon, tablet dan komputer riba.'],
+                    ]
+                ).map(([a, b]) => (
                   <div key={a} className="flex gap-3">
                     <div className="mt-0.5 text-red-600">
                       <CheckCircle2 size={18} />
@@ -461,9 +494,9 @@ export function Home() {
           <div className="rounded-2xl bg-gradient-to-r from-red-950 via-stone-900 to-red-950 px-6 py-8 text-center text-white sm:px-10 shadow-xl">
             <Quote className="mx-auto text-rose-400" size={26} />
             <h2 className="mx-auto mt-3 max-w-2xl text-balance text-xl font-extrabold leading-snug sm:text-2xl">
-              “Setiap langkah di gelanggang membina disiplin, keyakinan dan jati diri.”
+              {t('quoteText')}
             </h2>
-            <p className="mt-3 text-xs text-white/60">Mengiktiraf usaha, meraikan pencapaian, menginspirasi generasi.</p>
+            <p className="mt-3 text-xs text-white/60">{t('quoteSubtext')}</p>
           </div>
         </section>
       </main>
@@ -471,11 +504,14 @@ export function Home() {
       <footer className="border-t border-slate-200/80 bg-white">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-6 sm:px-8 lg:px-12">
           <Logo small />
-          <p className="text-xs text-slate-400">
-            © {new Date().getFullYear()} Akademi ProSilat. Hak cipta terpelihara.
-          </p>
+          <div className="flex items-center gap-3">
+            <LanguageSwitcher />
+            <p className="text-xs text-slate-400">
+              © {new Date().getFullYear()} {t('copyrightText')}
+            </p>
+          </div>
           <Link to="/admin/login" className="text-xs font-semibold text-red-700 hover:underline">
-            Log masuk admin
+            {t('adminLoginLink')}
           </Link>
         </div>
       </footer>
@@ -484,7 +520,7 @@ export function Home() {
 }
 
 export function Verify() {
-  const { t, lang } = useLanguage();
+  const { t, lang } = useLang();
   const { token } = useParams();
   const [record, setRecord] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -498,39 +534,46 @@ export function Verify() {
   }, [token]);
 
   return (
-    <div className="min-h-screen bg-[#FBFBFD] dark:bg-[#0b0f17] text-slate-900 dark:text-slate-100 transition-colors">
+    <div className="min-h-screen bg-canvas">
       <div className="mx-auto max-w-2xl px-4 py-6 sm:py-8">
-        <Link to="/" className="flex justify-center">
-          <Logo center />
-        </Link>
-        <div className="mt-6 sm:mt-8 rounded-2xl border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 sm:p-7 text-center shadow-apple">
+        <div className="flex items-center justify-between mb-4">
+          <Link to="/">
+            <Logo center />
+          </Link>
+          <div className="flex items-center gap-2">
+            <LiveClock showDate={false} />
+            <LanguageSwitcher />
+          </div>
+        </div>
+
+        <div className="mt-6 sm:mt-8 rounded-2xl border border-slate-200/80 bg-white p-5 sm:p-7 text-center shadow-apple">
           {loading ? (
-            <Loader2 className="mx-auto animate-spin text-red-700 dark:text-red-400" size={28} />
+            <Loader2 className="mx-auto animate-spin text-red-700" size={28} />
           ) : record ? (
             <>
-              <CheckCircle2 className="mx-auto text-emerald-600 dark:text-emerald-400" size={44} />
-              <div className="mt-3 text-xs font-extrabold uppercase tracking-widest text-emerald-600 dark:text-emerald-400">
-                {lang === 'en' ? 'VALID CERTIFICATE' : 'SIJIL SAH'}
+              <CheckCircle2 className="mx-auto text-emerald-600" size={44} />
+              <div className="mt-3 text-xs font-extrabold uppercase tracking-widest text-emerald-600">
+                {t('verifyValidBadge')}
               </div>
-              <h1 className="mt-2 text-xl font-extrabold text-slate-950 dark:text-slate-100 sm:text-2xl">
-                {lang === 'en' ? 'Certificate Verification' : 'Pengesahan Sijil'}
+              <h1 className="mt-2 text-xl font-extrabold text-slate-950 sm:text-2xl">
+                {t('verifyHeading')}
               </h1>
-              <p className="mt-2 text-xs leading-6 text-slate-500 dark:text-slate-400">
-                {t('public.verifyDesc', 'Sijil ini wujud dalam rekod rasmi Akademi ProSilat.')}
+              <p className="mt-2 text-xs leading-6 text-slate-500">
+                {t('verifyValidMessage')}
               </p>
-              <div className="mt-5 space-y-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/60 p-4 text-left border border-slate-200/60 dark:border-slate-700">
+              <div className="mt-5 space-y-2.5 rounded-xl bg-slate-50 p-4 text-left border border-slate-200/60">
                 {[
-                  [t('th.name', 'Nama Pesilat'), record.nama_penuh],
-                  [t('th.ic', 'No. KP / ID'), record.no_kp_atau_id || '—'],
-                  [t('th.certName', 'Nama Sijil'), record.nama_sijil],
-                  [t('th.rank', 'Peringkat'), record.peringkat],
-                  [t('th.branch', 'Cawangan'), record.cawangan],
-                  [lang === 'en' ? 'Student Registration Date' : 'Tarikh Daftar Pesilat', record.tarikh_daftar ? fmtDate(record.tarikh_daftar) : '—'],
-                  [t('th.issueDate', 'Tarikh Dikeluarkan'), fmtDate(record.tarikh_isu)],
+                  [t('verifyStudentName'), record.nama_penuh],
+                  [t('verifyIdNumber'), record.no_kp_atau_id || '—'],
+                  [t('verifyCertName'), record.nama_sijil],
+                  [t('verifyRankLevel'), record.peringkat],
+                  [t('branchLabel'), record.cawangan],
+                  [t('dateRegLabel'), record.tarikh_daftar ? fmtDate(record.tarikh_daftar) : '—'],
+                  [t('verifyDateIssued'), fmtDate(record.tarikh_isu)],
                 ].map(([key, value]) => (
-                  <div key={key} className="flex flex-wrap justify-between gap-1 border-b border-slate-200/60 dark:border-slate-700/60 pb-2 text-xs">
-                    <span className="text-slate-500 dark:text-slate-400">{key}</span>
-                    <strong className="text-right text-slate-900 dark:text-slate-100">{value}</strong>
+                  <div key={key} className="flex flex-wrap justify-between gap-1 border-b border-slate-200/60 pb-2 text-xs">
+                    <span className="text-slate-500">{key}</span>
+                    <strong className="text-right text-slate-900">{value}</strong>
                   </div>
                 ))}
               </div>
@@ -539,16 +582,16 @@ export function Verify() {
                 href={certDownload(token)}
                 download={`${record.nama_penuh}.pdf`}
               >
-                <Download size={15} /> {t('action.download', 'Muat Turun Sijil')}
+                <Download size={15} /> {t('verifyDownloadBtn')}
               </a>
             </>
           ) : (
             <>
               <div className="text-4xl">⚠️</div>
-              <h1 className="mt-3 text-lg font-extrabold text-slate-950 dark:text-slate-100">
-                {lang === 'en' ? 'Verification Failed' : 'Pengesahan Gagal'}
+              <h1 className="mt-3 text-lg font-extrabold text-slate-950">
+                {lang === 'eng' ? 'Verification Failed' : 'Pengesahan Gagal'}
               </h1>
-              <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">{error}</p>
+              <p className="mt-2 text-xs text-slate-500">{error}</p>
             </>
           )}
         </div>
