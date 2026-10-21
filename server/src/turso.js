@@ -139,6 +139,18 @@ export async function testTursoConnection() {
 }
 
 /**
+ * Helper to execute an array of statements in chunks using turso.batch()
+ */
+async function batchExecute(turso, statements, chunkSize = 50) {
+  for (let i = 0; i < statements.length; i += chunkSize) {
+    const chunk = statements.slice(i, i + chunkSize);
+    if (chunk.length > 0) {
+      await turso.batch(chunk, 'write');
+    }
+  }
+}
+
+/**
  * Migrates/Pushes all data from local SQLite database (prosijil.sqlite) to Turso.
  */
 export async function pushLocalToTurso() {
@@ -155,53 +167,48 @@ export async function pushLocalToTurso() {
 
   // 1. Settings
   const localSettings = db.prepare('SELECT key, value FROM settings').all();
-  for (const row of localSettings) {
-    await turso.execute({
-      sql: 'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
-      args: [row.key, row.value],
-    });
-    stats.settings++;
-  }
+  const settingsStmts = localSettings.map((row) => ({
+    sql: 'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
+    args: [row.key, row.value],
+  }));
+  await batchExecute(turso, settingsStmts);
+  stats.settings = localSettings.length;
 
   // 2. Admin Users
   const localAdmins = db.prepare('SELECT id, username, password_hash, created_at FROM admin_users').all();
-  for (const row of localAdmins) {
-    await turso.execute({
-      sql: 'INSERT OR REPLACE INTO admin_users (id, username, password_hash, created_at) VALUES (?, ?, ?, ?)',
-      args: [row.id, row.username, row.password_hash, row.created_at],
-    });
-    stats.admin_users++;
-  }
+  const adminStmts = localAdmins.map((row) => ({
+    sql: 'INSERT OR REPLACE INTO admin_users (id, username, password_hash, created_at) VALUES (?, ?, ?, ?)',
+    args: [row.id, row.username, row.password_hash, row.created_at],
+  }));
+  await batchExecute(turso, adminStmts);
+  stats.admin_users = localAdmins.length;
 
   // 3. Pesilat
   const localPesilat = db.prepare('SELECT id, nama_penuh, no_kp_atau_id, peringkat, cawangan, tarikh_daftar, created_at, updated_at FROM pesilat').all();
-  for (const row of localPesilat) {
-    await turso.execute({
-      sql: 'INSERT OR REPLACE INTO pesilat (id, nama_penuh, no_kp_atau_id, peringkat, cawangan, tarikh_daftar, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      args: [row.id, row.nama_penuh, row.no_kp_atau_id, row.peringkat, row.cawangan, row.tarikh_daftar, row.created_at, row.updated_at],
-    });
-    stats.pesilat++;
-  }
+  const pesilatStmts = localPesilat.map((row) => ({
+    sql: 'INSERT OR REPLACE INTO pesilat (id, nama_penuh, no_kp_atau_id, peringkat, cawangan, tarikh_daftar, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    args: [row.id, row.nama_penuh, row.no_kp_atau_id, row.peringkat, row.cawangan, row.tarikh_daftar, row.created_at, row.updated_at],
+  }));
+  await batchExecute(turso, pesilatStmts);
+  stats.pesilat = localPesilat.length;
 
   // 4. Sijil
   const localSijil = db.prepare('SELECT id, pesilat_id, nama_sijil, tarikh_isu, jenis, file_path, file_type, public_token, created_at FROM sijil').all();
-  for (const row of localSijil) {
-    await turso.execute({
-      sql: 'INSERT OR REPLACE INTO sijil (id, pesilat_id, nama_sijil, tarikh_isu, jenis, file_path, file_type, public_token, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      args: [row.id, row.pesilat_id, row.nama_sijil, row.tarikh_isu, row.jenis, row.file_path, row.file_type, row.public_token, row.created_at],
-    });
-    stats.sijil++;
-  }
+  const sijilStmts = localSijil.map((row) => ({
+    sql: 'INSERT OR REPLACE INTO sijil (id, pesilat_id, nama_sijil, tarikh_isu, jenis, file_path, file_type, public_token, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    args: [row.id, row.pesilat_id, row.nama_sijil, row.tarikh_isu, row.jenis, row.file_path, row.file_type, row.public_token, row.created_at],
+  }));
+  await batchExecute(turso, sijilStmts);
+  stats.sijil = localSijil.length;
 
   // 5. Template Sijil
   const localTemplates = db.prepare('SELECT id, nama_template, peringkat, keterangan, file_path, file_name, file_size, created_at FROM template_sijil').all();
-  for (const row of localTemplates) {
-    await turso.execute({
-      sql: 'INSERT OR REPLACE INTO template_sijil (id, nama_template, peringkat, keterangan, file_path, file_name, file_size, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      args: [row.id, row.nama_template, row.peringkat, row.keterangan || null, row.file_path, row.file_name, row.file_size || 0, row.created_at],
-    });
-    stats.template_sijil++;
-  }
+  const tplStmts = localTemplates.map((row) => ({
+    sql: 'INSERT OR REPLACE INTO template_sijil (id, nama_template, peringkat, keterangan, file_path, file_name, file_size, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+    args: [row.id, row.nama_template, row.peringkat, row.keterangan || null, row.file_path, row.file_name, row.file_size || 0, row.created_at],
+  }));
+  await batchExecute(turso, tplStmts);
+  stats.template_sijil = localTemplates.length;
 
   return stats;
 }
