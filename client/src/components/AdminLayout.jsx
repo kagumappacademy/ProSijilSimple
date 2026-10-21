@@ -170,7 +170,7 @@ export function AdminLayout({ user, onLogout }) {
   const name = navLabels[loc.pathname] || 'Portal Admin';
 
   return (
-    <div className="min-h-screen bg-[#FBFBFD] dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors">
+    <div className="min-h-screen responsive-bg text-slate-900 dark:text-slate-100 transition-colors">
       <aside className="fixed inset-y-0 left-0 z-50 hidden w-[230px] bg-white dark:bg-slate-900 lg:block shadow-sm border-r border-slate-200/80 dark:border-slate-800 transition-colors">
         <Sidebar user={user} logout={logout} />
       </aside>

@@ -426,13 +426,11 @@ export function translateString(text, targetLang) {
 }
 
 export function AppProvider({ children }) {
-  // Theme State
+  // Theme State: defaults to 'light' (mod cerah asal)
   const [theme, setTheme] = useState(() => {
     const saved = localStorage.getItem('prosijil_theme');
     if (saved === 'dark' || saved === 'light') return saved;
-    return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
-      ? 'dark'
-      : 'light';
+    return 'light';
   });
 
   // Language State: 'bm' or 'en'
