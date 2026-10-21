@@ -26,6 +26,7 @@ function getFontBytes() {
  */
 export async function generateCertificatePdf({
   templatePath,
+  templateBytes = null,
   studentName,
   outputPath = null,
   fontSize = 20,
@@ -33,12 +34,12 @@ export async function generateCertificatePdf({
   centerXRatio = 0.520,
   yRatio = 0.572
 }) {
-  if (!fs.existsSync(templatePath)) {
+  const bytes = templateBytes || (templatePath && fs.existsSync(templatePath) ? fs.readFileSync(templatePath) : null);
+  if (!bytes) {
     throw new Error('Fail templat sijil tidak wujud: ' + templatePath);
   }
 
-  const templateBytes = fs.readFileSync(templatePath);
-  const pdfDoc = await PDFDocument.load(templateBytes);
+  const pdfDoc = await PDFDocument.load(bytes);
   pdfDoc.registerFontkit(fontkit);
 
   const fontBytes = getFontBytes();

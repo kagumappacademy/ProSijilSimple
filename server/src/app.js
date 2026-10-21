@@ -102,11 +102,16 @@ app.get('/api/admin/dashboard',requireAdmin,(_req,res)=>{
 });
 app.get('/api/admin/students',requireAdmin,(req,res)=>{
  const q=trim(req.query.q,160),branch=trim(req.query.branch,160),level=trim(req.query.level,90);
- const page=Math.max(1,Math.min(9999,Number(req.query.page)||1)),limit=20;
+ const page=Math.max(1,Math.min(9999,Number(req.query.page)||1));
+ const limit=Math.max(1,Math.min(10000,Number(req.query.limit)||20));
  const where=[];const p=[];
  if(q){where.push('(p.nama_penuh LIKE ? OR p.no_kp_atau_id LIKE ?)');p.push(`%${q}%`,`%${q}%`);}
  if(branch){where.push('p.cawangan=?');p.push(branch);}
- if(level){where.push('p.peringkat=?');p.push(level);}
+ if(level){
+  const cleanLevel=level.replace(/^ujian\s+/i,'');
+  where.push('(p.peringkat=? OR p.peringkat=? OR p.peringkat=? COLLATE NOCASE)');
+  p.push(level,cleanLevel,'Ujian '+cleanLevel);
+ }
  const w=where.length?' WHERE '+where.join(' AND '):'';
  const total=db.prepare('SELECT count(*) as n FROM pesilat p'+w).get(...p).n;
  const rows=db.prepare('SELECT p.*,(SELECT count(*) FROM sijil s WHERE s.pesilat_id=p.id) as sijil_count FROM pesilat p'+w+' ORDER BY p.id DESC LIMIT ? OFFSET ?').all(...p,limit,(page-1)*limit);
@@ -336,9 +341,12 @@ app.post('/api/admin/templates/generate-batch',requireAdmin,async(req,res,next)=
   let successCount=0;
   const failed=[];
   const generatedTokens=[];
+  const templateCache=new Map();
+  const toInsert=[];
+
+  const norm = s => String(s || '').trim().toLowerCase().replace(/^ujian\s+/i, '').replace(/\s+/g, ' ');
 
   for(const student of students){
-   const norm = s => String(s || '').trim().toLowerCase().replace(/^ujian\s+/i, '');
    let matchedTemplate=templates.find(t=>norm(t.peringkat)===norm(student.peringkat) || t.peringkat.trim().toLowerCase()===student.peringkat.trim().toLowerCase());
    if(!matchedTemplate){
     matchedTemplate=templates.find(t=>t.peringkat.trim().toLowerCase()==='semua peringkat');
@@ -350,19 +358,48 @@ app.post('/api/admin/templates/generate-batch',requireAdmin,async(req,res,next)=
    }
 
    try{
+    let tplBytes=templateCache.get(matchedTemplate.file_path);
+    if(!tplBytes){
+     tplBytes=fs.readFileSync(matchedTemplate.file_path);
+     templateCache.set(matchedTemplate.file_path,tplBytes);
+    }
+
     const token=crypto.randomUUID();
     const outputPath=path.join(dataDir,'uploads',token+'.pdf');
     await generateCertificatePdf({
-     templatePath:matchedTemplate.file_path,
+     templateBytes:tplBytes,
      studentName:student.nama_penuh,
      outputPath
     });
-    db.prepare('INSERT INTO sijil (pesilat_id,nama_sijil,tarikh_isu,jenis,file_path,file_type,public_token) VALUES (?,?,?,?,?,?,?)')
-      .run(student.id,matchedTemplate.nama_template,tarikh,'uploaded',outputPath,'application/pdf',token);
+
+    toInsert.push({
+     studentId:student.id,
+     namaSijil:matchedTemplate.nama_template,
+     tarikh,
+     outputPath,
+     token
+    });
     successCount++;
     generatedTokens.push({studentId:student.id,token});
    }catch(err){
     failed.push({id:student.id,nama:student.nama_penuh,peringkat:student.peringkat,reason:err.message});
+   }
+  }
+
+  if(toInsert.length>0){
+   const insertStmt=db.prepare('INSERT INTO sijil (pesilat_id,nama_sijil,tarikh_isu,jenis,file_path,file_type,public_token) VALUES (?,?,?,?,?,?,?)');
+   db.exec('BEGIN');
+   try{
+    for(const item of toInsert){
+     insertStmt.run(item.studentId,item.namaSijil,item.tarikh,'uploaded',item.outputPath,'application/pdf',item.token);
+    }
+    db.exec('COMMIT');
+   }catch(err){
+    db.exec('ROLLBACK');
+    for(const item of toInsert){
+     fs.rmSync(item.outputPath,{force:true});
+    }
+    throw err;
    }
   }
 

@@ -46,7 +46,7 @@ export function GenerateCerts() {
   const loadStudents = useCallback(async () => {
     try {
       // Get all students for batch selection
-      const res = await api('/admin/students?limit=9999&page=1');
+      const res = await api('/admin/students?limit=10000&page=1');
       setStudents(res.rows || []);
       setBranches(res.branches || []);
       setLevels(res.levels || []);
@@ -65,10 +65,29 @@ export function GenerateCerts() {
     loadStudents();
   }, [loadTemplates, loadStudents]);
 
+  const norm = s => String(s || '').trim().toLowerCase().replace(/^ujian\s+/i, '').replace(/\s+/g, ' ');
+
+  // Count students by level for badges and dropdown
+  const countByLevel = React.useMemo(() => {
+    const counts = {};
+    for (const s of students) {
+      const k = norm(s.peringkat);
+      counts[k] = (counts[k] || 0) + 1;
+    }
+    return counts;
+  }, [students]);
+
+  const getStudentCountForLevel = (lvl) => {
+    return countByLevel[norm(lvl)] || 0;
+  };
+
   // Filter students
   const filteredStudents = students.filter(s => {
     if (selectedBranch && s.cawangan !== selectedBranch) return false;
-    if (selectedLevel && s.peringkat !== selectedLevel) return false;
+    if (selectedLevel) {
+      const normLevel = norm(selectedLevel);
+      if (norm(s.peringkat) !== normLevel && s.peringkat !== selectedLevel) return false;
+    }
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       const matchName = s.nama_penuh.toLowerCase().includes(q);
@@ -81,8 +100,6 @@ export function GenerateCerts() {
   // Check matching template for student based on currently selected template name
   const currentTemplatesForName = templateGroups[selectedTemplateName] || [];
 
-  const norm = s => String(s || '').trim().toLowerCase().replace(/^ujian\s+/i, '');
-
   function getMatchingTemplate(student) {
     if (!currentTemplatesForName.length) return null;
     const sNorm = norm(student.peringkat);
@@ -94,6 +111,26 @@ export function GenerateCerts() {
       t => t.peringkat.trim().toLowerCase() === 'semua peringkat'
     );
     return universal || null;
+  }
+
+  // Handle rank level filter change & auto select
+  function handleSelectLevelChange(level) {
+    setSelectedLevel(level);
+    if (level) {
+      const normLevel = norm(level);
+      const matching = students.filter(s => norm(s.peringkat) === normLevel || s.peringkat === level);
+      setSelectedIds(new Set(matching.map(s => s.id)));
+    } else {
+      setSelectedIds(new Set(students.map(s => s.id)));
+    }
+  }
+
+  function handleSelectLevelChip(level) {
+    if (selectedLevel === level || (selectedLevel && norm(selectedLevel) === norm(level))) {
+      handleSelectLevelChange('');
+    } else {
+      handleSelectLevelChange(level);
+    }
   }
 
   // Toggle selection
@@ -122,12 +159,12 @@ export function GenerateCerts() {
     });
   }
 
+  const idsToGenerate = filteredStudents
+    .map(s => s.id)
+    .filter(id => selectedIds.has(id));
+
   // Handle batch generation
   async function handleGenerate() {
-    const idsToGenerate = filteredStudents
-      .map(s => s.id)
-      .filter(id => selectedIds.has(id));
-
     if (idsToGenerate.length === 0) {
       return toast.error('Sila pilih sekurang-kurangnya seorang pesilat untuk dijana sijil.');
     }
@@ -150,6 +187,8 @@ export function GenerateCerts() {
       setResult(res);
       if (res.successCount > 0) {
         toast.success(`Berjaya menjana ${res.successCount} sijil digital!`);
+        // Muat semula senarai untuk kemaskini sijil_count
+        loadStudents();
       }
       if (res.failedCount > 0) {
         toast.warning(`${res.failedCount} pesilat dilangkau kerana tiada templat sepadan.`);
@@ -220,15 +259,44 @@ export function GenerateCerts() {
               </select>
 
               <div className="mt-3">
-                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-1.5">
-                  Peringkat yang mempunyai fail templat:
+                <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
+                  Peringkat templat tersedia (Klik untuk pilih & tapis):
                 </span>
-                <div className="flex flex-wrap gap-1.5">
-                  {currentTemplatesForName.map(t => (
-                    <Chip key={t.id} color="emerald">
-                      {t.peringkat}
-                    </Chip>
-                  ))}
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleSelectLevelChange('')}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition ${
+                      !selectedLevel
+                        ? 'bg-forest-900 text-white border-forest-900 shadow-sm'
+                        : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                    }`}
+                  >
+                    Semua ({students.length})
+                  </button>
+                  {currentTemplatesForName.map(t => {
+                    const isSelected = norm(selectedLevel) === norm(t.peringkat);
+                    const count = getStudentCountForLevel(t.peringkat);
+                    return (
+                      <button
+                        key={t.id}
+                        type="button"
+                        onClick={() => handleSelectLevelChip(t.peringkat)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition inline-flex items-center gap-1.5 ${
+                          isSelected
+                            ? 'bg-forest-900 text-white border-forest-900 shadow-md ring-2 ring-forest-400/40'
+                            : 'bg-emerald-50 text-emerald-900 border-emerald-200 hover:bg-emerald-100'
+                        }`}
+                      >
+                        <span>{t.peringkat}</span>
+                        <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-extrabold ${
+                          isSelected ? 'bg-white/20 text-white' : 'bg-emerald-200/80 text-emerald-900'
+                        }`}>
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -256,7 +324,7 @@ export function GenerateCerts() {
             <div className="flex items-center gap-2">
               <Award className="text-forest-700" size={20}/>
               <h2 className="text-sm font-extrabold text-forest-950">Langkah 2: Pilih Pesilat untuk Dijana</h2>
-              <Chip color="gold">{selectedIds.size} dipilih</Chip>
+              <Chip color="gold">{idsToGenerate.length} dipilih</Chip>
             </div>
             <p className="text-xs text-slate-400 mt-0.5">Tandakan pesilat yang layak menerima sijil ini.</p>
           </div>
@@ -280,15 +348,32 @@ export function GenerateCerts() {
             <select
               className="rounded-xl border border-slate-200 bg-white px-3 py-3 text-xs text-slate-600 outline-none"
               value={selectedLevel}
-              onChange={e => setSelectedLevel(e.target.value)}
+              onChange={e => handleSelectLevelChange(e.target.value)}
             >
-              <option value="">Semua Peringkat</option>
+              <option value="">Semua Peringkat ({students.length})</option>
               {levels.map(l => (
-                <option key={l} value={l}>{l}</option>
+                <option key={l} value={l}>
+                  {l} ({getStudentCountForLevel(l)})
+                </option>
               ))}
             </select>
           </div>
         </div>
+
+        {selectedLevel && (
+          <div className="px-5 py-2.5 bg-forest-50/70 border-b border-forest-100 flex items-center justify-between text-xs text-forest-900">
+            <span className="inline-flex items-center gap-2">
+              <Filter size={14} className="text-forest-700"/>
+              Tapisan Aktif: <strong>{selectedLevel}</strong> ({filteredStudents.length} pelajar dijumpai)
+            </span>
+            <button
+              onClick={() => handleSelectLevelChange('')}
+              className="text-forest-700 hover:text-forest-900 font-bold hover:underline"
+            >
+              Kosongkan Tapisan
+            </button>
+          </div>
+        )}
 
         {/* Quick select buttons */}
         <div className="flex flex-wrap items-center justify-between gap-3 bg-[#FBFCFA] px-5 py-3 border-b border-slate-100 text-xs">
@@ -324,7 +409,18 @@ export function GenerateCerts() {
             <table className="w-full min-w-[860px] text-left text-sm">
               <thead className="bg-[#FBFCFA] text-[10px] font-extrabold uppercase tracking-[.14em] text-slate-400">
                 <tr>
-                  <th className="w-12 px-5 py-4 text-center">Pilih</th>
+                  <th className="w-12 px-5 py-4 text-center">
+                    <input
+                      type="checkbox"
+                      checked={filteredStudents.length > 0 && filteredStudents.every(s => selectedIds.has(s.id))}
+                      onChange={e => {
+                        if (e.target.checked) selectAllFiltered();
+                        else deselectAllFiltered();
+                      }}
+                      title="Pilih / Nyahpilih semua pesilat dalam paparan"
+                      className="h-4 w-4 rounded text-forest-700 focus:ring-forest-500 cursor-pointer"
+                    />
+                  </th>
                   <th className="px-5 py-4">Nama Pesilat</th>
                   <th className="px-5 py-4">No. KP / ID</th>
                   <th className="px-5 py-4">Cawangan</th>
@@ -386,7 +482,7 @@ export function GenerateCerts() {
         <div className="flex flex-wrap items-center justify-between gap-4 border-t border-slate-100 bg-[#FCFDFB] p-6 rounded-b-[22px]">
           <div>
             <div className="font-extrabold text-forest-950 text-base">
-              {selectedIds.size} pesilat sedia untuk janaan sijil
+              {idsToGenerate.length} pesilat dipilih untuk janaan sijil
             </div>
             <p className="text-xs text-slate-400 mt-0.5">
               Sijil yang dijana akan dimasukkan terus ke dalam senarai sijil pelajar dan boleh disemak di portal awam.
@@ -396,10 +492,10 @@ export function GenerateCerts() {
           <Button
             onClick={handleGenerate}
             loading={generating}
-            disabled={selectedIds.size === 0 || templateNames.length === 0}
+            disabled={idsToGenerate.length === 0 || templateNames.length === 0}
             className="!px-6 !py-3 text-base shadow-lg"
           >
-            <Sparkles size={18}/> Jana Sijil Sekarang
+            <Sparkles size={18}/> {generating ? `Sedang Menjana ${idsToGenerate.length} Sijil...` : `Jana ${idsToGenerate.length} Sijil Sekarang`}
           </Button>
         </div>
       </Panel>
