@@ -110,8 +110,8 @@ function SearchResult({ records, loading, q, searched }) {
                     <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-red-50 text-red-700 border border-red-100">
                       <GraduationCap size={22} />
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <h3 className="text-base font-extrabold leading-snug text-slate-950">{p.nama_penuh}</h3>
+                    <div className="min-w-0 flex-1" data-no-translate="true" translate="no">
+                      <h3 className="text-base font-extrabold leading-snug text-slate-950 student-name">{p.nama_penuh}</h3>
                       <div className="mt-1 flex flex-wrap items-center gap-2.5 text-xs text-slate-500">
                         {p.no_kp_atau_id && (
                           <span className="inline-flex items-center gap-1 font-semibold text-slate-700">
@@ -499,7 +499,12 @@ export function Verify() {
                 ].map(([key, value]) => (
                   <div key={key} className="flex flex-wrap justify-between gap-1 border-b border-slate-200/60 pb-2 text-xs">
                     <span className="text-slate-500">{key}</span>
-                    <strong className="text-right text-slate-900">{value}</strong>
+                    <strong
+                      className={`text-right text-slate-900 ${key === 'Nama Pesilat' ? 'student-name' : ''}`}
+                      {...(key === 'Nama Pesilat' ? { 'data-no-translate': 'true', translate: 'no' } : {})}
+                    >
+                      {value}
+                    </strong>
                   </div>
                 ))}
               </div>

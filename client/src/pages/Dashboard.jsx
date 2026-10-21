@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom';
 import { GraduationCap, Award, MapPin, ArrowUpRight, Plus, TrendingUp, CalendarDays, ChevronRight, Layers, Sparkles } from 'lucide-react';
 import { api, fmtDate } from '../lib/api';
 import { PageIntro, Panel, Loading, Empty } from '../components/UI';
+import { useLang } from '../lib/appContext';
 
 function NumberCard({ title, value, icon: Icon, tint, index }) {
   return (
@@ -66,6 +67,7 @@ function BreakdownCard({ title, rows }) {
 
 export function Dashboard() {
   const [data, setData] = useState(null);
+  const { lang } = useLang();
 
   useEffect(() => {
     api('/admin/dashboard')
@@ -73,7 +75,7 @@ export function Dashboard() {
       .catch(() => {});
   }, []);
 
-  const date = new Date().toLocaleDateString('ms-MY', {
+  const date = new Date().toLocaleDateString(lang === 'en' ? 'en-US' : 'ms-MY', {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
@@ -196,7 +198,7 @@ export function Dashboard() {
                         <Award size={15} />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="truncate text-xs font-bold text-slate-900 dark:text-white">{r.nama_penuh}</div>
+                        <div className="truncate text-xs font-bold text-slate-900 dark:text-white student-name" data-no-translate="true" translate="no">{r.nama_penuh}</div>
                         <div className="truncate text-[10px] text-slate-400 dark:text-slate-500">
                           {r.nama_sijil} • {r.cawangan}
                         </div>

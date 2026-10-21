@@ -624,7 +624,7 @@ export function GenerateCerts() {
                       <td className="px-2 py-1.5 text-center text-[11px] text-slate-400 font-mono">
                         {rowNumber}
                       </td>
-                      <td className="px-3.5 py-1.5 font-bold text-slate-950 text-xs sm:text-sm">
+                      <td className="px-3.5 py-1.5 font-bold text-slate-950 text-xs sm:text-sm student-name" data-no-translate="true" translate="no">
                         {student.nama_penuh}
                       </td>
                       <td className="px-3.5 py-1.5 text-xs font-mono text-slate-600 whitespace-nowrap">

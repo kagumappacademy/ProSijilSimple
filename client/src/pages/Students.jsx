@@ -334,8 +334,8 @@ function StudentDetailsModal({ open, onClose, student, onEdit, onSaved }) {
               <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-red-700 text-sm font-extrabold text-white">
                 {student.nama_penuh.split(' ').slice(0, 2).map(x => x[0]).join('').toUpperCase()}
               </div>
-              <div className="min-w-0">
-                <h3 className="text-base font-extrabold text-slate-950 truncate">{student.nama_penuh}</h3>
+              <div className="min-w-0" data-no-translate="true" translate="no">
+                <h3 className="text-base font-extrabold text-slate-950 truncate student-name">{student.nama_penuh}</h3>
                 <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-slate-500">
                   <span className="font-mono font-bold text-slate-600">{student.no_kp_atau_id}</span>
                   <span>•</span>
@@ -622,10 +622,10 @@ export function Students(){
                         <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-red-50 text-[11px] font-extrabold text-red-700">
                           {r.nama_penuh.split(' ').slice(0,2).map(x=>x[0]).join('').toUpperCase()}
                         </div>
-                        <div className="min-w-0">
+                        <div className="min-w-0" data-no-translate="true" translate="no">
                           <button
                             onClick={()=>setViewTarget(r)}
-                            className="truncate font-bold text-slate-950 hover:underline text-left block max-w-full text-xs sm:text-sm"
+                            className="truncate font-bold text-slate-950 hover:underline text-left block max-w-full text-xs sm:text-sm student-name"
                             title={r.nama_penuh}
                           >
                             {r.nama_penuh}

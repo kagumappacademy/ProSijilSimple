@@ -127,7 +127,7 @@ function CertificateForm({ open, onClose, onSaved }) {
           {selected ? (
             <div className="flex items-center justify-between rounded-xl border border-red-200 bg-red-50/70 px-4 py-2.5">
               <div>
-                <div className="font-bold text-slate-900 text-sm">{selected.nama_penuh}</div>
+                <div className="font-bold text-slate-900 text-sm student-name" data-no-translate="true" translate="no">{selected.nama_penuh}</div>
                 <div className="mt-0.5 text-xs text-slate-500">
                   {selected.no_kp_atau_id} • {selected.cawangan}
                   {selected.tarikh_daftar ? ` • Daftar: ${fmtDate(selected.tarikh_daftar)}` : ''}
@@ -164,7 +164,7 @@ function CertificateForm({ open, onClose, onSaved }) {
                       }}
                       className="block w-full rounded-lg px-3 py-2 text-left hover:bg-red-50 transition"
                     >
-                      <div className="text-xs sm:text-sm font-bold text-slate-900">{p.nama_penuh}</div>
+                      <div className="text-xs sm:text-sm font-bold text-slate-900 student-name" data-no-translate="true" translate="no">{p.nama_penuh}</div>
                       <div className="text-[11px] text-slate-500">
                         {p.no_kp_atau_id} • {p.cawangan}
                       </div>
@@ -573,7 +573,7 @@ export function Certificates() {
                                       {idx + 1}
                                     </td>
                                     <td className="px-3 py-2">
-                                      <span className="font-bold text-slate-950 text-xs sm:text-sm">
+                                      <span className="font-bold text-slate-950 text-xs sm:text-sm student-name" data-no-translate="true" translate="no">
                                         {r.nama_penuh}
                                       </span>
                                     </td>
@@ -671,7 +671,7 @@ export function Certificates() {
                   return (
                     <tr key={r.id} className="hover:bg-slate-50 transition">
                       <td className="px-3.5 py-2.5">
-                        <div className="font-bold text-slate-950 text-xs sm:text-sm">{r.nama_penuh}</div>
+                        <div className="font-bold text-slate-950 text-xs sm:text-sm student-name" data-no-translate="true" translate="no">{r.nama_penuh}</div>
                         <div className="text-[10px] text-slate-400">{r.no_kp_atau_id || '—'}</div>
                       </td>
                       <td className="px-3.5 py-2.5 font-semibold text-slate-700 whitespace-nowrap text-xs">
