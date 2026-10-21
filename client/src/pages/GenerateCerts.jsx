@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Sparkles, CheckCircle2, AlertCircle, Award, Layers, Search, CalendarDays, Filter, ArrowRight, CheckSquare, Square, RefreshCw, FileText } from 'lucide-react';
+import { Sparkles, CheckCircle2, AlertCircle, Award, Layers, Search, CalendarDays, Filter, ArrowRight, CheckSquare, Square, RefreshCw, FileText, Download, Eye } from 'lucide-react';
 import { toast } from 'sonner';
 import { api, fmtDate } from '../lib/api';
 import { PageIntro, Panel, Button, Input, Chip, Loading, Empty, SearchField } from '../components/UI';
@@ -542,6 +542,45 @@ export function GenerateCerts() {
                   </li>
                 ))}
               </ul>
+            </div>
+          )}
+
+          {result.generatedTokens?.length > 0 && (
+            <div className="rounded-xl bg-white p-4 border border-emerald-100 mb-6 text-xs">
+              <div className="font-bold mb-3 text-forest-950 flex items-center justify-between">
+                <span>Senarai Fail Sijil PDF Dijana ({result.generatedTokens.length} fail mengikut nama pesilat):</span>
+              </div>
+              <div className="max-h-64 overflow-y-auto space-y-2 pr-1 divide-y divide-slate-100">
+                {result.generatedTokens.map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between pt-2 first:pt-0 gap-2">
+                    <div className="flex items-center gap-2 truncate min-w-0">
+                      <FileText size={15} className="text-forest-700 shrink-0"/>
+                      <span className="font-semibold text-slate-800 truncate" title={`${item.nama}.pdf`}>
+                        {item.nama}.pdf
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <a
+                        href={`/api/public/certificates/${item.token}/download?preview=1`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-forest-100 text-slate-700 font-bold inline-flex items-center gap-1"
+                        title="Lihat Sijil"
+                      >
+                        <Eye size={13}/> Lihat
+                      </a>
+                      <a
+                        href={`/api/public/certificates/${item.token}/download`}
+                        download={`${item.nama}.pdf`}
+                        className="px-2.5 py-1 rounded-lg bg-emerald-100 hover:bg-emerald-200 text-emerald-900 font-bold inline-flex items-center gap-1"
+                        title="Muat Turun PDF"
+                      >
+                        <Download size={13}/> Muat Turun
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 

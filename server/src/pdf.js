@@ -11,11 +11,14 @@ function drawCenteredFit(doc, text, y, width, fontSize=31) {
 }
 export function createCertificatePdf(res, student, certificate, settings, download=true) {
  const DEEP = /^#[0-9a-fA-F]{6}$/.test(settings.tema_warna||'') ? settings.tema_warna : '#123E35';
- const filename = ('Sijil-' + student.nama_penuh + '-' + certificate.id).replace(/[^a-zA-Z0-9_-]+/g,'_') + '.pdf';
+ const rawName = (student?.nama_penuh || 'Pesilat').trim();
+ const safeName = rawName.replace(/[/\\?%*:|"<>]/g, '').replace(/\s+/g, ' ').trim() || 'Sijil';
+ const filename = `${safeName}.pdf`;
+ const asciiName = safeName.replace(/[^\x20-\x7E]/g, '_') || 'Sijil';
  res.type('application/pdf');
- res.setHeader('Content-Disposition', `${download ? 'attachment' : 'inline'}; filename="${filename}"`);
+ res.setHeader('Content-Disposition', `${download ? 'attachment' : 'inline'}; filename="${asciiName}.pdf"; filename*=UTF-8''${encodeURIComponent(filename)}`);
  res.setHeader('Cache-Control', 'private, no-store');
- const doc = new PDFDocument({size:'A4', layout:'landscape', margin:0, info:{Title:certificate.nama_sijil, Author:settings.nama_organisasi, Subject:'Sijil Rasmi Pesilat'}});
+ const doc = new PDFDocument({size:'A4', layout:'landscape', margin:0, info:{Title:safeName, Author:settings.nama_organisasi, Subject:'Sijil Rasmi Pesilat'}});
  doc.pipe(res);
  const W=841.89, H=595.28;
  doc.rect(0,0,W,H).fill('#FCFBF7');
@@ -44,10 +47,13 @@ export function createCertificatePdf(res, student, certificate, settings, downlo
  doc.end();
 }
 export function uploadedToPdf(res, row, student, download=true) {
- const filename = `Sijil-${row.id}.pdf`;
+ const rawName = (student?.nama_penuh || 'Pesilat').trim();
+ const safeName = rawName.replace(/[/\\?%*:|"<>]/g, '').replace(/\s+/g, ' ').trim() || 'Sijil';
+ const filename = `${safeName}.pdf`;
+ const asciiName = safeName.replace(/[^\x20-\x7E]/g, '_') || 'Sijil';
  res.type('application/pdf');
- res.setHeader('Content-Disposition',`${download?'attachment':'inline'}; filename="${filename}"`);
- res.setHeader('Cache-Control','private, no-store');
+ res.setHeader('Content-Disposition', `${download ? 'attachment' : 'inline'}; filename="${asciiName}.pdf"; filename*=UTF-8''${encodeURIComponent(filename)}`);
+ res.setHeader('Cache-Control', 'private, no-store');
  if (row.file_type === 'application/pdf') return fs.createReadStream(row.file_path).pipe(res);
  const doc = new PDFDocument({size:'A4', margin:0, autoFirstPage:false});
  doc.pipe(res);

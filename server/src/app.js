@@ -380,7 +380,7 @@ app.post('/api/admin/templates/generate-batch',requireAdmin,async(req,res,next)=
      token
     });
     successCount++;
-    generatedTokens.push({studentId:student.id,token});
+    generatedTokens.push({studentId:student.id,nama:student.nama_penuh,token});
    }catch(err){
     failed.push({id:student.id,nama:student.nama_penuh,peringkat:student.peringkat,reason:err.message});
    }

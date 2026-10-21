@@ -424,6 +424,7 @@ function StudentDetailsModal({ open, onClose, student, onEdit, onSaved }) {
                       </a>
                       <a
                         href={`/api/public/certificates/${c.public_token}/download`}
+                        download={`${student.nama_penuh}.pdf`}
                         title="Muat turun sijil"
                         className="rounded-lg bg-emerald-50 p-2 text-emerald-700 transition hover:bg-emerald-100"
                       >

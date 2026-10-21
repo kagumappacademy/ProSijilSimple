@@ -64,6 +64,9 @@ export async function generateCertificatePdf({
 
   let finalFontSize = Number(fontSize) || 20;
   const displayName = String(studentName || '').trim().toUpperCase();
+  if (displayName) {
+    pdfDoc.setTitle(displayName);
+  }
 
   // Auto-shrink jika nama terlalu panjang melepasi garisan
   let textWidth = loraFont.widthOfTextAtSize(displayName, finalFontSize);
