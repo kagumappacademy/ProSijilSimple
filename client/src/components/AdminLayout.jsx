@@ -38,7 +38,7 @@ function Sidebar({ close, logout, user }) {
       <div className="h-1 w-full bg-gradient-to-r from-red-600 via-rose-600 to-red-700 shrink-0" />
 
       {/* Brand Header */}
-      <div className="relative flex items-center justify-center border-b border-slate-100 dark:border-slate-800 px-4 py-3.5 bg-[#FCFDFB] dark:bg-slate-900/60">
+      <div className="relative flex items-center justify-center border-b border-slate-100 dark:border-slate-800 px-2 py-3 bg-[#FCFDFB] dark:bg-slate-900/60 overflow-hidden">
         <Link to="/" onClick={close} className="flex items-center justify-center mx-auto text-center">
           <Logo small center />
         </Link>

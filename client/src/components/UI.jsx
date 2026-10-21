@@ -1,8 +1,20 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Loader2, X, Search, ChevronLeft, ChevronRight, Inbox, AlertTriangle } from 'lucide-react';
+import { useLang } from '../lib/appContext';
 
 export function Logo({ light = false, small = false, center = false, className = '' }) {
+  let lang = 'bm';
+  try {
+    const ctx = useLang();
+    if (ctx?.lang) lang = ctx.lang;
+  } catch (e) {
+    lang = 'bm';
+  }
+
+  const isEn = lang === 'en';
+  const subtitle = isEn ? 'Certificate Management System' : 'Sistem Pengurusan Sijil';
+
   return (
     <div
       className={`flex items-center gap-2 select-none ${
@@ -25,13 +37,21 @@ export function Logo({ light = false, small = false, center = false, className =
           AKADEMI <span className={light ? 'text-red-400' : 'text-red-700'}>PROSILAT</span>
         </span>
         <span
+          data-no-translate="true"
+          translate="no"
           className={`block ${
-            small ? 'text-[7.5px] sm:text-[8px] tracking-[0.06em]' : 'text-[8.5px] sm:text-[9px] tracking-[0.14em]'
+            small
+              ? isEn
+                ? 'text-[6px] sm:text-[6.5px] tracking-tight'
+                : 'text-[7.5px] sm:text-[8px] tracking-[0.05em]'
+              : isEn
+              ? 'text-[7.5px] sm:text-[8px] tracking-[0.02em]'
+              : 'text-[8.5px] sm:text-[9px] tracking-[0.14em]'
           } uppercase font-bold whitespace-nowrap ${
             light ? 'text-white/70' : 'text-slate-500'
           }`}
         >
-          Sistem Pengurusan Sijil
+          {subtitle}
         </span>
       </div>
     </div>
