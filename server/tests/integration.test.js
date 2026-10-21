@@ -108,6 +108,20 @@ test('Upload template, batch generate certificate with Lora font, verify and dow
  const pdf = await PDFDocument.load(download.data);
  assert.equal(pdf.getPageCount(), 2);
 
+ // Test student certificates listing and edit
+ const stuCerts = await call('/api/admin/students/' + sid + '/certificates', { cookie });
+ assert.equal(stuCerts.res.status, 200);
+ assert.ok(stuCerts.data.certificates.length >= 1);
+ const cId = stuCerts.data.certificates[0].id;
+
+ const editCert = await call('/api/admin/certificates/' + cId, {
+   method: 'PUT',
+   cookie,
+   body: { nama_sijil: 'Ujian Kenaikan Bengkung (Terkemaskini)', tarikh_isu: '2026-10-21' }
+ });
+ assert.equal(editCert.res.status, 200);
+ assert.equal(editCert.data.nama_sijil, 'Ujian Kenaikan Bengkung (Terkemaskini)');
+
  // Delete template
  const delRes = await call('/api/admin/templates/' + templateId, { method: 'DELETE', cookie });
  assert.equal(delRes.res.status, 200);

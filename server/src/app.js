@@ -140,6 +140,13 @@ app.delete('/api/admin/students/:id',requireAdmin,(req,res)=>{
  for(const c of certs) if(c.file_path)fs.rmSync(c.file_path,{force:true});
  res.json({success:true});
 });
+app.get('/api/admin/students/:id/certificates',requireAdmin,(req,res)=>{
+ const id=cleanId(req.params.id);if(!id)return fail(res,'ID pesilat tidak sah.');
+ const student=db.prepare('SELECT id,nama_penuh,no_kp_atau_id,peringkat,cawangan,tarikh_daftar FROM pesilat WHERE id=?').get(id);
+ if(!student)return fail(res,'Pesilat tidak ditemui.',404);
+ const rows=db.prepare('SELECT id,pesilat_id,nama_sijil,tarikh_isu,jenis,file_type,public_token,created_at FROM sijil WHERE pesilat_id=? ORDER BY tarikh_isu DESC,id DESC').all(id);
+ res.json({student,certificates:rows});
+});
 app.get('/api/admin/students/export',requireAdmin,(_req,res)=>{
  const rows=db.prepare('SELECT nama_penuh,no_kp_atau_id,peringkat,cawangan,tarikh_daftar FROM pesilat ORDER BY cawangan,nama_penuh').all();
  const cols=['nama_penuh','no_kp_atau_id','peringkat','cawangan','tarikh_daftar'];
@@ -203,6 +210,35 @@ app.post('/api/admin/certificates',requireAdmin,upload.single('file'),(req,res)=
  const result=db.prepare('INSERT INTO sijil (pesilat_id,nama_sijil,tarikh_isu,jenis,file_path,file_type,public_token) VALUES (?,?,?,?,?,?,?)').run(id,title,tarikh,jenis,file_path,file_type,token);
  return res.status(201).json({id:Number(result.lastInsertRowid),public_token:token});
  }catch(e){if(file_path)fs.rmSync(file_path,{force:true});throw e;}
+});
+app.put('/api/admin/certificates/:id',requireAdmin,upload.single('file'),(req,res)=>{
+ const id=cleanId(req.params.id);if(!id)return fail(res,'ID tidak sah.');
+ const current=db.prepare('SELECT * FROM sijil WHERE id=?').get(id);
+ if(!current)return fail(res,'Sijil tidak ditemui.',404);
+ const title=trim(req.body?.nama_sijil,130)||current.nama_sijil;
+ const tarikh=trim(req.body?.tarikh_isu,10)||current.tarikh_isu;
+ if(title.length<3)return fail(res,'Nama sijil perlu sekurang-kurangnya 3 aksara.');
+ if(!validDate(tarikh))return fail(res,'Tarikh sijil tidak sah.');
+ let file_path=current.file_path;
+ let file_type=current.file_type;
+ let jenis=current.jenis;
+ if(req.file){
+  const bytes=req.file.buffer;
+  if(bytes.subarray(0,5).toString('ascii')==='%PDF-')file_type='application/pdf';
+  else if(bytes.subarray(0,8).equals(Buffer.from('89504e470d0a1a0a','hex')))file_type='image/png';
+  else if(bytes[0]===0xff&&bytes[1]===0xd8&&bytes[2]===0xff)file_type='image/jpeg';
+  else return fail(res,'Hanya fail PDF, PNG atau JPG yang sah diterima.');
+  jenis='uploaded';
+  const newPath=path.join(dataDir,'uploads',crypto.randomUUID()+({'application/pdf':'.pdf','image/png':'.png','image/jpeg':'.jpg'}[file_type]));
+  fs.writeFileSync(newPath,bytes,{flag:'wx'});
+  if(current.file_path&&fs.existsSync(current.file_path)){
+   fs.rmSync(current.file_path,{force:true});
+  }
+  file_path=newPath;
+ }
+ db.prepare('UPDATE sijil SET nama_sijil=?,tarikh_isu=?,jenis=?,file_path=?,file_type=? WHERE id=?')
+   .run(title,tarikh,jenis,file_path,file_type,id);
+ res.json({id,nama_sijil:title,tarikh_isu:tarikh,jenis,public_token:current.public_token});
 });
 app.delete('/api/admin/certificates/:id',requireAdmin,(req,res)=>{
  const id=cleanId(req.params.id);if(!id)return fail(res,'ID tidak sah.');
