@@ -9,7 +9,10 @@
     "start": "npm run start -w server",
     "admin:create": "npm run admin:create -w server --",
     "demo:seed": "npm run demo:seed -w server",
-    "test": "npm run test -w server"
+    "test": "npm run test -w server",
+    "turso:check": "npm run turso:check -w server",
+    "turso:push": "npm run turso:push -w server",
+    "turso:pull": "npm run turso:pull -w server"
   },
   "devDependencies": {"concurrently": "^9.2.1"},
   "engines": {"node": ">=22.13.0"}
