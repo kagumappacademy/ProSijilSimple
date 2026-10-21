@@ -183,13 +183,36 @@ app.post('/api/admin/students/import',requireAdmin,upload.single('file'),(req,re
 
 app.get('/api/admin/certificates',requireAdmin,(req,res)=>{
  const q=trim(req.query.q,160);
- const page=Math.max(1,Number(req.query.page)||1),limit=20;
- const filter=q?' WHERE (p.nama_penuh LIKE ? OR s.nama_sijil LIKE ? OR p.cawangan LIKE ?)':'';
- const params=q?[`%${q}%`,`%${q}%`,`%${q}%`]:[];
+ const branch=trim(req.query.branch,80);
+ const level=trim(req.query.level,100);
+ const fetchAll=req.query.all==='1'||req.query.limit==='all';
+ const page=Math.max(1,Number(req.query.page)||1);
+ const limit=fetchAll?10000:Math.min(100,Math.max(1,Number(req.query.limit)||20));
+
+ const conditions=[];
+ const params=[];
+ if(q){
+  conditions.push('(p.nama_penuh LIKE ? OR s.nama_sijil LIKE ? OR p.cawangan LIKE ? OR p.no_kp_atau_id LIKE ?)');
+  params.push(`%${q}%`,`%${q}%`,`%${q}%`,`%${q}%`);
+ }
+ if(branch){
+  conditions.push('p.cawangan = ?');
+  params.push(branch);
+ }
+ if(level){
+  conditions.push('p.peringkat = ?');
+  params.push(level);
+ }
+ const filter=conditions.length ? ' WHERE ' + conditions.join(' AND ') : '';
  const from=' FROM sijil s JOIN pesilat p ON p.id=s.pesilat_id';
  const total=db.prepare('SELECT count(*) AS n'+from+filter).get(...params).n;
- const rows=db.prepare('SELECT s.*,p.nama_penuh,p.peringkat,p.cawangan'+from+filter+' ORDER BY s.id DESC LIMIT ? OFFSET ?').all(...params,limit,(page-1)*limit).map(r=>({...r,file_path:undefined}));
- res.json({rows,total,page,pages:Math.max(1,Math.ceil(total/limit))});
+ const offset=fetchAll?0:(page-1)*limit;
+ const rows=db.prepare('SELECT s.*,p.nama_penuh,p.no_kp_atau_id,p.peringkat,p.cawangan'+from+filter+' ORDER BY p.cawangan, p.peringkat, s.id DESC LIMIT ? OFFSET ?').all(...params,limit,offset).map(r=>({...r,file_path:undefined}));
+
+ const branches=db.prepare("SELECT p.cawangan AS name, count(s.id) AS count FROM sijil s JOIN pesilat p ON p.id=s.pesilat_id WHERE p.cawangan IS NOT NULL AND p.cawangan != '' GROUP BY p.cawangan ORDER BY p.cawangan").all();
+ const levels=db.prepare("SELECT p.peringkat AS name, count(s.id) AS count FROM sijil s JOIN pesilat p ON p.id=s.pesilat_id WHERE p.peringkat IS NOT NULL AND p.peringkat != '' GROUP BY p.peringkat ORDER BY p.peringkat").all();
+
+ res.json({rows,total,page,pages:Math.max(1,Math.ceil(total/limit)),branches,levels});
 });
 app.post('/api/admin/certificates',requireAdmin,upload.single('file'),(req,res)=>{
  const id=cleanId(req.body?.pesilat_id);
