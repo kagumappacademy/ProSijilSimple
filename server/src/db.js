@@ -66,3 +66,27 @@ export function uniqueId() {
  do { id = makeId(); } while (db.prepare('SELECT 1 FROM pesilat WHERE no_kp_atau_id = ?').get(id));
  return id;
 }
+
+export async function syncWithTursoIfAvailable() {
+  try {
+    const { isTursoConfigured, pullTursoToLocal } = await import('./turso.js');
+    if (isTursoConfigured()) {
+      const pesilatCount = db.prepare('SELECT count(*) AS n FROM pesilat').get()?.n || 0;
+      if (pesilatCount === 0) {
+        console.log('[Turso] Mengambil data terkini daripada Turso Cloud...');
+        await pullTursoToLocal();
+        console.log('[Turso] Data berjaya disegerakkan.');
+      }
+    }
+  } catch (err) {
+    console.warn('[Turso] Amaran auto-sync:', err.message);
+  }
+}
+
+export function triggerTursoSync() {
+  import('./turso.js').then(({ isTursoConfigured, pushLocalToTurso }) => {
+    if (isTursoConfigured()) {
+      pushLocalToTurso().catch((e) => console.warn('[Turso] Background sync error:', e.message));
+    }
+  }).catch(() => {});
+}

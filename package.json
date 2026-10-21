@@ -15,5 +15,5 @@
     "turso:pull": "npm run turso:pull -w server"
   },
   "devDependencies": {"concurrently": "^9.2.1"},
-  "engines": {"node": ">=22.13.0"}
+  "engines": {"node": "22.x"}
 }
