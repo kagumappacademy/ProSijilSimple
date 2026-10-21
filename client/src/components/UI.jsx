@@ -5,28 +5,30 @@ import { Loader2, X, Search, ChevronLeft, ChevronRight, Inbox, AlertTriangle } f
 export function Logo({ light = false, small = false, center = false, className = '' }) {
   return (
     <div
-      className={`flex items-center gap-2.5 select-none ${
+      className={`flex items-center gap-2 select-none ${
         center ? 'justify-center mx-auto text-left' : ''
       } ${className}`}
     >
       <img
         src="/logo-prosilat.png"
         alt="Logo ProSilat"
-        className={`${small ? 'h-8 sm:h-9' : 'h-10 sm:h-12'} w-auto object-contain shrink-0 ${
+        className={`${small ? 'h-7 sm:h-8' : 'h-10 sm:h-12'} w-auto object-contain shrink-0 ${
           !light ? 'filter drop-shadow-[0_1px_2px_rgba(0,0,0,0.12)]' : ''
         }`}
       />
-      <div className="leading-tight">
+      <div className="leading-tight shrink-0">
         <span
           className={`block ${
-            small ? 'text-xs sm:text-sm' : 'text-base sm:text-lg'
-          } font-black tracking-tight ${light ? 'text-white' : 'text-slate-950'}`}
+            small ? 'text-xs sm:text-[13px]' : 'text-base sm:text-lg'
+          } font-black tracking-tight whitespace-nowrap ${light ? 'text-white' : 'text-slate-950'}`}
         >
           AKADEMI <span className={light ? 'text-red-400' : 'text-red-700'}>PROSILAT</span>
         </span>
         <span
-          className={`block text-[8.5px] sm:text-[9px] uppercase tracking-[0.18em] font-semibold ${
-            light ? 'text-white/70' : 'text-slate-400'
+          className={`block ${
+            small ? 'text-[7.5px] sm:text-[8px] tracking-[0.06em]' : 'text-[8.5px] sm:text-[9px] tracking-[0.14em]'
+          } uppercase font-bold whitespace-nowrap ${
+            light ? 'text-white/70' : 'text-slate-500'
           }`}
         >
           Sistem Pengurusan Sijil
