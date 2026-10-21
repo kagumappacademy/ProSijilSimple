@@ -239,10 +239,13 @@ export async function pullTursoToLocal() {
 
     // 2. Admin Users
     const remoteAdmins = await turso.execute('SELECT id, username, password_hash, created_at FROM admin_users');
-    const adminStmt = db.prepare('INSERT OR REPLACE INTO admin_users (id, username, password_hash, created_at) VALUES (?, ?, ?, ?)');
-    for (const row of remoteAdmins.rows) {
-      adminStmt.run(row.id, row.username, row.password_hash, row.created_at);
-      stats.admin_users++;
+    if (remoteAdmins.rows.length > 0) {
+      db.exec('DELETE FROM admin_users');
+      const adminStmt = db.prepare('INSERT OR REPLACE INTO admin_users (id, username, password_hash, created_at) VALUES (?, ?, ?, ?)');
+      for (const row of remoteAdmins.rows) {
+        adminStmt.run(row.id, row.username, row.password_hash, row.created_at);
+        stats.admin_users++;
+      }
     }
 
     // 3. Pesilat

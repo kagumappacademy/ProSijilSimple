@@ -76,12 +76,9 @@ export async function syncWithTursoIfAvailable() {
   try {
     const { isTursoConfigured, pullTursoToLocal } = await import('./turso.js');
     if (isTursoConfigured()) {
-      const pesilatCount = db.prepare('SELECT count(*) AS n FROM pesilat').get()?.n || 0;
-      if (pesilatCount === 0) {
-        console.log('[Turso] Mengambil data terkini daripada Turso Cloud...');
-        await pullTursoToLocal();
-        console.log('[Turso] Data berjaya disegerakkan.');
-      }
+      console.log('[Turso] Mengambil data terkini daripada Turso Cloud...');
+      await pullTursoToLocal();
+      console.log('[Turso] Data berjaya disegerakkan.');
     }
   } catch (err) {
     console.warn('[Turso] Amaran auto-sync:', err.message);
