@@ -302,7 +302,8 @@ app.post('/api/admin/templates/generate-batch',requireAdmin,async(req,res,next)=
   const generatedTokens=[];
 
   for(const student of students){
-   let matchedTemplate=templates.find(t=>t.peringkat.trim().toLowerCase()===student.peringkat.trim().toLowerCase());
+   const norm = s => String(s || '').trim().toLowerCase().replace(/^ujian\s+/i, '');
+   let matchedTemplate=templates.find(t=>norm(t.peringkat)===norm(student.peringkat) || t.peringkat.trim().toLowerCase()===student.peringkat.trim().toLowerCase());
    if(!matchedTemplate){
     matchedTemplate=templates.find(t=>t.peringkat.trim().toLowerCase()==='semua peringkat');
    }

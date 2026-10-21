@@ -81,10 +81,13 @@ export function GenerateCerts() {
   // Check matching template for student based on currently selected template name
   const currentTemplatesForName = templateGroups[selectedTemplateName] || [];
 
+  const norm = s => String(s || '').trim().toLowerCase().replace(/^ujian\s+/i, '');
+
   function getMatchingTemplate(student) {
     if (!currentTemplatesForName.length) return null;
+    const sNorm = norm(student.peringkat);
     const match = currentTemplatesForName.find(
-      t => t.peringkat.trim().toLowerCase() === student.peringkat.trim().toLowerCase()
+      t => norm(t.peringkat) === sNorm || t.peringkat.trim().toLowerCase() === student.peringkat.trim().toLowerCase()
     );
     if (match) return match;
     const universal = currentTemplatesForName.find(

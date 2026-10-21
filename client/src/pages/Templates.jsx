@@ -5,22 +5,24 @@ import { api, fmtDate } from '../lib/api';
 import { PageIntro, Panel, Button, Input, Select, Modal, Confirm, Loading, Empty, Chip } from '../components/UI';
 
 const LEVEL_LIST = [
-  'Semua Peringkat',
-  'Awan Putih',
-  'Awan Putih Cula Merah 1',
-  'Awan Putih Cula Merah 2',
-  'Awan Putih Cula Merah 3',
-  'Awan Kuning',
-  'Awan Hijau',
-  'Awan Biru',
-  'Awan Merah',
-  'Awan Hitam'
+  'Ujian Awan Putih Cula Merah 1',
+  'Ujian Awan Putih Cula Merah 2',
+  'Ujian Awan Putih Cula Merah 3',
+  'Ujian Awan Putih Cula Hijau 1',
+  'Ujian Awan Putih Cula Hijau 2',
+  'Ujian Awan Putih Cula Hijau 3',
+  'Ujian Awan Putih Cula Kuning 1',
+  'Ujian Awan Putih Cula Kuning 2',
+  'Ujian Awan Putih Cula Kuning 3',
+  'Ujian Awan Putih Cula Hitam 1',
+  'Ujian Awan Putih Cula Hitam 2',
+  'Ujian Awan Putih Cula Hitam 3'
 ];
 
 function UploadTemplateModal({ open, onClose, onSaved }) {
   const [file, setFile] = useState(null);
   const [nama, setNama] = useState('Sijil Ujian Kenaikan Tali Pinggang (Penggal 1/2026)');
-  const [peringkat, setPeringkat] = useState('Awan Putih Cula Merah 1');
+  const [peringkat, setPeringkat] = useState('Ujian Awan Putih Cula Merah 1');
   const [keterangan, setKeterangan] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -28,7 +30,7 @@ function UploadTemplateModal({ open, onClose, onSaved }) {
     if (!open) {
       setFile(null);
       setNama('Sijil Ujian Kenaikan Tali Pinggang (Penggal 1/2026)');
-      setPeringkat('Awan Putih Cula Merah 1');
+      setPeringkat('Ujian Awan Putih Cula Merah 1');
       setKeterangan('');
     }
   }, [open]);
