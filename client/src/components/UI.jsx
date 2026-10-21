@@ -2,33 +2,38 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Loader2, X, Search, ChevronLeft, ChevronRight, Inbox, AlertTriangle } from 'lucide-react';
 
-export function Logo({ light = false, small = false }) {
+export function Logo({ light = false, small = false, className = '' }) {
   return (
-    <div className="flex items-center gap-2.5 select-none">
+    <div className={`flex items-center gap-2.5 select-none ${className}`}>
       <div
-        className={`relative flex ${
-          small ? 'h-8 w-8 rounded-xl' : 'h-10 w-10 rounded-2xl'
-        } items-center justify-center bg-gradient-to-br from-red-500 via-red-600 to-rose-700 text-white shadow-sm ring-1 ring-white/20`}
+        className={`relative flex items-center justify-center shrink-0 ${
+          small ? 'h-9 px-2 rounded-xl' : 'h-11 px-2.5 rounded-2xl'
+        } ${
+          light
+            ? 'bg-black/25 border border-white/15 shadow-inner'
+            : 'bg-[#7f1d1d] border border-red-950/40 shadow-xs'
+        }`}
       >
-        <svg width={small ? 18 : 22} height={small ? 18 : 22} viewBox="0 0 32 32" fill="none" aria-hidden="true">
-          <path d="M5 24V8l11-5 11 5v16l-11 5L5 24Z" stroke="currentColor" strokeWidth="1.8" />
-          <path d="m11 17 4 4 7-10M11 12h5" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
+        <img
+          src="/logo-prosilat.png"
+          alt="Logo ProSilat"
+          className={`${small ? 'h-6' : 'h-7 sm:h-8'} w-auto object-contain filter drop-shadow-xs`}
+        />
       </div>
       <div className="leading-tight">
         <span
           className={`block ${
-            small ? 'text-sm' : 'text-lg'
-          } font-extrabold tracking-tight ${light ? 'text-white' : 'text-slate-900'}`}
+            small ? 'text-xs sm:text-sm' : 'text-base sm:text-lg'
+          } font-black tracking-tight ${light ? 'text-white' : 'text-slate-950'}`}
         >
-          Pro<span className="text-red-600">Sijil</span>
+          AKADEMI <span className={light ? 'text-red-400' : 'text-red-700'}>PROSILAT</span>
         </span>
         <span
-          className={`block text-[9px] uppercase tracking-[0.16em] font-semibold ${
-            light ? 'text-white/60' : 'text-slate-400'
+          className={`block text-[8.5px] sm:text-[9px] uppercase tracking-[0.18em] font-semibold ${
+            light ? 'text-white/70' : 'text-slate-400'
           }`}
         >
-          Akademi Silat Digital
+          Sistem Pengurusan Sijil
         </span>
       </div>
     </div>

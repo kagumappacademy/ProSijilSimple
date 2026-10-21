@@ -397,7 +397,7 @@ export function Home() {
                 </div>
               </div>
               <div className="absolute bottom-4 left-5 right-5 flex justify-between text-[11px] font-semibold text-white/70">
-                <span>PROSIJIL DIGITAL</span>
+                <span>AKADEMI PROSILAT</span>
                 <span>MUDAH • SELAMAT • RASMI</span>
               </div>
             </div>
@@ -448,7 +448,7 @@ export function Home() {
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-6 sm:px-8 lg:px-12">
           <Logo small />
           <p className="text-xs text-slate-400">
-            © {new Date().getFullYear()} ProSijil • Akademi Pro Silat. Hak cipta terpelihara.
+            © {new Date().getFullYear()} Akademi ProSilat. Hak cipta terpelihara.
           </p>
           <Link to="/admin/login" className="text-xs font-semibold text-red-700 hover:underline">
             Log masuk admin
@@ -486,7 +486,7 @@ export function Verify() {
               <CheckCircle2 className="mx-auto text-emerald-600" size={44} />
               <div className="mt-3 text-xs font-extrabold uppercase tracking-widest text-emerald-600">SIJIL SAH</div>
               <h1 className="mt-2 text-xl font-extrabold text-slate-950 sm:text-2xl">Pengesahan Sijil</h1>
-              <p className="mt-2 text-xs leading-6 text-slate-500">Sijil ini wujud dalam rekod rasmi ProSijil.</p>
+              <p className="mt-2 text-xs leading-6 text-slate-500">Sijil ini wujud dalam rekod rasmi Akademi ProSilat.</p>
               <div className="mt-5 space-y-2.5 rounded-xl bg-slate-50 p-4 text-left border border-slate-200/60">
                 {[
                   ['Nama Pesilat', record.nama_penuh],

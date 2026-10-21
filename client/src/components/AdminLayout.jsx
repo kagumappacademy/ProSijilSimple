@@ -158,7 +158,7 @@ export function AdminLayout({ user, onLogout }) {
             </button>
             <div>
               <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
-                ProSijil / Admin
+                Akademi ProSilat / Admin
               </div>
               <div className="text-xs sm:text-sm font-extrabold text-slate-950 leading-tight">{name}</div>
             </div>

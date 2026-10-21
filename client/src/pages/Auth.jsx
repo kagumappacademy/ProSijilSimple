@@ -50,7 +50,7 @@ export function Login({ onLogin }) {
           </p>
         </div>
         <div className="relative border-t border-white/15 pt-4 text-xs text-white/40">
-          ProSijil • Sistem Pengurusan Sijil Digital
+          Akademi ProSilat • Sistem Pengurusan Sijil Digital
         </div>
       </aside>
 
