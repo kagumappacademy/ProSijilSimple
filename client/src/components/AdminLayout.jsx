@@ -155,7 +155,7 @@ export function AdminLayout({ user, onLogout }) {
   const name = items.find((i) => i.to === loc.pathname)?.label || 'Portal Admin';
 
   return (
-    <div className="min-h-screen bg-[#FBFBFD]">
+    <div className="min-h-screen responsive-bg">
       <aside className="fixed inset-y-0 left-0 z-50 hidden w-[230px] bg-white lg:block shadow-sm border-r border-slate-200/80">
         <Sidebar user={user} logout={logout} />
       </aside>

@@ -19,11 +19,24 @@ html {
   scroll-behavior: smooth;
 }
 
-body {
+/* Responsive App Background (ProSilat x ProSijil Watermark Wallpaper) */
+body, .responsive-bg {
   margin: 0;
   min-width: 320px;
-  background-color: #fbfbfd;
   color: #0f172a;
+  background-color: #fbfbfd;
+  background-image: url('/bg-mobile.png');
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+}
+
+@media (min-width: 768px) {
+  body, .responsive-bg {
+    background-image: url('/bg-desktop.png');
+    background-position: center center;
+    background-attachment: fixed;
+  }
 }
 
 button, a, input, select {
