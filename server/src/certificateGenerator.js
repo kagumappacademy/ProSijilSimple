@@ -31,8 +31,8 @@ export async function generateCertificatePdf({
   outputPath = null,
   fontSize = 20,
   colorHex = '#c1362d',
-  centerXRatio = 0.520,
-  yRatio = 0.572
+  centerXRatio = 0.5235,
+  maxBoxWidth = 352
 }) {
   const bytes = templateBytes || (templatePath && fs.existsSync(templatePath) ? fs.readFileSync(templatePath) : null);
   if (!bytes) {
@@ -62,32 +62,77 @@ export async function generateCertificatePdf({
     b = parseInt(colorHex.slice(5, 7), 16) / 255;
   }
 
-  let finalFontSize = Number(fontSize) || 20;
+  const finalFontSize = Number(fontSize) || 20; // Kekalkan saiz font 20 sahaja
   const displayName = String(studentName || '').trim().toUpperCase();
   if (displayName) {
     pdfDoc.setTitle(displayName);
   }
 
-  // Auto-shrink jika nama terlalu panjang melepasi garisan
-  let textWidth = loraFont.widthOfTextAtSize(displayName, finalFontSize);
-  const maxWidth = width * 0.72;
-  if (textWidth > maxWidth && textWidth > 0) {
-    finalFontSize = Math.max(12, Math.floor(finalFontSize * (maxWidth / textWidth)));
-    textWidth = loraFont.widthOfTextAtSize(displayName, finalFontSize);
+  // Pisahkan nama kepada 1 atau 2 baris mengikut lebar kotak (maxBoxWidth = 352)
+  const words = displayName.split(/\s+/).filter(Boolean);
+  const singleLine = words.join(' ');
+  const singleLineWidth = loraFont.widthOfTextAtSize(singleLine, finalFontSize);
+
+  let lines = [];
+  if (singleLineWidth <= maxBoxWidth) {
+    lines = [singleLine];
+  } else {
+    let l1 = [];
+    let l2 = [];
+    for (const w of words) {
+      const candidate = [...l1, w].join(' ');
+      if (l2.length === 0 && loraFont.widthOfTextAtSize(candidate, finalFontSize) <= maxBoxWidth) {
+        l1.push(w);
+      } else {
+        l2.push(w);
+      }
+    }
+    if (l2.length === 0 && words.length > 1) {
+      const mid = Math.ceil(words.length / 2);
+      l1 = words.slice(0, mid);
+      l2 = words.slice(mid);
+    }
+    lines = [l1.join(' '), l2.join(' ')].filter(Boolean);
   }
 
   const centerX = width * centerXRatio;
-  const x = Math.max(20, centerX - (textWidth / 2));
-  const y = height * yRatio;
+  const lineY = height * 0.5718; // Kedudukan garisan horizontal pada templat
 
-  // Tulis nama di Page 1
-  page1.drawText(displayName, {
-    x,
-    y,
-    size: finalFontSize,
-    font: loraFont,
-    color: rgb(r, g, b)
-  });
+  const drawnCoordinates = [];
+  if (lines.length === 1) {
+    // 1 Baris: diletakkan di atas garisan dengan jarak yang kemas
+    const textWidth = loraFont.widthOfTextAtSize(lines[0], finalFontSize);
+    const x = Math.max(15, centerX - (textWidth / 2));
+    const y = lineY + 18;
+    page1.drawText(lines[0], {
+      x,
+      y,
+      size: finalFontSize,
+      font: loraFont,
+      color: rgb(r, g, b)
+    });
+    drawnCoordinates.push({ line: lines[0], x, y });
+  } else {
+    // 2 Baris: kedua-duanya kekal saiz 20, tersusun kemas di atas garisan
+    const lineSpacing = 24; // Jarak antara baris atas dan baris bawah
+    const bottomLineY = lineY + 13.5;
+    const topLineY = bottomLineY + lineSpacing;
+
+    const yPositions = [topLineY, bottomLineY];
+    for (let i = 0; i < lines.length; i++) {
+      const textWidth = loraFont.widthOfTextAtSize(lines[i], finalFontSize);
+      const x = Math.max(15, centerX - (textWidth / 2));
+      const y = yPositions[i] ?? (bottomLineY - (i - 1) * lineSpacing);
+      page1.drawText(lines[i], {
+        x,
+        y,
+        size: finalFontSize,
+        font: loraFont,
+        color: rgb(r, g, b)
+      });
+      drawnCoordinates.push({ line: lines[i], x, y });
+    }
+  }
 
   // Simpan fail siap yang menggabungkan Page 1 (diubah) dan Page 2 (asal)
   const resultBytes = await pdfDoc.save();
@@ -102,6 +147,7 @@ export async function generateCertificatePdf({
     pageCount,
     outputPath,
     fontSize: finalFontSize,
-    coordinates: { x, y }
+    lines,
+    coordinates: drawnCoordinates
   };
 }
