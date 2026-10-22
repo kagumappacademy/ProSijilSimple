@@ -181,26 +181,28 @@ export function AdminLayout({ user, onLogout }) {
 
       <div className="lg:pl-[230px]">
         {/* Sticky Header with Clock, Language Switcher, Title, and Profile */}
-        <header className="sticky top-0 z-30 flex h-14 sm:h-16 items-center justify-between border-b border-slate-200/70 bg-white/85 px-4 sm:px-6 backdrop-blur-md">
-          <div className="flex items-center gap-3">
+        <header className="sticky top-0 z-30 flex h-14 sm:h-16 items-center justify-between border-b border-slate-200/70 bg-white/85 px-3 sm:px-6 backdrop-blur-md">
+          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1 mr-2">
             <button
-              className="rounded-xl border border-slate-200 p-2 text-slate-700 lg:hidden hover:bg-slate-50 transition"
+              className="rounded-xl border border-slate-200 p-2 text-slate-700 lg:hidden hover:bg-slate-50 transition shrink-0"
               onClick={() => setOpen(true)}
               aria-label={t('openMenu')}
             >
               <Menu size={18} />
             </button>
-            <div>
-              <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+            <div className="min-w-0 flex-1">
+              <div className="hidden sm:block text-[10px] font-semibold text-slate-400 uppercase tracking-wider truncate">
                 {t('brandName')} / {t('adminTitle')}
               </div>
-              <div className="text-xs sm:text-sm font-extrabold text-slate-950 leading-tight">{name}</div>
+              <h1 className="text-xs sm:text-sm font-extrabold text-slate-950 leading-tight truncate">{name}</h1>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3">
-            {/* Real-time Live Clock & Date */}
-            <LiveClock showDate={true} />
+          <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
+            {/* Real-time Live Clock & Date (hidden on mobile to prevent squishing) */}
+            <div className="hidden md:flex">
+              <LiveClock showDate={true} />
+            </div>
 
             {/* Language Switcher [ BM | ENG ] */}
             <LanguageSwitcher />
@@ -212,7 +214,7 @@ export function AdminLayout({ user, onLogout }) {
               <span>{t('systemActive')}</span>
             </div>
 
-            <div className="grid h-8 w-8 place-items-center rounded-xl bg-red-50 text-xs font-extrabold text-red-700 border border-red-100">
+            <div className="grid h-8 w-8 place-items-center rounded-xl bg-red-50 text-xs font-extrabold text-red-700 border border-red-100 shrink-0">
               {(user?.username || 'A')[0].toUpperCase()}
             </div>
           </div>

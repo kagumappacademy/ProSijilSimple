@@ -63,7 +63,7 @@ export function Login({ onLogin }) {
           </Link>
 
           <div className="flex items-center gap-2">
-            <LiveClock compact={true} />
+            <LiveClock compact={true} className="hidden sm:inline-flex" />
             <LanguageSwitcher />
           </div>
         </div>

@@ -12,11 +12,11 @@ export function Logo({ light = false, small = false, center = false, className =
       <img
         src="/logo-prosijil.png"
         alt="Logo ProSijil"
-        className={`${small ? 'h-7 sm:h-8' : 'h-10 sm:h-12'} w-auto object-contain shrink-0 ${
+        className={`${small ? 'h-7 sm:h-8' : 'h-8 sm:h-10 md:h-12'} w-auto object-contain shrink-0 ${
           light ? 'brightness-0 invert' : ''
         }`}
       />
-      <div className="leading-tight shrink-0">
+      <div className="leading-tight shrink-0 hidden sm:block">
         <span
           className={`block ${
             small ? 'text-xs sm:text-[13px]' : 'text-base sm:text-lg'

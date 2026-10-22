@@ -620,8 +620,71 @@ export function GenerateCerts() {
             message={t('noStudentsFoundDesc')}
           />
         ) : (
-          <div className="overflow-x-auto max-h-[calc(100vh-370px)] overflow-y-auto">
-            <table className="w-full min-w-[760px] text-left text-xs sm:text-sm">
+          <div>
+            {/* Mobile Card List (< md) */}
+            <div className="block md:hidden divide-y divide-slate-100 p-3 space-y-2.5">
+              {pageStudents.map((student, idx) => {
+                const isChecked = selectedIds.has(student.id);
+                const matchedTemplate = getMatchingTemplate(student);
+                const rowNumber = startIndex + idx + 1;
+
+                return (
+                  <div
+                    key={student.id}
+                    onClick={() => toggleSelect(student.id)}
+                    className={`rounded-2xl border p-3.5 space-y-2 transition cursor-pointer ${
+                      isChecked ? 'bg-red-50/60 border-red-300 shadow-2xs' : 'bg-white border-slate-200/80'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-start gap-2.5 min-w-0">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => toggleSelect(student.id)}
+                          onClick={(e) => e.stopPropagation()}
+                          className="mt-0.5 h-4 w-4 rounded text-red-700 focus:ring-red-500 cursor-pointer shrink-0"
+                        />
+                        <div className="min-w-0">
+                          <div className="font-bold text-slate-950 text-xs sm:text-sm truncate">
+                            {student.nama_penuh}
+                          </div>
+                          <div className="text-[10px] font-mono text-slate-500">
+                            {student.no_kp_atau_id || '—'}
+                          </div>
+                        </div>
+                      </div>
+                      <span className="text-[10px] font-mono text-slate-400">#{rowNumber}</span>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] text-slate-600">
+                      <span>{student.cawangan}</span>
+                      <span>•</span>
+                      <span className="font-semibold text-slate-900">{student.peringkat}</span>
+                    </div>
+
+                    <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
+                      {matchedTemplate ? (
+                        <span className="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100 text-[10px]">
+                          <CheckCircle2 size={11} /> {t('statusTemplateReady')}
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 text-[10px]">
+                          <AlertCircle size={11} /> {t('statusNoTemplate')}
+                        </span>
+                      )}
+                      <span className={`text-[10px] font-bold ${isChecked ? 'text-red-700' : 'text-slate-400'}`}>
+                        {isChecked ? 'Dipilih' : 'Tidak dipilih'}
+                      </span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop Table View (>= md) */}
+            <div className="hidden md:block overflow-x-auto max-h-[calc(100vh-370px)] overflow-y-auto">
+              <table className="w-full min-w-[760px] text-left text-xs sm:text-sm">
               <thead className="sticky top-0 z-10 bg-[#FBFCFA] text-[10px] font-extrabold uppercase tracking-[.14em] text-slate-400 border-b border-slate-100 shadow-2xs">
                 <tr>
                   <th className="w-10 px-3.5 py-2 text-center">
@@ -703,7 +766,8 @@ export function GenerateCerts() {
               </tbody>
             </table>
           </div>
-        )}
+        </div>
+      )}
 
         {/* Pagination Bar (Next Page, Prev Page, 20 items per page) */}
         {filteredStudents.length > 0 && (

@@ -51,24 +51,27 @@ function BreakdownCard({ title, rows }) {
       <h4 className="text-xs font-extrabold text-slate-950 uppercase tracking-wider">{title}</h4>
       {rows.length ? (
         <div className="space-y-2">
-          {rows.map((r) => (
-            <div key={r.label} className="group">
-              <div className="flex items-center justify-between text-xs">
-                <span className="font-semibold text-slate-700 truncate max-w-[170px]" title={r.label}>
-                  {r.label}
-                </span>
-                <span className="font-bold text-slate-900 font-mono text-[11px]">{r.total}</span>
+          {rows.map((r, idx) => {
+            const labelText = r.name || r.label || 'Lain-lain';
+            return (
+              <div key={r.name || r.label || idx} className="group">
+                <div className="flex items-center justify-between text-xs gap-2">
+                  <span className="font-semibold text-slate-700 truncate" title={labelText}>
+                    {labelText}
+                  </span>
+                  <span className="font-bold text-slate-900 font-mono text-[11px] shrink-0">{r.total}</span>
+                </div>
+                <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(r.total / max) * 100}%` }}
+                    transition={{ duration: 0.6, ease: 'easeOut' }}
+                    className="h-full rounded-full bg-gradient-to-r from-red-600 to-rose-700"
+                  />
+                </div>
               </div>
-              <div className="mt-1.5 h-1.5 w-full overflow-hidden rounded-full bg-slate-100">
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: `${(r.total / max) * 100}%` }}
-                  transition={{ duration: 0.6, ease: 'easeOut' }}
-                  className="h-full rounded-full bg-gradient-to-r from-red-600 to-rose-700"
-                />
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       ) : (
         <div className="rounded-xl border border-dashed border-slate-200 p-4 text-center text-xs text-slate-400">

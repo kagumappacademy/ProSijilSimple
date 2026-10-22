@@ -696,8 +696,90 @@ export function Certificates() {
                             </Chip>
                           </div>
 
-                          {/* Senarai Sijil Di Bawah Peringkat Ini */}
-                          <div className="overflow-x-auto">
+                          {/* Senarai Sijil Di Bawah Peringkat Ini: Mobile Cards View */}
+                          <div className="block md:hidden p-2.5 space-y-2">
+                            {certList.map((r, idx) => (
+                              <div
+                                key={r.id}
+                                className={`rounded-xl border p-3 transition ${
+                                  selectedIds.has(r.id) ? 'bg-red-50/70 border-red-200' : 'bg-[#FCFDFB] border-slate-200/80 shadow-2xs'
+                                }`}
+                              >
+                                <div className="flex items-start justify-between gap-2">
+                                  <div className="flex items-start gap-2.5 min-w-0">
+                                    <input
+                                      type="checkbox"
+                                      aria-label={`Pilih sijil ${r.nama_penuh}`}
+                                      checked={selectedIds.has(r.id)}
+                                      onChange={() => toggleSelect(r.id)}
+                                      className="mt-0.5 h-4 w-4 rounded border-slate-300 text-red-700 focus:ring-red-500 cursor-pointer shrink-0"
+                                    />
+                                    <div className="min-w-0">
+                                      <div className="font-bold text-slate-950 text-xs sm:text-sm truncate">
+                                        {r.nama_penuh}
+                                      </div>
+                                      <div className="text-[10px] font-mono text-slate-500">
+                                        {r.no_kp_atau_id || '—'}
+                                      </div>
+                                    </div>
+                                  </div>
+                                  <span
+                                    className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${
+                                      r.jenis === 'generated'
+                                        ? 'bg-red-50 text-red-700 border-red-200'
+                                        : 'bg-amber-50 text-amber-800 border-amber-200'
+                                    }`}
+                                  >
+                                    {r.jenis === 'generated' ? 'Auto PDF' : 'Fail Sendiri'}
+                                  </span>
+                                </div>
+
+                                <div className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-slate-800">
+                                  <FileText size={13} className="text-red-600 shrink-0" />
+                                  <span className="truncate" title={r.nama_sijil}>{r.nama_sijil}</span>
+                                </div>
+
+                                <div className="mt-2.5 flex items-center justify-between border-t border-slate-100 pt-2">
+                                  <span className="inline-flex items-center gap-1 text-[11px] text-slate-500">
+                                    <CalendarDays size={11} className="text-slate-400" />
+                                    {fmtDate(r.tarikh_isu)}
+                                  </span>
+                                  <div className="flex items-center gap-1">
+                                    <a
+                                      href={certPreview(r.public_token)}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      title="Lihat sijil"
+                                      aria-label="Lihat sijil"
+                                      className="rounded-lg bg-slate-100 p-1.5 text-slate-600 transition hover:bg-red-50 hover:text-red-800"
+                                    >
+                                      <Eye size={13} />
+                                    </a>
+                                    <a
+                                      href={certDownload(r.public_token)}
+                                      download={`${r.nama_penuh}.pdf`}
+                                      title="Muat turun sijil"
+                                      aria-label="Muat turun sijil"
+                                      className="rounded-lg bg-red-50 p-1.5 text-red-700 transition hover:bg-red-100 border border-red-100"
+                                    >
+                                      <Download size={13} />
+                                    </a>
+                                    <button
+                                      onClick={() => setTarget(r)}
+                                      title="Padam sijil"
+                                      aria-label="Padam sijil"
+                                      className="rounded-lg bg-rose-50 p-1.5 text-rose-600 transition hover:bg-rose-100"
+                                    >
+                                      <Trash2 size={13} />
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {/* Senarai Sijil Di Bawah Peringkat Ini: Desktop Table View */}
+                          <div className="hidden md:block overflow-x-auto">
                             <table className="w-full text-left text-xs">
                               <thead className="bg-[#FAFBF9] text-[9px] font-extrabold uppercase tracking-wider text-slate-400 border-b border-slate-100">
                                 <tr>
@@ -821,8 +903,95 @@ export function Certificates() {
           </div>
         ) : (
           /* Paparan Jadual Penuh Bertapis */
-          <div className="overflow-x-auto max-h-[calc(100vh-250px)] overflow-y-auto">
-            <table className="w-full min-w-[760px] text-left text-xs sm:text-sm">
+          <div>
+            {/* Mobile Cards View */}
+            <div className="block md:hidden divide-y divide-slate-100 p-3 space-y-3">
+              {data.rows.map((r) => {
+                const rankMeta = getRankMeta(r.peringkat);
+                return (
+                  <div
+                    key={r.id}
+                    className={`rounded-2xl border p-3.5 space-y-2.5 transition ${
+                      selectedIds.has(r.id) ? 'bg-red-50/70 border-red-200' : 'bg-white border-slate-200/80 shadow-2xs'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex items-start gap-2.5 min-w-0">
+                        <input
+                          type="checkbox"
+                          aria-label={`Pilih sijil ${r.nama_penuh}`}
+                          checked={selectedIds.has(r.id)}
+                          onChange={() => toggleSelect(r.id)}
+                          className="mt-0.5 h-4 w-4 rounded border-slate-300 text-red-700 focus:ring-red-500 cursor-pointer shrink-0"
+                        />
+                        <div className="min-w-0">
+                          <div className="font-bold text-slate-950 text-xs sm:text-sm truncate">
+                            {r.nama_penuh}
+                          </div>
+                          <div className="text-[10px] font-mono text-slate-500">
+                            {r.no_kp_atau_id || '—'}
+                          </div>
+                        </div>
+                      </div>
+                      <Chip color={rankMeta.chip}>{r.peringkat}</Chip>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-600">
+                      <span className="inline-flex items-center gap-1 font-medium">
+                        <MapPin size={11} className="text-slate-400" />
+                        {r.cawangan}
+                      </span>
+                      <span className="inline-flex items-center gap-1 text-slate-500">
+                        <CalendarDays size={11} className="text-slate-400" />
+                        {fmtDate(r.tarikh_isu)}
+                      </span>
+                      <Chip color={r.jenis === 'generated' ? 'red' : 'gold'}>
+                        {r.jenis === 'generated' ? 'Auto PDF' : 'Fail Sendiri'}
+                      </Chip>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 font-semibold text-slate-800 text-xs">
+                      <FileText className="shrink-0 text-red-600" size={13} />
+                      <span className="truncate" title={r.nama_sijil}>{r.nama_sijil}</span>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-1.5 pt-2 border-t border-slate-100">
+                      <a
+                        href={certPreview(r.public_token)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Lihat sijil"
+                        aria-label="Lihat sijil"
+                        className="rounded-lg bg-slate-100 p-2 text-slate-600 transition hover:bg-red-50 hover:text-red-800"
+                      >
+                        <Eye size={14} />
+                      </a>
+                      <a
+                        href={certDownload(r.public_token)}
+                        download={`${r.nama_penuh}.pdf`}
+                        title="Muat turun sijil"
+                        aria-label="Muat turun sijil"
+                        className="rounded-lg bg-red-50 p-2 text-red-700 transition hover:bg-red-100 border border-red-100"
+                      >
+                        <Download size={14} />
+                      </a>
+                      <button
+                        onClick={() => setTarget(r)}
+                        title="Padam sijil"
+                        aria-label="Padam sijil"
+                        className="rounded-lg bg-rose-50 p-2 text-rose-600 transition hover:bg-rose-100"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop Full Table View */}
+            <div className="hidden md:block overflow-x-auto max-h-[calc(100vh-250px)] overflow-y-auto">
+              <table className="w-full min-w-[760px] text-left text-xs sm:text-sm">
               <thead className="sticky top-0 z-10 bg-[#FBFCFA] text-[10px] font-extrabold uppercase tracking-[.13em] text-slate-400 border-b border-slate-100 shadow-2xs">
                 <tr>
                   <th className="w-10 px-3.5 py-2.5 text-center">
@@ -929,7 +1098,8 @@ export function Certificates() {
               </tbody>
             </table>
           </div>
-        )}
+        </div>
+      )}
       </Panel>
 
       <CertificateForm open={modal} onClose={() => setModal(false)} onSaved={load} />

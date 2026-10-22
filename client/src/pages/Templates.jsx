@@ -584,8 +584,61 @@ export function Templates() {
           </div>
         ) : (
           /* Table View Alternative */
-          <div className="overflow-x-auto max-h-[calc(100vh-235px)] overflow-y-auto">
-            <table className="w-full min-w-[760px] text-left text-xs sm:text-sm">
+          <div>
+            {/* Mobile Cards View (< md) */}
+            <div className="block md:hidden divide-y divide-slate-100 p-3 space-y-3">
+              {filteredTemplates.map((item) => {
+                const meta = getRankMeta(item.peringkat);
+                const previewUrl = `/api/admin/templates/${item.id}/preview`;
+                return (
+                  <div key={item.id} className="rounded-2xl border border-slate-200/80 bg-white p-3.5 space-y-2.5 shadow-2xs">
+                    <div className="flex items-start gap-3">
+                      <div className="h-16 w-12 shrink-0 rounded-lg overflow-hidden border border-slate-200 bg-slate-50 shadow-2xs">
+                        <PdfThumbnail url={previewUrl} title={item.nama_template} className="h-full w-full" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <Chip color={meta.chip}>{item.peringkat}</Chip>
+                        <div className="font-bold text-slate-950 text-xs sm:text-sm mt-1">{item.nama_template}</div>
+                        {item.keterangan && <div className="text-[10px] text-slate-400 mt-0.5">{item.keterangan}</div>}
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-slate-500">
+                      <span>{fmtDate(item.created_at.slice(0, 10))}</span>
+                      <div className="flex items-center gap-1">
+                        <button
+                          onClick={() => setTestTarget(item)}
+                          title="Uji janaan nama pada templat"
+                          className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2.5 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition"
+                        >
+                          <Play size={13} /> Uji
+                        </button>
+                        <a
+                          href={previewUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="rounded-lg bg-slate-100 p-1.5 text-slate-600 transition hover:bg-red-50 hover:text-red-800"
+                          title="Lihat fail PDF asal"
+                        >
+                          <Eye size={14} />
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => setDeleteTarget(item)}
+                          className="rounded-lg bg-rose-50 p-1.5 text-rose-600 transition hover:bg-rose-100"
+                          title="Padam templat ini"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Desktop Table View (>= md) */}
+            <div className="hidden md:block overflow-x-auto max-h-[calc(100vh-235px)] overflow-y-auto">
+              <table className="w-full min-w-[760px] text-left text-xs sm:text-sm">
               <thead className="sticky top-0 z-10 bg-[#FBFCFA] text-[10px] font-extrabold uppercase tracking-[.14em] text-slate-400 border-b border-slate-100 shadow-2xs">
                 <tr>
                   <th className="px-3.5 py-2.5">Pratonton</th>
@@ -664,7 +717,8 @@ export function Templates() {
               </tbody>
             </table>
           </div>
-        )}
+        </div>
+      )}
       </Panel>
 
       <UploadTemplateModal open={uploadOpen} onClose={() => setUploadOpen(false)} onSaved={loadTemplates} />

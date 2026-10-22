@@ -197,7 +197,7 @@ const DICTIONARY = {
     heroSubtitle: 'Semak dan muat turun sijil pencapaian silat anak anda dengan pantas, selamat dan rasmi.',
     searchBoxTitle: 'Semakan Sijil Digital',
     searchBoxDesc: 'Sila masukkan Nama Penuh pesilat sahaja (jangan masukkan No. KP):',
-    searchPlaceholderPublic: 'Masukkan nama penuh pesilat sahaja (Contoh: Muhammad Adam Bin Ali)',
+    searchPlaceholderPublic: 'Nama penuh pesilat (cth: Muhammad Adam Bin Ali)',
     searchHelperText: 'Sila masukkan nama penuh pesilat sahaja. Jangan masukkan nombor kad pengenalan (No. KP).',
     searchWarningMinChars: 'Sila masukkan nama penuh pesilat (minima 3 aksara).',
     searchWarningNoIC: 'Sila masukkan nama penuh pesilat sahaja, jangan masukkan No. KP.',
@@ -440,7 +440,7 @@ const DICTIONARY = {
     heroSubtitle: 'Quickly, securely, and officially check and download your child’s silat achievement certificates.',
     searchBoxTitle: 'Digital Certificate Search',
     searchBoxDesc: 'Please enter Student Full Name only (do not enter IC number):',
-    searchPlaceholderPublic: 'Enter student full name only (e.g. Muhammad Adam Bin Ali)',
+    searchPlaceholderPublic: 'Student full name (e.g. Muhammad Adam Bin Ali)',
     searchHelperText: 'Please enter the student\'s full name only. Do not enter IC or ID number.',
     searchWarningMinChars: 'Please enter student full name only (minimum 3 characters).',
     searchWarningNoIC: 'Please enter student full name only, do not enter IC number.',
@@ -668,8 +668,8 @@ export function LiveClock({ light = false, compact = false, showDate = true, cla
         </div>
       )}
       <div className="flex items-center gap-1.5 font-mono font-extrabold tracking-tight">
-        <Clock size={13} className={light ? 'text-rose-300' : 'text-red-700'} />
-        <span className="text-[11px] sm:text-xs text-red-600 sm:text-inherit font-bold">{h12}</span>
+        <Clock size={13} className={light ? 'text-rose-200' : 'text-red-700'} />
+        <span className={`text-[11px] sm:text-xs font-bold ${light ? 'text-white' : 'text-slate-800'}`}>{h12}</span>
       </div>
     </div>
   );

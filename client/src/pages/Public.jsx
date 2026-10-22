@@ -136,20 +136,22 @@ function SearchResult({ records, loading, q, searched }) {
                         {p.certificates.map((c) => (
                           <div
                             key={c.id}
-                            className="flex flex-wrap items-center gap-3 rounded-xl border border-slate-200/70 bg-slate-50/70 p-3 hover:bg-slate-50 transition"
+                            className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-slate-200/70 bg-slate-50/70 p-3 hover:bg-slate-50 transition"
                           >
-                            <div className="grid h-9 w-9 place-items-center rounded-lg bg-white text-red-700 shadow-2xs border border-slate-200/60">
-                              <FileText size={18} />
-                            </div>
-                            <div className="min-w-[150px] flex-1">
-                              <div className="text-sm font-bold text-slate-950">{c.nama_sijil}</div>
-                              <div className="mt-0.5 flex items-center gap-1 text-[11px] text-slate-400">
-                                <CalendarDays size={11} />
-                                {fmtDate(c.tarikh_isu)}
+                            <div className="flex items-center gap-3 min-w-0">
+                              <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-white text-red-700 shadow-2xs border border-slate-200/60">
+                                <FileText size={18} />
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="text-sm font-bold text-slate-950 truncate" title={c.nama_sijil}>{c.nama_sijil}</div>
+                                <div className="mt-0.5 flex items-center gap-1 text-[11px] text-slate-400">
+                                  <CalendarDays size={11} />
+                                  {fmtDate(c.tarikh_isu)}
+                                </div>
                               </div>
                             </div>
                             <a
-                              className="inline-flex items-center gap-1.5 rounded-xl bg-red-700 px-3.5 py-2 text-xs font-bold text-white transition hover:bg-red-800 shadow-xs"
+                              className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-red-700 px-3.5 py-2 text-xs font-bold text-white transition hover:bg-red-800 shadow-xs shrink-0 w-full sm:w-auto"
                               href={certDownload(c.public_token)}
                               download={`${p.nama_penuh}.pdf`}
                             >
@@ -545,7 +547,7 @@ export function Verify() {
             <Logo center />
           </Link>
           <div className="flex items-center gap-2">
-            <LiveClock showDate={false} />
+            <LiveClock showDate={false} className="hidden sm:inline-flex" />
             <LanguageSwitcher />
           </div>
         </div>

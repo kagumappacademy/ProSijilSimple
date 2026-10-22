@@ -1,6 +1,6 @@
 import React,{useCallback,useEffect,useState} from 'react';
 import {useSearchParams} from 'react-router-dom';
-import {Plus,Download,Edit3,Trash2,GraduationCap,Search,Filter,FileUp,IdCard,Eye,CalendarDays,Award,UploadCloud,CheckCircle2,FileText} from 'lucide-react';
+import {Plus,Download,Edit3,Trash2,GraduationCap,Search,Filter,FileUp,IdCard,Eye,CalendarDays,Award,UploadCloud,CheckCircle2,FileText,MapPin} from 'lucide-react';
 import {toast} from 'sonner';
 import {api,fmtDate} from '../lib/api';
 import {PageIntro,Panel,Button,Input,Select,Modal,Confirm,Loading,Empty,SearchField,Pagination,Chip} from '../components/UI';
@@ -637,105 +637,182 @@ export function Students(){
           </div>
         </div>
 
-        {/* Table content: capped height on laptop for 1-screen fit, smooth touch scroll on mobile */}
+        {/* Table / Card content: Touch-friendly cards on mobile, full table on desktop */}
         {!data ? (
           <Loading/>
         ) : data.rows.length ? (
-          <div className="overflow-x-auto max-h-[calc(100vh-230px)] overflow-y-auto">
-            <table className="w-full min-w-[800px] border-collapse text-left text-xs sm:text-sm">
-              <thead className="sticky top-0 z-10 bg-[#FBFCFA] text-[10px] font-extrabold uppercase tracking-[.14em] text-slate-400 border-b border-slate-100 shadow-2xs">
-                <tr>
-                  <th className="w-12 px-3.5 py-2.5 text-center">{t('thNo')}</th>
-                  <th className="px-3.5 py-2.5">{t('thName')}</th>
-                  <th className="px-3.5 py-2.5">{t('thId')}</th>
-                  <th className="px-3.5 py-2.5">{t('thBranch')}</th>
-                  <th className="px-3.5 py-2.5">{t('thLevel')}</th>
-                  <th className="px-3.5 py-2.5">{t('thDateReg')}</th>
-                  <th className="px-3.5 py-2.5">{t('thCerts')}</th>
-                  <th className="px-3.5 py-2.5 text-right">{t('thActions')}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {data.rows.map((r,i)=>(
-                  <tr key={r.id} className="transition hover:bg-red-50/30">
-                    <td className="px-3.5 py-2.5 text-center text-xs font-bold text-slate-400 w-12">
-                      {(page-1)*20+i+1}
-                    </td>
-                    <td className="max-w-[220px] px-3.5 py-2.5">
-                      <div className="flex items-center gap-2.5">
-                        <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-red-50 text-[11px] font-extrabold text-red-700">
-                          {r.nama_penuh.split(' ').slice(0,2).map(x=>x[0]).join('').toUpperCase()}
+          <>
+            {/* Mobile Card View (< md) */}
+            <div className="block md:hidden divide-y divide-slate-100 max-h-[calc(100vh-230px)] overflow-y-auto">
+              {data.rows.map((r, i) => (
+                <div key={r.id} className="p-3.5 space-y-2.5 hover:bg-slate-50/70 transition">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-red-50 text-xs font-black text-red-700 border border-red-100 shadow-2xs">
+                        {r.nama_penuh.split(' ').slice(0, 2).map((x) => x[0]).join('').toUpperCase()}
+                      </div>
+                      <div className="min-w-0">
+                        <button
+                          onClick={() => setViewTarget(r)}
+                          className="font-bold text-slate-950 text-xs sm:text-sm hover:underline text-left block truncate"
+                          title={r.nama_penuh}
+                        >
+                          {r.nama_penuh}
+                        </button>
+                        <div className="text-[10px] font-mono text-slate-500">
+                          {r.no_kp_atau_id || '—'}
                         </div>
-                        <div className="min-w-0">
+                      </div>
+                    </div>
+                    <Chip color="gold">{r.peringkat}</Chip>
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500 pt-0.5">
+                    <span className="inline-flex items-center gap-1 font-medium text-slate-600">
+                      <MapPin size={11} className="text-slate-400" />
+                      {r.cawangan}
+                    </span>
+                    <span className="inline-flex items-center gap-1 text-slate-500">
+                      <CalendarDays size={11} className="text-slate-400" />
+                      {fmtDate(r.tarikh_daftar)}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+                    <button
+                      type="button"
+                      onClick={() => setViewTarget(r)}
+                      className="inline-flex items-center gap-1 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 px-2.5 py-1 rounded-lg transition"
+                    >
+                      <Award size={13} />
+                      <span>{r.sijil_count} {t('thCerts').toLowerCase()}</span>
+                    </button>
+
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => setViewTarget(r)}
+                        className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition"
+                        title={t('btnViewCerts')}
+                      >
+                        <Eye size={15} />
+                      </button>
+                      <button
+                        onClick={() => openEdit(r)}
+                        className="p-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition"
+                        title={t('btnEdit')}
+                      >
+                        <Edit3 size={15} />
+                      </button>
+                      <button
+                        onClick={() => setDeleteTarget(r)}
+                        className="p-1.5 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 transition"
+                        title={t('btnDelete')}
+                      >
+                        <Trash2 size={15} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop Table View (>= md) */}
+            <div className="hidden md:block overflow-x-auto max-h-[calc(100vh-230px)] overflow-y-auto">
+              <table className="w-full min-w-[800px] border-collapse text-left text-xs sm:text-sm">
+                <thead className="sticky top-0 z-10 bg-[#FBFCFA] text-[10px] font-extrabold uppercase tracking-[.14em] text-slate-400 border-b border-slate-100 shadow-2xs">
+                  <tr>
+                    <th className="w-12 px-3.5 py-2.5 text-center">{t('thNo')}</th>
+                    <th className="px-3.5 py-2.5">{t('thName')}</th>
+                    <th className="px-3.5 py-2.5">{t('thId')}</th>
+                    <th className="px-3.5 py-2.5">{t('thBranch')}</th>
+                    <th className="px-3.5 py-2.5">{t('thLevel')}</th>
+                    <th className="px-3.5 py-2.5">{t('thDateReg')}</th>
+                    <th className="px-3.5 py-2.5">{t('thCerts')}</th>
+                    <th className="px-3.5 py-2.5 text-right">{t('thActions')}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {data.rows.map((r,i)=>(
+                    <tr key={r.id} className="transition hover:bg-red-50/30">
+                      <td className="px-3.5 py-2.5 text-center text-xs font-bold text-slate-400 w-12">
+                        {(page-1)*20+i+1}
+                      </td>
+                      <td className="max-w-[220px] px-3.5 py-2.5">
+                        <div className="flex items-center gap-2.5">
+                          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-red-50 text-[11px] font-extrabold text-red-700">
+                            {r.nama_penuh.split(' ').slice(0,2).map(x=>x[0]).join('').toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <button
+                              onClick={()=>setViewTarget(r)}
+                              className="truncate font-bold text-slate-950 hover:underline text-left block max-w-full text-xs sm:text-sm"
+                              title={r.nama_penuh}
+                            >
+                              {r.nama_penuh}
+                            </button>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="px-3.5 py-2.5 text-xs font-mono text-slate-600 whitespace-nowrap">
+                        {r.no_kp_atau_id}
+                      </td>
+                      <td className="px-3.5 py-2.5 text-xs text-slate-600 whitespace-nowrap">
+                        {r.cawangan}
+                      </td>
+                      <td className="px-3.5 py-2.5 whitespace-nowrap">
+                        <Chip color="gold">{r.peringkat}</Chip>
+                      </td>
+                      <td className="px-3.5 py-2.5 text-xs text-slate-600 whitespace-nowrap">
+                        <div className="inline-flex items-center gap-1 rounded-md bg-slate-50 px-2 py-0.5 text-slate-700 border border-slate-200">
+                          <CalendarDays size={11} className="text-red-600"/>
+                          <span>{fmtDate(r.tarikh_daftar)}</span>
+                        </div>
+                      </td>
+                      <td className="px-3.5 py-2.5 whitespace-nowrap">
+                        <button
+                          type="button"
+                          onClick={()=>setViewTarget(r)}
+                          title={lang === 'eng' ? 'View and manage student certificates' : 'Lihat dan urus sijil pelajar ini'}
+                          className="inline-flex items-center gap-1 rounded-md bg-red-50 px-2 py-0.5 text-xs font-bold text-red-800 transition hover:bg-red-50 hover:text-slate-900"
+                        >
+                          <Award size={13} className="text-red-700"/>
+                          <span>{r.sijil_count} {t('thCerts').toLowerCase()}</span>
+                        </button>
+                      </td>
+                      <td className="px-3.5 py-2.5 text-right whitespace-nowrap">
+                        <div className="inline-flex items-center gap-1">
                           <button
                             onClick={()=>setViewTarget(r)}
-                            className="truncate font-bold text-slate-950 hover:underline text-left block max-w-full text-xs sm:text-sm"
-                            title={r.nama_penuh}
+                            title={t('btnViewCerts')}
+                            aria-label={t('btnViewCerts')}
+                            className="rounded-lg bg-blue-50 p-1.5 text-blue-600 transition hover:bg-blue-100"
                           >
-                            {r.nama_penuh}
+                            <Eye size={14}/>
+                          </button>
+                          <button
+                            onClick={()=>openEdit(r)}
+                            title={t('btnEdit')}
+                            aria-label={t('btnEdit')}
+                            className="rounded-lg bg-slate-100 p-1.5 text-slate-600 transition hover:bg-red-50 hover:text-red-800"
+                          >
+                            <Edit3 size={14}/>
+                          </button>
+                          <button
+                            onClick={()=>setDeleteTarget(r)}
+                            title={t('btnDelete')}
+                            aria-label={t('btnDelete')}
+                            className="rounded-lg bg-rose-50 p-1.5 text-rose-600 transition hover:bg-rose-100"
+                          >
+                            <Trash2 size={14}/>
                           </button>
                         </div>
-                      </div>
-                    </td>
-                    <td className="px-3.5 py-2.5 text-xs font-mono text-slate-600 whitespace-nowrap">
-                      {r.no_kp_atau_id}
-                    </td>
-                    <td className="px-3.5 py-2.5 text-xs text-slate-600 whitespace-nowrap">
-                      {r.cawangan}
-                    </td>
-                    <td className="px-3.5 py-2.5 whitespace-nowrap">
-                      <Chip color="gold">{r.peringkat}</Chip>
-                    </td>
-                    <td className="px-3.5 py-2.5 text-xs text-slate-600 whitespace-nowrap">
-                      <div className="inline-flex items-center gap-1 rounded-md bg-slate-50 px-2 py-0.5 text-slate-700 border border-slate-200">
-                        <CalendarDays size={11} className="text-red-600"/>
-                        <span>{fmtDate(r.tarikh_daftar)}</span>
-                      </div>
-                    </td>
-                    <td className="px-3.5 py-2.5 whitespace-nowrap">
-                      <button
-                        type="button"
-                        onClick={()=>setViewTarget(r)}
-                        title={lang === 'eng' ? 'View and manage student certificates' : 'Lihat dan urus sijil pelajar ini'}
-                        className="inline-flex items-center gap-1 rounded-md bg-red-50 px-2 py-0.5 text-xs font-bold text-red-800 transition hover:bg-red-50 hover:text-slate-900"
-                      >
-                        <Award size={13} className="text-red-700"/>
-                        <span>{r.sijil_count} {t('thCerts').toLowerCase()}</span>
-                      </button>
-                    </td>
-                    <td className="px-3.5 py-2.5 text-right whitespace-nowrap">
-                      <div className="inline-flex items-center gap-1">
-                        <button
-                          onClick={()=>setViewTarget(r)}
-                          title={t('btnViewCerts')}
-                          aria-label={t('btnViewCerts')}
-                          className="rounded-lg bg-blue-50 p-1.5 text-blue-600 transition hover:bg-blue-100"
-                        >
-                          <Eye size={14}/>
-                        </button>
-                        <button
-                          onClick={()=>openEdit(r)}
-                          title={t('btnEdit')}
-                          aria-label={t('btnEdit')}
-                          className="rounded-lg bg-slate-100 p-1.5 text-slate-600 transition hover:bg-red-50 hover:text-red-800"
-                        >
-                          <Edit3 size={14}/>
-                        </button>
-                        <button
-                          onClick={()=>setDeleteTarget(r)}
-                          title={t('btnDelete')}
-                          aria-label={t('btnDelete')}
-                          className="rounded-lg bg-rose-50 p-1.5 text-rose-600 transition hover:bg-rose-100"
-                        >
-                          <Trash2 size={14}/>
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         ) : (
           <Empty title={t('noStudentsFound')} message={t('noStudentsFoundDesc')}/>
         )}
