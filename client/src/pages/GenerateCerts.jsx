@@ -18,6 +18,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ExternalLink,
+  RefreshCw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api, fmtDate } from '../lib/api';
@@ -51,22 +52,35 @@ export function GenerateCerts() {
 
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const [refreshingTemplates, setRefreshingTemplates] = useState(false);
   const [result, setResult] = useState(null);
 
   // Load templates
-  const loadTemplates = useCallback(async () => {
+  const loadTemplates = useCallback(async (isManualRefresh = false) => {
+    if (isManualRefresh) setRefreshingTemplates(true);
     try {
-      const res = await api('/admin/templates/groups');
-      setTemplateGroups(res.groups || {});
+      const url = isManualRefresh ? '/admin/templates/groups?force_sync=1' : '/admin/templates/groups';
+      const res = await api(url);
+      const groups = res.groups || {};
+      setTemplateGroups(groups);
       setAllTemplates(res.templates || []);
-      const keys = Object.keys(res.groups || {});
-      if (keys.length > 0 && !selectedTemplateName) {
-        setSelectedTemplateName(keys[0]);
+      const keys = Object.keys(groups);
+      if (keys.length > 0) {
+        if (!selectedTemplateName || !keys.includes(selectedTemplateName)) {
+          setSelectedTemplateName(keys[0]);
+        }
+      } else {
+        setSelectedTemplateName('');
+      }
+      if (isManualRefresh) {
+        toast.success(lang === 'eng' ? 'Certificate templates updated!' : 'Senarai templat sijil terkini berjaya dikemaskini!');
       }
     } catch (err) {
       toast.error('Gagal memuat senarai templat: ' + err.message);
+    } finally {
+      if (isManualRefresh) setRefreshingTemplates(false);
     }
-  }, [selectedTemplateName]);
+  }, [selectedTemplateName, lang]);
 
   // Load students
   const loadStudents = useCallback(async () => {
@@ -313,32 +327,66 @@ export function GenerateCerts() {
             <p className="text-[11px] text-amber-800 mt-1 max-w-md mx-auto">
               {t('noTemplatesFoundDesc')}
             </p>
-            <Link
-              to="/admin/templates"
-              className="mt-2.5 inline-flex items-center gap-1.5 rounded-lg bg-red-700 px-3 py-1.5 text-xs font-bold text-white hover:bg-red-700"
-            >
-              <Layers size={13} /> {t('templatesMenu')}
-            </Link>
+            <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+              <button
+                type="button"
+                onClick={() => loadTemplates(true)}
+                disabled={refreshingTemplates}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-bold text-amber-950 hover:bg-amber-100/70 transition shadow-2xs cursor-pointer"
+              >
+                <RefreshCw size={13} className={refreshingTemplates ? 'animate-spin text-amber-700' : ''} />
+                {refreshingTemplates ? 'Sedang Memuat Semula...' : 'Muat Semula Dari Cloud'}
+              </button>
+              <Link
+                to="/admin/templates"
+                className="inline-flex items-center gap-1.5 rounded-lg bg-red-700 px-3 py-1.5 text-xs font-bold text-white hover:bg-red-800 transition"
+              >
+                <Layers size={13} /> {t('templatesMenu')}
+              </Link>
+            </div>
           </div>
         ) : (
           <div className="space-y-3">
             {/* Top Toolbar: Tajuk & Tarikh Sijil */}
             <div className="grid gap-3 sm:grid-cols-12 items-end">
               <div className="sm:col-span-8">
-                <label className="mb-1 block text-[11px] font-bold text-slate-600">
-                  {t('officialCertTitleLabel')}
-                </label>
-                <select
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs sm:text-sm font-semibold text-slate-950 outline-none focus:border-red-600"
-                  value={selectedTemplateName}
-                  onChange={(e) => setSelectedTemplateName(e.target.value)}
-                >
-                  {templateNames.map((name) => (
-                    <option key={name} value={name}>
-                      {name}
-                    </option>
-                  ))}
-                </select>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-[11px] font-bold text-slate-600">
+                    {t('officialCertTitleLabel')}
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => loadTemplates(true)}
+                    disabled={refreshingTemplates}
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-red-700 hover:text-red-800 disabled:opacity-50 transition cursor-pointer"
+                    title={lang === 'eng' ? 'Refresh templates from cloud' : 'Muat semula templat terkini dari Cloud'}
+                  >
+                    <RefreshCw size={11} className={refreshingTemplates ? 'animate-spin' : ''} />
+                    <span>{refreshingTemplates ? (lang === 'eng' ? 'Updating...' : 'Menyegerak...') : (lang === 'eng' ? 'Refresh' : 'Muat Semula')}</span>
+                  </button>
+                </div>
+                <div className="flex items-center gap-2">
+                  <select
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs sm:text-sm font-semibold text-slate-950 outline-none focus:border-red-600 shadow-2xs"
+                    value={selectedTemplateName}
+                    onChange={(e) => setSelectedTemplateName(e.target.value)}
+                  >
+                    {templateNames.map((name) => (
+                      <option key={name} value={name}>
+                        {name}
+                      </option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => loadTemplates(true)}
+                    disabled={refreshingTemplates}
+                    className="shrink-0 p-2 sm:p-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 hover:text-red-700 hover:border-red-300 hover:bg-red-50 transition disabled:opacity-50 shadow-2xs cursor-pointer"
+                    title={lang === 'eng' ? 'Refresh template list from Cloud' : 'Muat semula senarai templat terkini dari Cloud'}
+                  >
+                    <RefreshCw size={15} className={refreshingTemplates ? 'animate-spin text-red-700' : ''} />
+                  </button>
+                </div>
               </div>
 
               <div className="sm:col-span-4">

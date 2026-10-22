@@ -506,8 +506,17 @@ app.post('/api/admin/certificates/batch-delete',requireAdmin,async (req,res,next
  }catch(e){next(e);}
 });
 
-app.get('/api/admin/templates',requireAdmin,async (_req,res)=>{
+app.get('/api/admin/templates',requireAdmin,async (req,res)=>{
  try {
+  const force = req.query?.force_sync === '1';
+  if (force) {
+   try {
+    const { isTursoConfigured, pullTemplatesFromTurso } = await import('./turso.js');
+    if (isTursoConfigured()) {
+     await pullTemplatesFromTurso();
+    }
+   } catch(e) { console.warn('[Turso Templates Force Sync Warning]', e.message); }
+  }
   let rows=db.prepare('SELECT id,nama_template,peringkat,keterangan,file_name,file_size,created_at FROM template_sijil ORDER BY id DESC').all();
   if(!rows.length){
    try {
@@ -625,15 +634,24 @@ app.get('/api/admin/templates/:id/preview',requireAdmin,async (req,res)=>{
  return fail(res,'Fail templat tidak ditemui.',404);
 });
 
-app.get('/api/admin/templates/groups',requireAdmin,async (_req,res)=>{
+app.get('/api/admin/templates/groups',requireAdmin,async (req,res)=>{
  try {
-  let rows=db.prepare('SELECT id,nama_template,peringkat,file_name FROM template_sijil ORDER BY nama_template,peringkat').all();
+  const force = req.query?.force_sync === '1';
+  if (force) {
+   try {
+    const { isTursoConfigured, pullTemplatesFromTurso } = await import('./turso.js');
+    if (isTursoConfigured()) {
+     await pullTemplatesFromTurso();
+    }
+   } catch(e) { console.warn('[Turso Groups Force Sync Warning]', e.message); }
+  }
+  let rows=db.prepare('SELECT id,nama_template,peringkat,file_name FROM template_sijil ORDER BY id DESC, nama_template, peringkat').all();
   if(!rows.length){
    try {
     const { isTursoConfigured, pullTemplatesFromTurso } = await import('./turso.js');
     if (isTursoConfigured()) {
      await pullTemplatesFromTurso();
-     rows=db.prepare('SELECT id,nama_template,peringkat,file_name FROM template_sijil ORDER BY nama_template,peringkat').all();
+     rows=db.prepare('SELECT id,nama_template,peringkat,file_name FROM template_sijil ORDER BY id DESC, nama_template, peringkat').all();
     }
    } catch(e) { console.warn('[Turso Groups Warning]', e.message); }
   }
