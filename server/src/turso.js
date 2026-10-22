@@ -282,3 +282,18 @@ export async function pullTursoToLocal() {
 
   return stats;
 }
+
+/**
+ * Pulls only template_sijil from Turso cloud database and saves into local SQLite.
+ */
+export async function pullTemplatesFromTurso() {
+  if (!isTursoConfigured()) return 0;
+  const turso = getTursoClient();
+  const remoteTemplates = await turso.execute('SELECT id, nama_template, peringkat, keterangan, file_path, file_name, file_size, file_base64, created_at FROM template_sijil');
+  const tplStmt = db.prepare('INSERT OR REPLACE INTO template_sijil (id, nama_template, peringkat, keterangan, file_path, file_name, file_size, file_base64, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
+  for (const row of remoteTemplates.rows) {
+    tplStmt.run(row.id, row.nama_template, row.peringkat, row.keterangan, row.file_path, row.file_name, row.file_size, row.file_base64, row.created_at);
+  }
+  return remoteTemplates.rows.length;
+}
+

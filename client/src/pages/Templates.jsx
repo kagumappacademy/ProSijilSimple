@@ -103,6 +103,9 @@ function UploadTemplateModal({ open, onClose, onSaved }) {
     e.preventDefault();
     if (!file) return toast.error('Sila pilih fail PDF templat.');
     if (!file.name.toLowerCase().endsWith('.pdf')) return toast.error('Fail mestilah format .pdf.');
+    if (file.size > 4.2 * 1024 * 1024) {
+      return toast.error(`Saiz fail (${(file.size / (1024 * 1024)).toFixed(1)}MB) melebihi had maksima 4.2MB untuk pelayan Cloud. Sila kecilkan (compress) saiz fail PDF terlebih dahulu.`);
+    }
     if (nama.trim().length < 3) return toast.error('Sila masukkan nama templat sijil.');
 
     const form = new FormData();
@@ -134,7 +137,7 @@ function UploadTemplateModal({ open, onClose, onSaved }) {
             <div className="text-xs sm:text-sm font-bold text-slate-950">
               {file ? file.name : 'Pilih atau seret fail PDF templat sijil'}
             </div>
-            <p className="mt-1 text-[11px] text-slate-400">PDF standard (sehingga 10MB). Muka surat 1 mengandungi ruangan nama.</p>
+            <p className="mt-1 text-[11px] text-slate-400">PDF standard (maksima 4.2MB untuk Cloud). Muka surat 1 mengandungi ruangan nama.</p>
             {file && (
               <span className="mt-2 text-[11px] font-semibold text-red-700 bg-red-50 px-2.5 py-0.5 rounded-full">
                 {(file.size / 1024).toFixed(1)} KB • Sedia dimuat naik
