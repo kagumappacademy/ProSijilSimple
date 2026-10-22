@@ -17,6 +17,7 @@ import {
   List,
   Search,
   CheckCircle2,
+  CheckSquare,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api, fmtDate, certDownload, certPreview } from '../lib/api';
@@ -225,6 +226,80 @@ export function Certificates() {
   const [target, setTarget] = useState(null);
   const [busy, setBusy] = useState(false);
 
+  // Pilihan Pelajar / Sijil Pukal (Batch Selection)
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [batchModal, setBatchModal] = useState(false);
+  const [batchBusy, setBatchBusy] = useState(false);
+
+  // Padam pilihan jika carian atau penapis berubah
+  useEffect(() => {
+    setSelectedIds(new Set());
+  }, [q, selectedBranch, selectedLevel]);
+
+  const toggleSelect = useCallback((id) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }, []);
+
+  const toggleSelectAllVisible = useCallback((rows) => {
+    if (!rows || rows.length === 0) return;
+    setSelectedIds((prev) => {
+      const allSelected = rows.every((r) => prev.has(r.id));
+      const next = new Set(prev);
+      if (allSelected) {
+        for (const r of rows) next.delete(r.id);
+      } else {
+        for (const r of rows) next.add(r.id);
+      }
+      return next;
+    });
+  }, []);
+
+  const toggleGroupSelect = useCallback((certList) => {
+    if (!certList || certList.length === 0) return;
+    setSelectedIds((prev) => {
+      const allSelected = certList.every((c) => prev.has(c.id));
+      const next = new Set(prev);
+      if (allSelected) {
+        for (const c of certList) next.delete(c.id);
+      } else {
+        for (const c of certList) next.add(c.id);
+      }
+      return next;
+    });
+  }, []);
+
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set());
+  }, []);
+
+  async function handleBatchDelete() {
+    if (selectedIds.size === 0) return;
+    setBatchBusy(true);
+    try {
+      const res = await api('/admin/certificates/batch-delete', {
+        method: 'POST',
+        body: { ids: Array.from(selectedIds) }
+      });
+      toast.success(
+        lang === 'eng'
+          ? `Successfully deleted ${res.deletedCount || selectedIds.size} certificates.`
+          : `Berjaya memadam ${res.deletedCount || selectedIds.size} sijil yang dipilih.`
+      );
+      setSelectedIds(new Set());
+      setBatchModal(false);
+      load();
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setBatchBusy(false);
+    }
+  }
+
   // Load all certificates matching filters for clean grouping
   const load = useCallback(() => {
     const params = new URLSearchParams({ all: '1' });
@@ -332,34 +407,61 @@ export function Certificates() {
               <Chip color="red">{data?.total || 0} {t('certsCountSuffix')}</Chip>
             </div>
 
-            {/* View Switch: By Kumpulan vs By Jadual */}
-            <div className="flex items-center gap-1.5 bg-slate-100 p-0.5 rounded-xl text-xs">
-              <button
-                type="button"
-                onClick={() => setViewMode('grouped')}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition ${
-                  viewMode === 'grouped'
-                    ? 'bg-white text-slate-900 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-800'
-                }`}
-                title={lang === 'eng' ? 'By Branch & Rank' : 'Susunan Mengikut Cawangan & Peringkat'}
-              >
-                <Layers size={13} />
-                <span>{lang === 'eng' ? 'By Branch & Rank' : 'By Cawangan & Peringkat'}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('table')}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition ${
-                  viewMode === 'table'
-                    ? 'bg-white text-slate-900 shadow-xs'
-                    : 'text-slate-500 hover:text-slate-800'
-                }`}
-                title={lang === 'eng' ? 'Full Table View' : 'Paparan Jadual Penuh'}
-              >
-                <List size={13} />
-                <span>{lang === 'eng' ? 'Full Table' : 'Jadual Penuh'}</span>
-              </button>
+            {/* View Switch & Quick Select All */}
+            <div className="flex flex-wrap items-center gap-2">
+              {data?.rows && data.rows.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => toggleSelectAllVisible(data.rows)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition ${
+                    data.rows.length > 0 && data.rows.every((r) => selectedIds.has(r.id))
+                      ? 'bg-red-50 text-red-700 border-red-300 shadow-2xs'
+                      : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 shadow-2xs'
+                  }`}
+                  title={
+                    data.rows.length > 0 && data.rows.every((r) => selectedIds.has(r.id))
+                      ? 'Nyahpilih semua pelajar/sijil'
+                      : 'Pilih semua pelajar/sijil'
+                  }
+                >
+                  <CheckSquare size={13} className={data.rows.length > 0 && data.rows.every((r) => selectedIds.has(r.id)) ? 'text-red-700' : 'text-slate-400'} />
+                  <span>
+                    {data.rows.length > 0 && data.rows.every((r) => selectedIds.has(r.id))
+                      ? (lang === 'eng' ? 'Deselect All' : 'Nyahpilih Semua')
+                      : (lang === 'eng' ? 'Select All' : 'Pilih Semua')}
+                  </span>
+                </button>
+              )}
+
+              {/* View Switch: By Kumpulan vs By Jadual */}
+              <div className="flex items-center gap-1.5 bg-slate-100 p-0.5 rounded-xl text-xs">
+                <button
+                  type="button"
+                  onClick={() => setViewMode('grouped')}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition ${
+                    viewMode === 'grouped'
+                      ? 'bg-white text-slate-900 shadow-xs'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                  title={lang === 'eng' ? 'By Branch & Rank' : 'Susunan Mengikut Cawangan & Peringkat'}
+                >
+                  <Layers size={13} />
+                  <span>{lang === 'eng' ? 'By Branch & Rank' : 'By Cawangan & Peringkat'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setViewMode('table')}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition ${
+                    viewMode === 'table'
+                      ? 'bg-white text-slate-900 shadow-xs'
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                  title={lang === 'eng' ? 'Full Table View' : 'Paparan Jadual Penuh'}
+                >
+                  <List size={13} />
+                  <span>{lang === 'eng' ? 'Full Table' : 'Jadual Penuh'}</span>
+                </button>
+              </div>
             </div>
           </div>
 
@@ -492,6 +594,46 @@ export function Certificates() {
           </div>
         </div>
 
+        {/* Bar Tindakan Pukal (Batch Selection Action Bar) */}
+        {selectedIds.size > 0 && (
+          <div className="mx-3 sm:mx-4 mt-3 rounded-2xl border border-red-200 bg-gradient-to-r from-red-50/95 via-rose-50/80 to-red-50/95 p-3 sm:px-4 sm:py-2.5 shadow-xs flex flex-wrap items-center justify-between gap-3 animate-in fade-in duration-200">
+            <div className="flex items-center gap-2.5">
+              <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-red-700 text-white shadow-xs">
+                <CheckSquare size={15} />
+              </span>
+              <div>
+                <div className="text-xs sm:text-sm font-extrabold text-slate-900 flex items-center gap-1.5">
+                  <span className="text-red-700">{selectedIds.size}</span>
+                  <span>{lang === 'eng' ? 'certificates selected' : 'sijil dipilih'}</span>
+                </div>
+                <p className="text-[10px] text-slate-500 hidden sm:block">
+                  {lang === 'eng'
+                    ? 'Select certificates and click delete to remove them in batch.'
+                    : 'Pilih pelajar/sijil dan klik buang untuk memadam rekod secara pukal.'}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={clearSelection}
+                className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50 transition shadow-2xs"
+              >
+                {lang === 'eng' ? 'Deselect All' : 'Batal Pilihan'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setBatchModal(true)}
+                className="inline-flex items-center gap-1.5 rounded-xl bg-red-700 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-red-800 transition active:scale-95"
+              >
+                <Trash2 size={13} />
+                <span>{lang === 'eng' ? `Delete (${selectedIds.size})` : `Buang (${selectedIds.size})`}</span>
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Kandungan Sijil (By Cawangan -> By Peringkat) */}
         {!data ? (
           <Loading />
@@ -559,7 +701,21 @@ export function Certificates() {
                             <table className="w-full text-left text-xs">
                               <thead className="bg-[#FAFBF9] text-[9px] font-extrabold uppercase tracking-wider text-slate-400 border-b border-slate-100">
                                 <tr>
-                                  <th className="w-10 px-3 py-2 text-center">Bil.</th>
+                                  <th className="w-9 px-2 py-2 text-center">
+                                    <input
+                                      type="checkbox"
+                                      aria-label="Pilih semua sijil peringkat ini"
+                                      checked={certList.length > 0 && certList.every((c) => selectedIds.has(c.id))}
+                                      onChange={() => toggleGroupSelect(certList)}
+                                      className="h-3.5 w-3.5 rounded border-slate-300 text-red-700 focus:ring-red-500 cursor-pointer"
+                                      title={
+                                        certList.length > 0 && certList.every((c) => selectedIds.has(c.id))
+                                          ? 'Nyahpilih semua dalam peringkat ini'
+                                          : 'Pilih semua dalam peringkat ini'
+                                      }
+                                    />
+                                  </th>
+                                  <th className="w-8 px-2 py-2 text-center">Bil.</th>
                                   <th className="px-3 py-2">Nama Pesilat</th>
                                   <th className="px-3 py-2">No. KP / ID</th>
                                   <th className="px-3 py-2">Nama Sijil</th>
@@ -570,8 +726,20 @@ export function Certificates() {
                               </thead>
                               <tbody className="divide-y divide-slate-100">
                                 {certList.map((r, idx) => (
-                                  <tr key={r.id} className="hover:bg-slate-50/80 transition">
-                                    <td className="px-3 py-2 text-center font-mono text-slate-400 text-[10px]">
+                                  <tr
+                                    key={r.id}
+                                    className={`transition ${selectedIds.has(r.id) ? 'bg-red-50/70 border-y border-red-200' : 'hover:bg-slate-50/80'}`}
+                                  >
+                                    <td className="px-2 py-2 text-center">
+                                      <input
+                                        type="checkbox"
+                                        aria-label={`Pilih sijil ${r.nama_penuh}`}
+                                        checked={selectedIds.has(r.id)}
+                                        onChange={() => toggleSelect(r.id)}
+                                        className="h-3.5 w-3.5 rounded border-slate-300 text-red-700 focus:ring-red-500 cursor-pointer"
+                                      />
+                                    </td>
+                                    <td className="px-2 py-2 text-center font-mono text-slate-400 text-[10px]">
                                       {idx + 1}
                                     </td>
                                     <td className="px-3 py-2">
@@ -657,6 +825,20 @@ export function Certificates() {
             <table className="w-full min-w-[760px] text-left text-xs sm:text-sm">
               <thead className="sticky top-0 z-10 bg-[#FBFCFA] text-[10px] font-extrabold uppercase tracking-[.13em] text-slate-400 border-b border-slate-100 shadow-2xs">
                 <tr>
+                  <th className="w-10 px-3.5 py-2.5 text-center">
+                    <input
+                      type="checkbox"
+                      aria-label="Pilih semua sijil"
+                      checked={data.rows.length > 0 && data.rows.every((c) => selectedIds.has(c.id))}
+                      onChange={() => toggleSelectAllVisible(data.rows)}
+                      className="h-4 w-4 rounded border-slate-300 text-red-700 focus:ring-red-500 cursor-pointer"
+                      title={
+                        data.rows.length > 0 && data.rows.every((c) => selectedIds.has(c.id))
+                          ? 'Nyahpilih semua sijil'
+                          : 'Pilih semua sijil'
+                      }
+                    />
+                  </th>
                   <th className="px-3.5 py-2.5">Nama Pesilat</th>
                   <th className="px-3.5 py-2.5">Cawangan</th>
                   <th className="px-3.5 py-2.5">Peringkat</th>
@@ -671,7 +853,19 @@ export function Certificates() {
                   const rankMeta = getRankMeta(r.peringkat);
 
                   return (
-                    <tr key={r.id} className="hover:bg-slate-50 transition">
+                    <tr
+                      key={r.id}
+                      className={`transition ${selectedIds.has(r.id) ? 'bg-red-50/70 border-y border-red-200' : 'hover:bg-slate-50'}`}
+                    >
+                      <td className="px-3.5 py-2.5 text-center">
+                        <input
+                          type="checkbox"
+                          aria-label={`Pilih sijil ${r.nama_penuh}`}
+                          checked={selectedIds.has(r.id)}
+                          onChange={() => toggleSelect(r.id)}
+                          className="h-4 w-4 rounded border-slate-300 text-red-700 focus:ring-red-500 cursor-pointer"
+                        />
+                      </td>
                       <td className="px-3.5 py-2.5">
                         <div className="font-bold text-slate-950 text-xs sm:text-sm">{r.nama_penuh}</div>
                         <div className="text-[10px] text-slate-400">{r.no_kp_atau_id || '—'}</div>
@@ -747,6 +941,19 @@ export function Certificates() {
         busy={busy}
         title={t('confirmDeleteCertTitle')}
         message={lang === 'eng' ? `Certificate "${target?.nama_sijil || ''}" for ${target?.nama_penuh || ''} will be permanently deleted and its public verification link revoked.` : `Sijil “${target?.nama_sijil || ''}” untuk ${target?.nama_penuh || ''} akan dipadam secara kekal dan pautan awamnya tidak lagi sah.`}
+      />
+
+      <Confirm
+        open={batchModal}
+        onClose={() => setBatchModal(false)}
+        onConfirm={handleBatchDelete}
+        busy={batchBusy}
+        title={lang === 'eng' ? `Delete ${selectedIds.size} Selected Certificates?` : `Padam ${selectedIds.size} Sijil Yang Dipilih?`}
+        message={
+          lang === 'eng'
+            ? `Are you sure you want to delete ${selectedIds.size} selected certificate records? Their public verification links will be permanently revoked.`
+            : `Adakah anda pasti ingin memadam ${selectedIds.size} rekod sijil yang dipilih? Pautan semakan awam untuk sijil-sijil ini akan terbatal secara kekal.`
+        }
       />
     </>
   );

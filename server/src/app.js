@@ -328,6 +328,29 @@ app.delete('/api/admin/certificates/:id',requireAdmin,(req,res)=>{
  triggerTursoSync();
  return res.json({success:true});
 });
+app.post('/api/admin/certificates/batch-delete',requireAdmin,(req,res)=>{
+ const ids=Array.isArray(req.body?.ids)?req.body.ids.map(cleanId).filter(Boolean):[];
+ if(!ids.length)return fail(res,'Sila pilih sekurang-kurangnya satu sijil.');
+
+ const placeholders=ids.map(()=>'?').join(',');
+ const rows=db.prepare(`SELECT id, file_path FROM sijil WHERE id IN (${placeholders})`).all(...ids);
+
+ db.exec('BEGIN');
+ try {
+  db.prepare(`DELETE FROM sijil WHERE id IN (${placeholders})`).run(...ids);
+  db.exec('COMMIT');
+ } catch(err){
+  db.exec('ROLLBACK');
+  throw err;
+ }
+
+ for(const r of rows){
+  if(r.file_path){try{fs.rmSync(r.file_path,{force:true});}catch(_){}}
+ }
+
+ triggerTursoSync();
+ return res.json({success:true,deletedCount:rows.length});
+});
 
 app.get('/api/admin/templates',requireAdmin,(_req,res)=>{
  const rows=db.prepare('SELECT id,nama_template,peringkat,keterangan,file_name,file_size,created_at FROM template_sijil ORDER BY id DESC').all();

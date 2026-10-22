@@ -156,6 +156,10 @@ const DICTIONARY = {
     badgeVerified: 'Disahkan',
     confirmDeleteCertTitle: 'Padam Rekod Sijil?',
     confirmDeleteCertDesc: 'Tindakan ini akan memadam rekod sijil dan membatalkan pautan semakan awam secara kekal.',
+    btnBatchDeleteCerts: 'Padam Sijil Dipilih',
+    confirmBatchDeleteCertTitle: 'Padam Sijil-sijil Yang Dipilih?',
+    confirmBatchDeleteCertDesc: 'Tindakan ini akan memadam rekod sijil yang dipilih dan membatalkan pautan semakan awam secara kekal.',
+    selectedCertsCount: 'sijil dipilih',
 
     // Import
     importMenu: 'Import CSV',
@@ -395,6 +399,10 @@ const DICTIONARY = {
     badgeVerified: 'Verified',
     confirmDeleteCertTitle: 'Delete Certificate Record?',
     confirmDeleteCertDesc: 'This will permanently remove the certificate record and revoke its public verification link.',
+    btnBatchDeleteCerts: 'Delete Selected Certificates',
+    confirmBatchDeleteCertTitle: 'Delete Selected Certificates?',
+    confirmBatchDeleteCertDesc: 'This action will permanently delete the selected certificate records and revoke their public verification links.',
+    selectedCertsCount: 'certificates selected',
 
     // Import
     importMenu: 'Import CSV',
