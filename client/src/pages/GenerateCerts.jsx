@@ -19,11 +19,13 @@ import {
   ChevronRight,
   ExternalLink,
   RefreshCw,
+  Maximize2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api, fmtDate } from '../lib/api';
 import { PageIntro, Panel, Button, Input, Chip, Loading, Empty, SearchField } from '../components/UI';
 import { PdfThumbnail } from '../components/PdfThumbnail';
+import { LargeTemplatePreviewModal } from './Templates';
 import { useLang } from '../lib/i18n';
 
 const PAGE_SIZE = 20;
@@ -53,6 +55,7 @@ export function GenerateCerts() {
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
   const [refreshingTemplates, setRefreshingTemplates] = useState(false);
+  const [previewTarget, setPreviewTarget] = useState(null);
   const [result, setResult] = useState(null);
 
   // Load templates
@@ -415,28 +418,28 @@ export function GenerateCerts() {
                 </span>
               </div>
 
-              {/* Responsive Grid of Visual Template Cards (Ngam-ngam, Tiada slider ke bawah) */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-7 gap-2 p-2 bg-slate-50/70 rounded-2xl border border-slate-200/80">
+              {/* Responsive Grid of Visual Template Cards (Besar, Jelas & Beresolusi Tinggi) */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5 sm:gap-3 p-2.5 sm:p-3 bg-slate-50/70 rounded-2xl border border-slate-200/80">
                 {/* Button Option: Semua Peringkat */}
                 <button
                   type="button"
                   onClick={() => handleSelectLevelChange('')}
-                  className={`group relative flex flex-col justify-between rounded-xl border p-2 text-left transition-all ${
+                  className={`group relative flex flex-col justify-between rounded-xl border p-2.5 text-left transition-all ${
                     !selectedLevel
                       ? 'border-red-600 bg-red-50/80 ring-2 ring-forest-400/40 shadow-xs'
                       : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
                   }`}
                 >
-                  <div className="aspect-[1/1.25] w-full rounded-lg border border-dashed border-red-300 bg-red-50/50 flex flex-col items-center justify-center p-2 text-center">
-                    <Sparkles size={20} className="text-red-700 mb-1" />
-                    <span className="text-[11px] font-extrabold text-slate-950 leading-tight">
+                  <div className="aspect-[1/1.34] w-full rounded-lg border border-dashed border-red-300 bg-red-50/50 flex flex-col items-center justify-center p-2.5 text-center">
+                    <Sparkles size={22} className="text-red-700 mb-1" />
+                    <span className="text-xs font-extrabold text-slate-950 leading-tight">
                       {t('allLevelsOption')}
                     </span>
-                    <span className="mt-1 text-[9px] text-slate-500">
+                    <span className="mt-1 text-[9.5px] text-slate-500">
                       {t('autoGenRankDesc')}
                     </span>
                   </div>
-                  <div className="mt-1.5 flex items-center justify-between">
+                  <div className="mt-2 flex items-center justify-between">
                     <span className="text-[10px] font-bold text-slate-900">
                       {students.length} {t('studentsCountSuffix')}
                     </span>
@@ -461,7 +464,7 @@ export function GenerateCerts() {
                     <div
                       key={template.id}
                       onClick={() => handleSelectLevelChip(template.peringkat)}
-                      className={`group relative flex flex-col justify-between rounded-xl border p-2 text-left cursor-pointer transition-all hover:shadow-xs ${
+                      className={`group relative flex flex-col justify-between rounded-xl border p-2.5 text-left cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5 ${
                         isSelected
                           ? 'border-red-600 ring-2 ring-red-400/30 bg-red-50/30 shadow-xs'
                           : 'border-slate-200 bg-white hover:border-slate-300'
@@ -469,42 +472,60 @@ export function GenerateCerts() {
                       title={`Klik untuk pilih templat: ${template.peringkat}`}
                     >
                       {/* Visual Certificate Preview rendered from outside */}
-                      <div className="relative aspect-[1/1.25] w-full overflow-hidden rounded-lg border border-slate-200/90 bg-slate-50">
+                      <div className="relative aspect-[1/1.34] w-full overflow-hidden rounded-lg border border-slate-200/90 bg-slate-50">
                         <PdfThumbnail
                           url={previewUrl}
                           title={template.nama_template}
+                          scale={1.1}
                           className="h-full w-full pointer-events-none"
                         />
 
                         {/* Rank Badge on top of preview - Neutral, no color */}
-                        <div className="absolute top-1 left-1 z-10">
-                          <span className="inline-flex items-center rounded bg-white/95 px-1.5 py-0.5 text-[8.5px] font-bold uppercase tracking-tight text-slate-700 border border-slate-200/90 shadow-2xs">
+                        <div className="absolute top-1.5 left-1.5 z-10">
+                          <span className="inline-flex items-center rounded-md bg-white/95 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-tight text-slate-700 border border-slate-200/90 shadow-2xs">
                             {template.peringkat.replace(/^ujian\s+/i, '')}
                           </span>
                         </div>
 
+                        {/* Top-right zoom button */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPreviewTarget(template);
+                          }}
+                          className="absolute top-1.5 right-1.5 z-10 rounded-md bg-white/95 p-1 text-slate-700 hover:bg-red-50 hover:text-red-700 shadow-2xs border border-slate-200/90 transition"
+                          title="Lihat pratonton saiz besar"
+                        >
+                          <Maximize2 size={12} />
+                        </button>
+
                         {/* Selection checkmark icon */}
                         {isSelected && (
-                          <div className="absolute bottom-1 right-1 z-10 bg-red-700 text-white p-0.5 rounded-full shadow-xs">
-                            <CheckCircle2 size={12} />
+                          <div className="absolute bottom-1.5 right-1.5 z-10 bg-red-700 text-white p-0.5 rounded-full shadow-xs">
+                            <CheckCircle2 size={13} />
                           </div>
                         )}
                       </div>
 
                       {/* Card Details */}
-                      <div className="mt-1.5">
-                        <div className="text-[10px] font-extrabold text-slate-950 truncate" title={template.peringkat}>
+                      <div className="mt-2">
+                        <div className="text-[11px] font-extrabold text-slate-950 truncate" title={template.peringkat}>
                           {template.peringkat}
                         </div>
-                        <div className="flex items-center justify-between text-[9px] text-slate-500 mt-0.5">
+                        <div className="flex items-center justify-between text-[10px] text-slate-500 mt-1">
                           <span>{count} {t('studentsCountSuffix')}</span>
-                          <span
-                            className={`font-bold ${
-                              isSelected ? 'text-red-700' : 'text-slate-400'
-                            }`}
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPreviewTarget(template);
+                            }}
+                            className="inline-flex items-center gap-0.5 text-[9.5px] font-bold text-red-700 hover:underline"
+                            title="Buka saiz penuh"
                           >
-                            {isSelected ? t('selectedBadge') : t('selectBadge')}
-                          </span>
+                            <Maximize2 size={10} /> Besarkan
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -965,6 +986,12 @@ export function GenerateCerts() {
           </div>
         </Panel>
       )}
+
+      <LargeTemplatePreviewModal
+        open={!!previewTarget}
+        onClose={() => setPreviewTarget(null)}
+        template={previewTarget}
+      />
     </>
   );
 }

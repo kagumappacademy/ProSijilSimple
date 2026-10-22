@@ -6,7 +6,7 @@ if (typeof window !== 'undefined') {
   pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 }
 
-export function PdfThumbnail({ url, className = '', title = 'Sijil' }) {
+export function PdfThumbnail({ url, className = '', title = 'Sijil', scale = 1.0, pageNum = 1 }) {
   const canvasRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -34,15 +34,17 @@ export function PdfThumbnail({ url, className = '', title = 'Sijil' }) {
         const pdf = await loadingTask.promise;
         if (!active) return;
 
-        const page = await pdf.getPage(1);
+        const totalPages = pdf.numPages || 1;
+        const targetPage = Math.min(Math.max(1, pageNum), totalPages);
+        const page = await pdf.getPage(targetPage);
         if (!active) return;
 
         const canvas = canvasRef.current;
         if (!canvas) return;
 
         const context = canvas.getContext('2d');
-        // A4 ratio scale
-        const viewport = page.getViewport({ scale: 0.55 });
+        // Render with specified scale for crisp resolution
+        const viewport = page.getViewport({ scale: scale || 1.0 });
 
         canvas.height = viewport.height;
         canvas.width = viewport.width;
@@ -74,7 +76,7 @@ export function PdfThumbnail({ url, className = '', title = 'Sijil' }) {
         } catch (_) {}
       }
     };
-  }, [url]);
+  }, [url, scale, pageNum]);
 
   return (
     <div className={`relative overflow-hidden bg-slate-50 flex items-center justify-center ${className}`}>

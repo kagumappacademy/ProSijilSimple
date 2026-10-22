@@ -14,6 +14,7 @@ import {
   ExternalLink,
   ShieldCheck,
   CheckCircle2,
+  Maximize2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api, fmtDate } from '../lib/api';
@@ -275,12 +276,117 @@ function TestGenerateModal({ open, onClose, template }) {
   );
 }
 
+export function LargeTemplatePreviewModal({ open, onClose, template, onTestGenerate }) {
+  const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    if (open) setPage(1);
+  }, [open, template]);
+
+  if (!open || !template) return null;
+  const previewUrl = `/api/admin/templates/${template.id}/preview`;
+  const meta = getRankMeta(template.peringkat);
+
+  return (
+    <Modal open={open} onClose={onClose} title="Pratonton Penuh Saiz Besar Templat Sijil" wide>
+      <div className="space-y-4">
+        {/* Header Details */}
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3 sm:p-4">
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-2">
+              <span className={`inline-flex items-center gap-1 rounded-md px-2.5 py-0.5 text-xs font-extrabold uppercase tracking-wider border ${meta.badge}`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
+                {template.peringkat}
+              </span>
+              <span className="text-xs text-slate-400 font-mono">ID #{template.id}</span>
+            </div>
+            <h3 className="mt-1 text-sm sm:text-base font-extrabold text-slate-950 truncate" title={template.nama_template}>
+              {template.nama_template}
+            </h3>
+            {template.keterangan && (
+              <p className="text-xs text-slate-500 mt-0.5">{template.keterangan}</p>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center rounded-xl bg-white border border-slate-200 p-0.5 shadow-2xs text-xs font-bold">
+              <button
+                type="button"
+                onClick={() => setPage(1)}
+                className={`px-3 py-1.5 rounded-lg transition ${
+                  page === 1 ? 'bg-red-700 text-white shadow-xs' : 'text-slate-600 hover:text-red-700'
+                }`}
+              >
+                Muka 1 (Nama Pesilat)
+              </button>
+              <button
+                type="button"
+                onClick={() => setPage(2)}
+                className={`px-3 py-1.5 rounded-lg transition ${
+                  page === 2 ? 'bg-red-700 text-white shadow-xs' : 'text-slate-600 hover:text-red-700'
+                }`}
+              >
+                Muka 2 (Belakang)
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* Large High-Resolution Certificate Canvas Preview */}
+        <div className="relative mx-auto flex items-center justify-center rounded-2xl border-2 border-slate-200 bg-slate-900/5 p-2 sm:p-5 shadow-inner max-h-[68vh] overflow-auto">
+          <div className="relative w-full max-w-[620px] aspect-[1/1.414] overflow-hidden rounded-xl border border-slate-300/80 bg-white shadow-2xl">
+            <PdfThumbnail
+              url={previewUrl}
+              title={template.nama_template}
+              pageNum={page}
+              scale={1.3}
+              className="h-full w-full"
+            />
+          </div>
+        </div>
+
+        {/* Modal Footer Actions */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-100">
+          <div className="text-xs text-slate-400">
+            {template.file_name} • {(template.file_size / 1024).toFixed(1)} KB
+          </div>
+
+          <div className="flex items-center gap-2">
+            <a
+              href={previewUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 transition shadow-2xs"
+            >
+              <ExternalLink size={14} /> Buka PDF Asal
+            </a>
+            <Button
+              type="button"
+              onClick={() => {
+                onClose();
+                if (onTestGenerate) onTestGenerate(template);
+              }}
+              className="!px-3.5 !py-2 text-xs bg-emerald-700 hover:bg-emerald-800"
+            >
+              <Play size={14} /> Uji Janaan Nama
+            </Button>
+            <Button type="button" variant="secondary" onClick={onClose} className="!px-3.5 !py-2 text-xs">
+              Tutup
+            </Button>
+          </div>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 export function Templates() {
   const { t, lang } = useLang();
   const [data, setData] = useState(null);
   const [uploadOpen, setUploadOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [testTarget, setTestTarget] = useState(null);
+  const [previewTarget, setPreviewTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
   // Sorting & Filtering State
@@ -481,8 +587,8 @@ export function Templates() {
           </div>
         ) : viewMode === 'grid' ? (
           /* Kotak (Card Grid View) - Visible Certificate Preview */
-          <div className="p-3 sm:p-4 max-h-[calc(100vh-235px)] overflow-y-auto">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3.5 sm:gap-4">
+          <div className="p-3 sm:p-5 max-h-[calc(100vh-235px)] overflow-y-auto">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {filteredTemplates.map((item) => {
                 const meta = getRankMeta(item.peringkat);
                 const previewUrl = `/api/admin/templates/${item.id}/preview`;
@@ -490,45 +596,63 @@ export function Templates() {
                 return (
                   <div
                     key={item.id}
-                    className={`group relative flex flex-col justify-between rounded-2xl border bg-white p-3 shadow-xs transition-all hover:shadow-md hover:-translate-y-0.5 ${meta.border}`}
+                    className={`group relative flex flex-col justify-between rounded-2xl border bg-white p-4 shadow-xs transition-all hover:shadow-xl hover:-translate-y-1 ${meta.border}`}
                   >
                     <div>
-                      {/* Live Certificate Visual Preview (Visible from outside) */}
-                      <div className="relative aspect-[1/1.38] w-full overflow-hidden rounded-xl border border-slate-200/90 bg-slate-50 shadow-2xs group-hover:border-red-400 transition">
+                      {/* Live Certificate Visual Preview (Visible from outside & Clickable for full size) */}
+                      <div
+                        onClick={() => setPreviewTarget(item)}
+                        className="relative aspect-[1/1.36] w-full overflow-hidden rounded-xl border border-slate-200/90 bg-slate-50 shadow-2xs group-hover:border-red-500 transition cursor-pointer"
+                        title="Klik untuk lihat pratonton sijil saiz besar"
+                      >
                         <PdfThumbnail
                           url={previewUrl}
                           title={item.nama_template}
+                          scale={1.15}
                           className="h-full w-full"
                         />
 
                         {/* Top-left Rank Badge on the preview */}
-                        <div className="absolute top-2 left-2 z-10">
+                        <div className="absolute top-2.5 left-2.5 z-10">
                           <span
-                            className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wider shadow-xs border ${meta.badge}`}
+                            className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[10.5px] font-extrabold uppercase tracking-wider shadow-sm border ${meta.badge}`}
                           >
                             <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
                             {item.peringkat}
                           </span>
                         </div>
 
-                        {/* Hover Overlay with Quick Action to view full PDF */}
-                        <div className="absolute inset-0 z-20 flex items-center justify-center bg-slate-950/60 opacity-0 backdrop-blur-[2px] transition duration-200 group-hover:opacity-100">
-                          <a
-                            href={previewUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="inline-flex items-center gap-1.5 rounded-xl bg-white px-3.5 py-2 text-xs font-bold text-slate-900 shadow-lg transition hover:bg-red-50"
+                        {/* Top-right Quick Zoom Button */}
+                        <div className="absolute top-2.5 right-2.5 z-10">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPreviewTarget(item);
+                            }}
+                            className="inline-flex items-center gap-1 rounded-lg bg-white/95 px-2.5 py-1 text-[11px] font-extrabold text-slate-800 shadow-sm border border-slate-200/90 hover:bg-red-50 hover:text-red-700 transition"
+                            title="Buka pratonton besar"
                           >
-                            <ExternalLink size={14} /> Buka PDF Penuh
-                          </a>
+                            <Maximize2 size={13} className="text-red-700" />
+                            <span>Besarkan</span>
+                          </button>
+                        </div>
+
+                        {/* Hover Overlay with Quick Action to view large modal */}
+                        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-slate-950/45 opacity-0 backdrop-blur-[2px] transition duration-200 group-hover:opacity-100">
+                          <span className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-xs font-extrabold text-slate-950 shadow-2xl transition hover:bg-red-50">
+                            <Maximize2 size={16} className="text-red-700" /> Pratonton Sijil Saiz Besar
+                          </span>
+                          <span className="text-[11px] font-semibold text-white/95">Klik di mana-mana untuk besarkan</span>
                         </div>
                       </div>
 
                       {/* Certificate Metadata */}
-                      <div className="mt-2.5 space-y-1">
+                      <div className="mt-3.5 space-y-1.5">
                         <h3
-                          className="text-xs sm:text-sm font-extrabold text-slate-950 line-clamp-2 leading-snug"
+                          className="text-xs sm:text-sm font-extrabold text-slate-950 line-clamp-2 leading-snug cursor-pointer hover:text-red-700 transition"
                           title={item.nama_template}
+                          onClick={() => setPreviewTarget(item)}
                         >
                           {item.nama_template}
                         </h3>
@@ -537,44 +661,54 @@ export function Templates() {
                           <p className="text-[11px] text-slate-500 line-clamp-1">{item.keterangan}</p>
                         )}
 
-                        <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1">
-                          <span className="truncate max-w-[130px]" title={item.file_name}>
+                        <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
+                          <span className="truncate max-w-[170px]" title={item.file_name}>
                             {item.file_name}
                           </span>
-                          <span>{(item.file_size / 1024).toFixed(1)} KB</span>
+                          <span className="font-mono">{(item.file_size / 1024).toFixed(1)} KB</span>
                         </div>
                       </div>
                     </div>
 
                     {/* Card Actions Footer */}
-                    <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-2.5 gap-1.5">
+                    <div className="mt-4 flex flex-wrap items-center justify-between border-t border-slate-100 pt-3 gap-2">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={() => setPreviewTarget(item)}
+                        className="!px-3 !py-1.5 text-xs flex-1 justify-center bg-red-50/80 text-red-700 border-red-200 hover:bg-red-100 font-bold"
+                        title="Lihat pratonton sijil saiz besar"
+                      >
+                        <Maximize2 size={13} /> Pratonton Besar
+                      </Button>
+
                       <Button
                         type="button"
                         variant="secondary"
                         onClick={() => setTestTarget(item)}
-                        className="!px-2.5 !py-1.5 text-[11px] flex-1 justify-center bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100"
+                        className="!px-3 !py-1.5 text-xs bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100 font-bold"
                         title="Uji janaan nama pesilat pada templat ini"
                       >
-                        <Play size={13} className="text-emerald-700" /> Uji Janaan
+                        <Play size={13} className="text-emerald-700" /> Uji
                       </Button>
 
                       <a
                         href={previewUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="rounded-lg bg-slate-100 p-2 text-slate-600 transition hover:bg-red-50 hover:text-red-800"
+                        className="rounded-xl bg-slate-100 p-2 text-slate-600 transition hover:bg-red-50 hover:text-red-800"
                         title="Lihat fail PDF asal"
                       >
-                        <Eye size={14} />
+                        <Eye size={15} />
                       </a>
 
                       <button
                         type="button"
                         onClick={() => setDeleteTarget(item)}
-                        className="rounded-lg bg-rose-50 p-2 text-rose-600 transition hover:bg-rose-100"
+                        className="rounded-xl bg-rose-50 p-2 text-rose-600 transition hover:bg-rose-100"
                         title="Padam templat ini"
                       >
-                        <Trash2 size={14} />
+                        <Trash2 size={15} />
                       </button>
                     </div>
                   </div>
@@ -593,12 +727,24 @@ export function Templates() {
                 return (
                   <div key={item.id} className="rounded-2xl border border-slate-200/80 bg-white p-3.5 space-y-2.5 shadow-2xs">
                     <div className="flex items-start gap-3">
-                      <div className="h-16 w-12 shrink-0 rounded-lg overflow-hidden border border-slate-200 bg-slate-50 shadow-2xs">
-                        <PdfThumbnail url={previewUrl} title={item.nama_template} className="h-full w-full" />
+                      <div
+                        onClick={() => setPreviewTarget(item)}
+                        className="h-20 w-15 shrink-0 rounded-xl overflow-hidden border border-slate-200 bg-slate-50 shadow-2xs cursor-pointer hover:border-red-500 transition relative group/thumb"
+                        title="Klik untuk besarkan pratonton"
+                      >
+                        <PdfThumbnail url={previewUrl} title={item.nama_template} scale={1.0} className="h-full w-full" />
+                        <div className="absolute inset-0 bg-slate-950/30 opacity-0 group-hover/thumb:opacity-100 flex items-center justify-center transition">
+                          <Maximize2 size={12} className="text-white" />
+                        </div>
                       </div>
                       <div className="min-w-0 flex-1">
                         <Chip color={meta.chip}>{item.peringkat}</Chip>
-                        <div className="font-bold text-slate-950 text-xs sm:text-sm mt-1">{item.nama_template}</div>
+                        <div
+                          onClick={() => setPreviewTarget(item)}
+                          className="font-bold text-slate-950 text-xs sm:text-sm mt-1 cursor-pointer hover:text-red-700 transition"
+                        >
+                          {item.nama_template}
+                        </div>
                         {item.keterangan && <div className="text-[10px] text-slate-400 mt-0.5">{item.keterangan}</div>}
                       </div>
                     </div>
@@ -606,11 +752,19 @@ export function Templates() {
                       <span>{fmtDate(item.created_at.slice(0, 10))}</span>
                       <div className="flex items-center gap-1">
                         <button
+                          type="button"
+                          onClick={() => setPreviewTarget(item)}
+                          className="inline-flex items-center gap-1 rounded-lg bg-red-50 px-2 py-1.5 text-xs font-bold text-red-700 hover:bg-red-100 transition"
+                          title="Besarkan pratonton sijil"
+                        >
+                          <Maximize2 size={12} /> Pratonton
+                        </button>
+                        <button
                           onClick={() => setTestTarget(item)}
                           title="Uji janaan nama pada templat"
-                          className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2.5 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition"
+                          className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition"
                         >
-                          <Play size={13} /> Uji
+                          <Play size={12} /> Uji
                         </button>
                         <a
                           href={previewUrl}
@@ -657,8 +811,15 @@ export function Templates() {
                   return (
                     <tr key={item.id} className="transition hover:bg-slate-50">
                       <td className="px-3.5 py-2">
-                        <div className="h-14 w-11 rounded-md overflow-hidden border border-slate-200 bg-slate-50 shadow-2xs">
-                          <PdfThumbnail url={previewUrl} title={item.nama_template} className="h-full w-full" />
+                        <div
+                          onClick={() => setPreviewTarget(item)}
+                          className="h-16 w-12 rounded-lg overflow-hidden border border-slate-200 bg-slate-50 shadow-2xs cursor-pointer hover:border-red-500 transition relative group/thumb"
+                          title="Klik untuk besarkan pratonton"
+                        >
+                          <PdfThumbnail url={previewUrl} title={item.nama_template} scale={1.0} className="h-full w-full" />
+                          <div className="absolute inset-0 bg-slate-950/30 opacity-0 group-hover/thumb:opacity-100 flex items-center justify-center transition">
+                            <Maximize2 size={12} className="text-white" />
+                          </div>
                         </div>
                       </td>
                       <td className="px-3.5 py-2.5">
@@ -724,6 +885,13 @@ export function Templates() {
       <UploadTemplateModal open={uploadOpen} onClose={() => setUploadOpen(false)} onSaved={loadTemplates} />
 
       <TestGenerateModal open={!!testTarget} onClose={() => setTestTarget(null)} template={testTarget} />
+
+      <LargeTemplatePreviewModal
+        open={!!previewTarget}
+        onClose={() => setPreviewTarget(null)}
+        template={previewTarget}
+        onTestGenerate={(t) => setTestTarget(t)}
+      />
 
       <Confirm
         open={!!deleteTarget}
