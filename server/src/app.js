@@ -64,12 +64,28 @@ app.post('/api/auth/login',authLimit,async(req,res)=>{
 });
 app.get('/api/auth/me',requireAdmin,(req,res)=>res.json({user:req.admin}));
 app.post('/api/auth/logout',(_req,res)=>{res.clearCookie(cookieName,{...cookieOptions,maxAge:undefined});res.json({success:true});});
-app.post('/api/auth/password',requireAdmin,(req,res)=>{
+app.post('/api/auth/password',requireAdmin,async (req,res)=>{
  const current=String(req.body.current_password??''), next=String(req.body.new_password??'');
  const admin=db.prepare('SELECT password_hash FROM admin_users WHERE id=?').get(req.admin.id);
  if (!bcrypt.compareSync(current,admin.password_hash)) return fail(res,'Kata laluan semasa tidak tepat.',403);
  if (next.length < 12 || next.length > 128) return fail(res,'Kata laluan baharu mestilah 12–128 aksara.');
- db.prepare('UPDATE admin_users SET password_hash=? WHERE id=?').run(bcrypt.hashSync(next,12),req.admin.id);
+ const newHash = bcrypt.hashSync(next,12);
+ db.prepare('UPDATE admin_users SET password_hash=? WHERE id=?').run(newHash,req.admin.id);
+
+ try {
+  const { isTursoConfigured, getTursoClient } = await import('./turso.js');
+  if (isTursoConfigured()) {
+   const turso = getTursoClient();
+   await turso.execute({
+    sql: 'UPDATE admin_users SET password_hash=? WHERE id=?',
+    args: [newHash, req.admin.id]
+   });
+   console.log('[Turso] Kata laluan admin dikemaskini di Turso Cloud');
+  }
+ } catch(err) {
+  console.warn('[Turso Admin Password Warning]', err.message);
+ }
+
  res.clearCookie(cookieName,{...cookieOptions,maxAge:undefined});return res.json({success:true});
 });
 
@@ -177,30 +193,94 @@ app.get('/api/admin/students',requireAdmin,(req,res)=>{
  const branches=db.prepare('SELECT DISTINCT cawangan FROM pesilat ORDER BY cawangan').all().map(x=>x.cawangan);
  res.json({rows,total,page,pages:Math.max(1,Math.ceil(total/limit)),levels,branches});
 });
-app.post('/api/admin/students',requireAdmin,(req,res)=>{
+app.post('/api/admin/students',requireAdmin,async (req,res)=>{
  try{
  const values=validatePesilat(req.body||{});
  values.no_kp_atau_id=values.no_kp_atau_id||uniqueId();
- const result=db.prepare('INSERT INTO pesilat (nama_penuh,no_kp_atau_id,peringkat,cawangan,tarikh_daftar) VALUES (@nama_penuh,@no_kp_atau_id,@peringkat,@cawangan,@tarikh_daftar)').run(values);
- res.status(201).json({id:Number(result.lastInsertRowid),...values});
+ let newId = null;
+
+ // 1. Simpan ke Turso Cloud jika bersambung (Cloud sebagai punca kebenaran)
+ try {
+  const { isTursoConfigured, getTursoClient } = await import('./turso.js');
+  if (isTursoConfigured()) {
+   const turso = getTursoClient();
+   const tursoRes = await turso.execute({
+    sql: "INSERT INTO pesilat (nama_penuh, no_kp_atau_id, peringkat, cawangan, tarikh_daftar, created_at, updated_at) VALUES (?, ?, ?, ?, ?, datetime('now'), datetime('now')) RETURNING id",
+    args: [values.nama_penuh, values.no_kp_atau_id, values.peringkat, values.cawangan, values.tarikh_daftar]
+   });
+   if (tursoRes.rows && tursoRes.rows[0]?.id) {
+    newId = Number(tursoRes.rows[0].id);
+   } else if (tursoRes.lastInsertRowid) {
+    newId = Number(tursoRes.lastInsertRowid);
+   }
+   console.log('[Turso] Pesilat baharu disimpan di Turso Cloud:', newId, values.nama_penuh);
+  }
+ } catch(err) {
+  console.error('[Turso Student Insert Error]', err);
+  return fail(res, err.message.includes('UNIQUE') ? 'Nombor KP/ID sudah digunakan.' : 'Gagal menambah pesilat ke Turso Cloud: ' + err.message, 500);
+ }
+
+ if (newId) {
+  db.prepare('INSERT OR REPLACE INTO pesilat (id, nama_penuh, no_kp_atau_id, peringkat, cawangan, tarikh_daftar) VALUES (?, ?, ?, ?, ?, ?)')
+    .run(newId, values.nama_penuh, values.no_kp_atau_id, values.peringkat, values.cawangan, values.tarikh_daftar);
+ } else {
+  const result=db.prepare('INSERT INTO pesilat (nama_penuh,no_kp_atau_id,peringkat,cawangan,tarikh_daftar) VALUES (@nama_penuh,@no_kp_atau_id,@peringkat,@cawangan,@tarikh_daftar)').run(values);
+  newId = Number(result.lastInsertRowid);
+ }
+
+ res.status(201).json({id:newId,...values});
  }catch(e){return fail(res,e.message.includes('UNIQUE')?'Nombor KP/ID sudah digunakan.':e.message);}
 });
-app.put('/api/admin/students/:id',requireAdmin,(req,res)=>{
+app.put('/api/admin/students/:id',requireAdmin,async (req,res)=>{
  const id=cleanId(req.params.id);if(!id)return fail(res,'ID pesilat tidak sah.');
  const before=db.prepare('SELECT * FROM pesilat WHERE id=?').get(id);if(!before)return fail(res,'Pesilat tidak ditemui.',404);
  try{
  const values=validatePesilat({...before,...req.body});
  values.no_kp_atau_id=values.no_kp_atau_id||before.no_kp_atau_id;
- db.prepare('UPDATE pesilat SET nama_penuh=@nama_penuh,no_kp_atau_id=@no_kp_atau_id,peringkat=@peringkat,cawangan=@cawangan,tarikh_daftar=@tarikh_daftar,updated_at=datetime(\'now\') WHERE id=@id').run({...values,id});
+
+ // 1. Kemaskini di Turso Cloud terlebih dahulu
+ try {
+  const { isTursoConfigured, getTursoClient } = await import('./turso.js');
+  if (isTursoConfigured()) {
+   const turso = getTursoClient();
+   await turso.execute({
+    sql: "UPDATE pesilat SET nama_penuh=?, no_kp_atau_id=?, peringkat=?, cawangan=?, tarikh_daftar=?, updated_at=datetime('now') WHERE id=?",
+    args: [values.nama_penuh, values.no_kp_atau_id, values.peringkat, values.cawangan, values.tarikh_daftar, id]
+   });
+   console.log('[Turso] Pesilat berjaya dikemaskini di Turso Cloud:', id, values.nama_penuh);
+  }
+ } catch(err) {
+  console.error('[Turso Student Update Error]', err);
+  return fail(res, err.message.includes('UNIQUE') ? 'Nombor KP/ID sudah digunakan.' : 'Gagal menyimpan kemas kini ke Turso Cloud: ' + err.message, 500);
+ }
+
+ // 2. Kemaskini di SQLite tempatan (cache)
+ db.prepare("UPDATE pesilat SET nama_penuh=@nama_penuh,no_kp_atau_id=@no_kp_atau_id,peringkat=@peringkat,cawangan=@cawangan,tarikh_daftar=@tarikh_daftar,updated_at=datetime('now') WHERE id=@id").run({...values,id});
+
  res.json({id,...values});
  }catch(e){return fail(res,e.message.includes('UNIQUE')?'Nombor KP/ID sudah digunakan.':e.message);}
 });
-app.delete('/api/admin/students/:id',requireAdmin,(req,res)=>{
- const id=cleanId(req.params.id);if(!id)return fail(res,'ID tidak sah.');
+app.delete('/api/admin/students/:id',requireAdmin,async (req,res)=>{
+ const id=cleanId(req.params.id);if(!id)return fail(res,'ID pesilat tidak sah.');
  const certs=db.prepare('SELECT file_path FROM sijil WHERE pesilat_id=?').all(id);
+
+ // 1. Padam di Turso Cloud terlebih dahulu
+ try {
+  const { isTursoConfigured, getTursoClient } = await import('./turso.js');
+  if (isTursoConfigured()) {
+   const turso = getTursoClient();
+   await turso.execute({ sql: 'DELETE FROM pesilat WHERE id=?', args: [id] });
+   console.log('[Turso] Pesilat dipadam dari Turso Cloud:', id);
+  }
+ } catch(err) {
+  console.error('[Turso Student Delete Error]', err);
+  return fail(res, 'Gagal memadam pesilat dari Turso Cloud: ' + err.message, 500);
+ }
+
+ // 2. Padam di SQLite tempatan
  const result=db.prepare('DELETE FROM pesilat WHERE id=?').run(id);
  if(!result.changes)return fail(res,'Pesilat tidak ditemui.',404);
- for(const c of certs) if(c.file_path)fs.rmSync(c.file_path,{force:true});
+ for(const c of certs) if(c.file_path) { try{ fs.rmSync(c.file_path,{force:true}); }catch(_){} }
  res.json({success:true});
 });
 app.get('/api/admin/students/:id/certificates',requireAdmin,(req,res)=>{
@@ -216,7 +296,7 @@ app.get('/api/admin/students/export',requireAdmin,(_req,res)=>{
  const csv='\uFEFF'+cols.join(',')+'\r\n'+rows.map(r=>cols.map(k=>csvSafe(r[k])).join(',')).join('\r\n');
  res.setHeader('Content-Disposition','attachment; filename="prosijil-pesilat.csv"');res.type('text/csv; charset=utf-8').send(csv);
 });
-app.post('/api/admin/students/import',requireAdmin,upload.single('file'),(req,res)=>{
+app.post('/api/admin/students/import',requireAdmin,upload.single('file'),async (req,res)=>{
  if(!req.file)return fail(res,'Sila pilih fail CSV.');
  if(!req.file.originalname.toLowerCase().endsWith('.csv'))return fail(res,'Format fail mestilah .csv.');
  try{
@@ -234,6 +314,15 @@ app.post('/api/admin/students/import',requireAdmin,upload.single('file'),(req,re
    catch(e){errors.push(`Baris ${row.baris}: ${e.message.includes('UNIQUE')?'ID bertindih':'Tidak dapat dimasukkan'}`);skipped++;}
   }
   db.exec('COMMIT');
+  try {
+   const { isTursoConfigured, pushLocalToTurso } = await import('./turso.js');
+   if (isTursoConfigured()) {
+    await pushLocalToTurso();
+    console.log('[Turso] Pesilat CSV import disegerakkan ke Turso Cloud');
+   }
+  } catch(err) {
+   console.warn('[Turso Import Sync Warning]', err.message);
+  }
  }catch(e){db.exec('ROLLBACK');throw e;}
  res.json({total:rows.length,inserted,skipped,errors:errors.slice(0,25)});
  }catch(e){return fail(res,e.message);}
@@ -710,7 +799,7 @@ app.post('/api/admin/templates/generate-batch',requireAdmin,async(req,res,next)=
  }catch(e){next(e);}
 });
 app.get('/api/admin/settings',requireAdmin,(_req,res)=>res.json(getSettings()));
-app.put('/api/admin/settings',requireAdmin,(req,res)=>{
+app.put('/api/admin/settings',requireAdmin,async (req,res)=>{
  const fields=['nama_organisasi','sub_organisasi','nama_penandatangan','jawatan_penandatangan','tema_warna'];
  const stmt=db.prepare('INSERT INTO settings (key,value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value');
  for(const f of fields){
@@ -720,6 +809,26 @@ app.put('/api/admin/settings',requireAdmin,(req,res)=>{
   if(f!=='tema_warna'&&!v)return fail(res,`Ruangan ${f} tidak boleh kosong.`);
  }
  for(const f of fields)if(f in req.body)stmt.run(f,trim(req.body[f],120));
+
+ try {
+  const { isTursoConfigured, getTursoClient } = await import('./turso.js');
+  if (isTursoConfigured()) {
+   const turso = getTursoClient();
+   const stmts = fields
+     .filter(f => f in req.body)
+     .map(f => ({
+       sql: 'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
+       args: [f, trim(req.body[f], 120)]
+     }));
+   if (stmts.length > 0) {
+     await turso.batch(stmts, 'write');
+     console.log('[Turso] Tetapan dikemaskini di Turso Cloud');
+   }
+  }
+ } catch(err) {
+  console.warn('[Turso Settings Update Warning]', err.message);
+ }
+
  res.json(getSettings());
 });
 
