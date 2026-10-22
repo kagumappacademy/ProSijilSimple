@@ -17,13 +17,23 @@
 
 html {
   scroll-behavior: smooth;
+  overflow-x: hidden;
+  max-width: 100vw;
 }
 
 body {
   margin: 0;
   min-width: 320px;
+  max-width: 100vw;
+  overflow-x: hidden;
   background-color: #fbfbfd;
   color: #0f172a;
+}
+
+#root {
+  overflow-x: hidden;
+  max-width: 100vw;
+  min-height: 100vh;
 }
 
 button, a, input, select {

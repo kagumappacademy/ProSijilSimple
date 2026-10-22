@@ -676,10 +676,21 @@ app.get('/api/admin/templates/:id/preview',requireAdmin,async (req,res)=>{
  let row=db.prepare('SELECT file_path,file_name,file_base64 FROM template_sijil WHERE id=?').get(id);
  if(!row || (!row.file_base64 && (!row.file_path || !fs.existsSync(row.file_path)))){
   try {
-   const { isTursoConfigured, pullTemplatesFromTurso } = await import('./turso.js');
+   const { isTursoConfigured, getTursoClient } = await import('./turso.js');
    if (isTursoConfigured()) {
-    await pullTemplatesFromTurso();
-    row=db.prepare('SELECT file_path,file_name,file_base64 FROM template_sijil WHERE id=?').get(id);
+    const turso = getTursoClient();
+    const tRes = await turso.execute({
+     sql: 'SELECT id, nama_template, peringkat, keterangan, file_path, file_name, file_size, file_base64, created_at FROM template_sijil WHERE id=?',
+     args: [id]
+    });
+    if (tRes.rows && tRes.rows.length > 0) {
+     const tRow = tRes.rows[0];
+     try {
+      db.prepare('INSERT OR REPLACE INTO template_sijil (id, nama_template, peringkat, keterangan, file_path, file_name, file_size, file_base64, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+        .run(tRow.id, tRow.nama_template, tRow.peringkat, tRow.keterangan, tRow.file_path, tRow.file_name, tRow.file_size, tRow.file_base64, tRow.created_at);
+     } catch(_) {}
+     row = { file_path: tRow.file_path, file_name: tRow.file_name, file_base64: tRow.file_base64 };
+    }
    }
   } catch(e) { console.warn('[Turso Preview Warning]', e.message); }
  }
@@ -687,7 +698,7 @@ app.get('/api/admin/templates/:id/preview',requireAdmin,async (req,res)=>{
 
  res.type('application/pdf');
  res.setHeader('Content-Disposition',`inline; filename="${encodeURIComponent(row.file_name)}"`);
- res.setHeader('Cache-Control','private, no-store');
+ res.setHeader('Cache-Control','private, max-age=86400');
 
  if(row.file_base64){
   return res.send(Buffer.from(row.file_base64,'base64'));

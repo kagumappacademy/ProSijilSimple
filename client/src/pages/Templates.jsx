@@ -608,7 +608,7 @@ export function Templates() {
                         <PdfThumbnail
                           url={previewUrl}
                           title={item.nama_template}
-                          scale={1.1}
+                          scale={0.65}
                           className="h-full w-full pointer-events-none"
                         />
 
@@ -636,7 +636,7 @@ export function Templates() {
                       </div>
 
                       {/* Card Details */}
-                      <div className="mt-2">
+                      <div className="mt-2 min-w-0">
                         <div
                           className="text-[11px] font-extrabold text-slate-950 truncate cursor-pointer hover:text-red-700 transition"
                           title={item.peringkat}
@@ -650,32 +650,33 @@ export function Templates() {
                       </div>
                     </div>
 
-                    {/* Card Actions Footer */}
-                    <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between gap-1">
+                    {/* Card Actions Footer - Kemas & Muat Sempurna pada Skrin Mobile */}
+                    <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between gap-1 w-full min-w-0">
                       <button
                         type="button"
-                        onClick={() => setPreviewTarget(item)}
-                        className="inline-flex items-center gap-0.5 text-[9.5px] font-bold text-red-700 hover:underline"
-                        title="Besarkan pratonton sijil"
+                        onClick={() => setTestTarget(item)}
+                        className="rounded-lg bg-emerald-50 px-2 py-1 text-[10px] font-bold text-emerald-700 hover:bg-emerald-100 transition inline-flex items-center gap-1 shrink-0 active:scale-95"
+                        title="Uji janaan nama pada templat"
                       >
-                        <Maximize2 size={10} /> Besarkan
+                        <Play size={10} />
+                        <span>Uji</span>
                       </button>
 
-                      <div className="flex items-center gap-1">
+                      <div className="flex items-center gap-1 shrink-0">
                         <button
                           type="button"
-                          onClick={() => setTestTarget(item)}
-                          className="rounded-lg bg-emerald-50 px-2 py-1 text-[10px] font-bold text-emerald-700 hover:bg-emerald-100 transition inline-flex items-center gap-0.5"
-                          title="Uji janaan nama pada templat"
+                          onClick={() => setPreviewTarget(item)}
+                          className="rounded-lg bg-slate-100 p-1 text-slate-600 hover:bg-red-50 hover:text-red-700 transition active:scale-95"
+                          title="Pratonton saiz besar"
                         >
-                          <Play size={10} /> Uji
+                          <Maximize2 size={12} />
                         </button>
 
                         <a
                           href={previewUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="rounded-lg bg-slate-100 p-1 text-slate-600 hover:bg-red-50 hover:text-red-800 transition"
+                          className="rounded-lg bg-slate-100 p-1 text-slate-600 hover:bg-red-50 hover:text-red-700 transition active:scale-95"
                           title="Buka fail PDF asal"
                         >
                           <Eye size={12} />
@@ -684,7 +685,7 @@ export function Templates() {
                         <button
                           type="button"
                           onClick={() => setDeleteTarget(item)}
-                          className="rounded-lg bg-rose-50 p-1 text-rose-600 hover:bg-rose-100 transition"
+                          className="rounded-lg bg-rose-50 p-1 text-rose-600 hover:bg-rose-100 transition active:scale-95"
                           title="Padam templat ini"
                         >
                           <Trash2 size={12} />

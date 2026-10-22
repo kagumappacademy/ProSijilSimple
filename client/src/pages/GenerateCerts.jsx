@@ -476,7 +476,7 @@ export function GenerateCerts() {
                         <PdfThumbnail
                           url={previewUrl}
                           title={template.nama_template}
-                          scale={1.1}
+                          scale={0.65}
                           className="h-full w-full pointer-events-none"
                         />
 

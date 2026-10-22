@@ -1,15 +1,17 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.js?url';
+import { RotateCw } from 'lucide-react';
 
 if (typeof window !== 'undefined') {
   pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 }
 
-export function PdfThumbnail({ url, className = '', title = 'Sijil', scale = 1.0, pageNum = 1 }) {
+export function PdfThumbnail({ url, className = '', title = 'Sijil', scale = 0.7, pageNum = 1 }) {
   const canvasRef = useRef(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -43,8 +45,7 @@ export function PdfThumbnail({ url, className = '', title = 'Sijil', scale = 1.0
         if (!canvas) return;
 
         const context = canvas.getContext('2d');
-        // Render with specified scale for crisp resolution
-        const viewport = page.getViewport({ scale: scale || 1.0 });
+        const viewport = page.getViewport({ scale: scale || 0.7 });
 
         canvas.height = viewport.height;
         canvas.width = viewport.width;
@@ -55,12 +56,22 @@ export function PdfThumbnail({ url, className = '', title = 'Sijil', scale = 1.0
         });
 
         await renderTask.promise;
-        if (active) setLoading(false);
+        if (active) {
+          setLoading(false);
+          setError(false);
+        }
       } catch (err) {
         if (err.name !== 'AbortError' && active) {
-          console.warn('PDF thumbnail fallback:', err);
-          setError(true);
-          setLoading(false);
+          console.warn('PDF thumbnail load error:', err);
+          // If first attempt failed on mobile network hiccup, auto-retry once after 1s
+          if (attempt === 0) {
+            setTimeout(() => {
+              if (active) setAttempt(1);
+            }, 1000);
+          } else {
+            setError(true);
+            setLoading(false);
+          }
         }
       }
     }
@@ -76,22 +87,33 @@ export function PdfThumbnail({ url, className = '', title = 'Sijil', scale = 1.0
         } catch (_) {}
       }
     };
-  }, [url, scale, pageNum]);
+  }, [url, scale, pageNum, attempt]);
 
   return (
     <div className={`relative overflow-hidden bg-slate-50 flex items-center justify-center ${className}`}>
       {loading && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-50/90 text-slate-400">
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-slate-50/90 text-slate-400">
           <div className="h-5 w-5 animate-spin rounded-full border-2 border-red-600 border-t-transparent" />
-          <span className="mt-1.5 text-[10px] font-semibold text-slate-500">Memuatkan sijil...</span>
+          <span className="mt-1.5 text-[9.5px] font-semibold text-slate-500">Memuatkan sijil...</span>
         </div>
       )}
 
       {error ? (
-        <div className="flex h-full w-full flex-col items-center justify-center p-3 text-center bg-amber-50/40">
-          <div className="rounded-xl border border-amber-200 bg-white p-3 shadow-xs">
-            <div className="text-[11px] font-bold text-slate-950">{title}</div>
-            <div className="mt-1 text-[9px] text-slate-400">Klik untuk melihat fail PDF</div>
+        <div className="flex h-full w-full flex-col items-center justify-center p-2.5 text-center bg-amber-50/40">
+          <div className="rounded-xl border border-amber-200 bg-white p-2.5 shadow-xs w-full max-w-[140px]">
+            <div className="text-[10px] font-bold text-slate-900 truncate" title={title}>{title}</div>
+            <div className="mt-0.5 text-[8.5px] text-slate-400">Pratonton gagal dimuat</div>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                setAttempt((a) => a + 1);
+              }}
+              className="mt-2 inline-flex items-center gap-1 rounded-md bg-red-50 px-2 py-0.5 text-[9px] font-bold text-red-700 hover:bg-red-100 transition border border-red-200/60"
+            >
+              <RotateCw size={9} />
+              <span>Muat Semula</span>
+            </button>
           </div>
         </div>
       ) : (

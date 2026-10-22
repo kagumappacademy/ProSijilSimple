@@ -179,7 +179,7 @@ export function AdminLayout({ user, onLogout }) {
         </div>
       )}
 
-      <div className="lg:pl-[230px]">
+      <div className="lg:pl-[230px] w-full max-w-full min-w-0 overflow-x-hidden">
         {/* Sticky Header with Clock, Language Switcher, Title, and Profile */}
         <header className="sticky top-0 z-30 flex h-14 sm:h-16 items-center justify-between border-b border-slate-200/70 bg-white/85 px-3 sm:px-6 backdrop-blur-md">
           <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1 mr-2">
@@ -220,7 +220,7 @@ export function AdminLayout({ user, onLogout }) {
           </div>
         </header>
 
-        <main className="mx-auto max-w-[1440px] p-3 sm:p-5 lg:p-6 pb-8">
+        <main className="mx-auto w-full max-w-[1440px] p-3 sm:p-5 lg:p-6 pb-8 min-w-0 overflow-x-hidden">
           <Outlet />
         </main>
       </div>
