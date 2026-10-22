@@ -93,11 +93,52 @@ app.get('/api/public/stats',(_req,res)=>{
  const total=db.prepare('SELECT count(*) AS n FROM sijil').get().n;
  res.json({certificates:total});
 });
+function cleanSearchText(s) {
+  return String(s || '')
+    .toLowerCase()
+    .replace(/[’‘`']/g, '')
+    .replace(/[^a-z0-9]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 app.get('/api/public/search',searchLimit,(req,res)=>{
- const q=trim(req.query.q,160).replace(/\s+/g,' ');
- if (q.length < 3) return fail(res,'Masukkan nama penuh atau ID (minima 3 aksara).');
- // Exact match prevents automated partial-name lookups of minors.
- const records=db.prepare('SELECT id,nama_penuh,no_kp_atau_id,peringkat,cawangan,tarikh_daftar FROM pesilat WHERE nama_penuh=? COLLATE NOCASE OR no_kp_atau_id=? COLLATE NOCASE LIMIT 15').all(q,q);
+ const rawQ=trim(req.query.q,160);
+ if (rawQ.length < 3) return fail(res,'Masukkan nama penuh atau ID (minima 3 aksara).');
+
+ const qClean = cleanSearchText(rawQ);
+ const qWords = qClean.split(' ').filter(w => w.length > 0);
+ if (qWords.length === 0) return res.json({results:[]});
+
+ // 1. Fast SQL query first (exact match, case-insensitive)
+ let records = db.prepare('SELECT id,nama_penuh,no_kp_atau_id,peringkat,cawangan,tarikh_daftar FROM pesilat WHERE nama_penuh=? COLLATE NOCASE OR no_kp_atau_id=? COLLATE NOCASE LIMIT 15').all(rawQ,rawQ);
+
+ // 2. If no exact match, perform flexible normalized search across pesilat (case, punctuation & partial insensitive)
+ if (!records.length) {
+   const allStudents = db.prepare('SELECT id,nama_penuh,no_kp_atau_id,peringkat,cawangan,tarikh_daftar FROM pesilat').all();
+   const scored = [];
+   for (const s of allStudents) {
+     const sNameClean = cleanSearchText(s.nama_penuh);
+     const sIdClean = cleanSearchText(s.no_kp_atau_id);
+
+     if (sNameClean === qClean || sIdClean === qClean) {
+       scored.push({ ...s, score: 100 });
+       continue;
+     }
+     if (sNameClean.includes(qClean) || sIdClean.includes(qClean)) {
+       scored.push({ ...s, score: 80 });
+       continue;
+     }
+     const allWordsMatch = qWords.every(w => sNameClean.includes(w) || sIdClean.includes(w));
+     if (allWordsMatch) {
+       scored.push({ ...s, score: 50 });
+       continue;
+     }
+   }
+   scored.sort((a, b) => b.score - a.score || a.nama_penuh.localeCompare(b.nama_penuh));
+   records = scored.slice(0, 15);
+ }
+
  const result=records.map(student=>{
    const certificates=db.prepare('SELECT id,nama_sijil,tarikh_isu,public_token FROM sijil WHERE pesilat_id=? ORDER BY tarikh_isu DESC,id DESC').all(student.id);
    return {id:student.id,nama_penuh:student.nama_penuh,no_kp_atau_id:student.no_kp_atau_id,tarikh_daftar:student.tarikh_daftar,peringkat:student.peringkat,cawangan:student.cawangan,certificates};
