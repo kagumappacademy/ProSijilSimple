@@ -22,12 +22,30 @@ app.use(helmet({contentSecurityPolicy: production ? undefined : false}));
 app.use(express.json({limit:'100kb'}));
 app.use(cookieParser());
 // Mutating requests from a web page must originate from our own frontend.
-app.use('/api', (req,res,next)=>{
- if (['POST','PUT','PATCH','DELETE'].includes(req.method) && req.get('origin')) {
-  const allowed = new Set([portalUrl, 'http://localhost:5173', 'http://127.0.0.1:5173', 'http://localhost:4000', 'http://127.0.0.1:4000']);
-  if (!allowed.has(req.get('origin'))) return res.status(403).json({error:'Origin tidak dibenarkan.'});
- }
- next();
+app.use('/api', (req, res, next) => {
+  if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method) && req.get('origin')) {
+    const origin = req.get('origin');
+    const host = req.get('host');
+    const isSameHost = host && (origin === `https://${host}` || origin === `http://${host}`);
+    const isVercelDomain = /^https:\/\/[a-zA-Z0-9_.-]+\.vercel\.app$/.test(origin);
+    const allowed = new Set([
+      portalUrl,
+      'http://localhost:5173',
+      'http://127.0.0.1:5173',
+      'http://localhost:4000',
+      'http://127.0.0.1:4000',
+      'http://localhost:3000',
+      'http://127.0.0.1:3000'
+    ]);
+    if (process.env.VERCEL_URL) {
+      allowed.add(`https://${process.env.VERCEL_URL}`);
+    }
+
+    if (!isSameHost && !isVercelDomain && !allowed.has(origin)) {
+      return res.status(403).json({ error: 'Origin tidak dibenarkan.' });
+    }
+  }
+  next();
 });
 const authLimit = rateLimit({windowMs:15*60*1000,limit:12,standardHeaders:'draft-7',legacyHeaders:false,message:{error:'Terlalu banyak percubaan. Cuba semula dalam 15 minit.'}});
 const searchLimit = rateLimit({windowMs:60*1000,limit:35,standardHeaders:'draft-7',legacyHeaders:false,message:{error:'Terlalu banyak carian. Cuba semula sebentar lagi.'}});
