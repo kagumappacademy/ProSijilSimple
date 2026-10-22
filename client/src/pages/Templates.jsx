@@ -586,9 +586,9 @@ export function Templates() {
             Tiada templat ditemui sepadan dengan carian atau penapis dipilih.
           </div>
         ) : viewMode === 'grid' ? (
-          /* Kotak (Card Grid View) - Visible Certificate Preview */
-          <div className="p-3 sm:p-5 max-h-[calc(100vh-235px)] overflow-y-auto">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+          /* Kotak (Card Grid View) - Saiz kemas sama macam dalam Kotak Pilihan Templat Janaan Sijil */
+          <div className="p-3 sm:p-4 max-h-[calc(100vh-235px)] overflow-y-auto">
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5 sm:gap-3 p-2.5 sm:p-3 bg-slate-50/70 rounded-2xl border border-slate-200/80">
               {filteredTemplates.map((item) => {
                 const meta = getRankMeta(item.peringkat);
                 const previewUrl = `/api/admin/templates/${item.id}/preview`;
@@ -596,120 +596,100 @@ export function Templates() {
                 return (
                   <div
                     key={item.id}
-                    className={`group relative flex flex-col justify-between rounded-2xl border bg-white p-4 shadow-xs transition-all hover:shadow-xl hover:-translate-y-1 ${meta.border}`}
+                    className={`group relative flex flex-col justify-between rounded-xl border bg-white p-2.5 shadow-2xs transition-all hover:shadow-md hover:-translate-y-0.5 ${meta.border}`}
                   >
                     <div>
-                      {/* Live Certificate Visual Preview (Visible from outside & Clickable for full size) */}
+                      {/* Live Certificate Visual Preview (Saiz sama macam di Janaan Sijil) */}
                       <div
                         onClick={() => setPreviewTarget(item)}
-                        className="relative aspect-[1/1.36] w-full overflow-hidden rounded-xl border border-slate-200/90 bg-slate-50 shadow-2xs group-hover:border-red-500 transition cursor-pointer"
+                        className="relative aspect-[1/1.34] w-full overflow-hidden rounded-lg border border-slate-200/90 bg-slate-50 cursor-pointer group-hover:border-red-500 transition"
                         title="Klik untuk lihat pratonton sijil saiz besar"
                       >
                         <PdfThumbnail
                           url={previewUrl}
                           title={item.nama_template}
-                          scale={1.15}
-                          className="h-full w-full"
+                          scale={1.1}
+                          className="h-full w-full pointer-events-none"
                         />
 
                         {/* Top-left Rank Badge on the preview */}
-                        <div className="absolute top-2.5 left-2.5 z-10">
+                        <div className="absolute top-1.5 left-1.5 z-10">
                           <span
-                            className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[10.5px] font-extrabold uppercase tracking-wider shadow-sm border ${meta.badge}`}
+                            className="inline-flex items-center rounded-md bg-white/95 px-1.5 py-0.5 text-[8.5px] font-bold uppercase tracking-tight text-slate-700 border border-slate-200/90 shadow-2xs"
                           >
-                            <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
-                            {item.peringkat}
+                            {item.peringkat.replace(/^ujian\s+/i, '')}
                           </span>
                         </div>
 
                         {/* Top-right Quick Zoom Button */}
-                        <div className="absolute top-2.5 right-2.5 z-10">
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setPreviewTarget(item);
-                            }}
-                            className="inline-flex items-center gap-1 rounded-lg bg-white/95 px-2.5 py-1 text-[11px] font-extrabold text-slate-800 shadow-sm border border-slate-200/90 hover:bg-red-50 hover:text-red-700 transition"
-                            title="Buka pratonton besar"
-                          >
-                            <Maximize2 size={13} className="text-red-700" />
-                            <span>Besarkan</span>
-                          </button>
-                        </div>
-
-                        {/* Hover Overlay with Quick Action to view large modal */}
-                        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-slate-950/45 opacity-0 backdrop-blur-[2px] transition duration-200 group-hover:opacity-100">
-                          <span className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-xs font-extrabold text-slate-950 shadow-2xl transition hover:bg-red-50">
-                            <Maximize2 size={16} className="text-red-700" /> Pratonton Sijil Saiz Besar
-                          </span>
-                          <span className="text-[11px] font-semibold text-white/95">Klik di mana-mana untuk besarkan</span>
-                        </div>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPreviewTarget(item);
+                          }}
+                          className="absolute top-1.5 right-1.5 z-10 rounded-md bg-white/95 p-1 text-slate-700 hover:bg-red-50 hover:text-red-700 shadow-2xs border border-slate-200/90 transition"
+                          title="Lihat pratonton saiz besar"
+                        >
+                          <Maximize2 size={12} />
+                        </button>
                       </div>
 
-                      {/* Certificate Metadata */}
-                      <div className="mt-3.5 space-y-1.5">
-                        <h3
-                          className="text-xs sm:text-sm font-extrabold text-slate-950 line-clamp-2 leading-snug cursor-pointer hover:text-red-700 transition"
-                          title={item.nama_template}
+                      {/* Card Details */}
+                      <div className="mt-2">
+                        <div
+                          className="text-[11px] font-extrabold text-slate-950 truncate cursor-pointer hover:text-red-700 transition"
+                          title={item.peringkat}
                           onClick={() => setPreviewTarget(item)}
                         >
+                          {item.peringkat}
+                        </div>
+                        <div className="text-[10px] text-slate-500 truncate mt-0.5" title={item.nama_template}>
                           {item.nama_template}
-                        </h3>
-
-                        {item.keterangan && (
-                          <p className="text-[11px] text-slate-500 line-clamp-1">{item.keterangan}</p>
-                        )}
-
-                        <div className="flex items-center justify-between text-[11px] text-slate-400 pt-1">
-                          <span className="truncate max-w-[170px]" title={item.file_name}>
-                            {item.file_name}
-                          </span>
-                          <span className="font-mono">{(item.file_size / 1024).toFixed(1)} KB</span>
                         </div>
                       </div>
                     </div>
 
                     {/* Card Actions Footer */}
-                    <div className="mt-4 flex flex-wrap items-center justify-between border-t border-slate-100 pt-3 gap-2">
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        onClick={() => setPreviewTarget(item)}
-                        className="!px-3 !py-1.5 text-xs flex-1 justify-center bg-red-50/80 text-red-700 border-red-200 hover:bg-red-100 font-bold"
-                        title="Lihat pratonton sijil saiz besar"
-                      >
-                        <Maximize2 size={13} /> Pratonton Besar
-                      </Button>
-
-                      <Button
-                        type="button"
-                        variant="secondary"
-                        onClick={() => setTestTarget(item)}
-                        className="!px-3 !py-1.5 text-xs bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100 font-bold"
-                        title="Uji janaan nama pesilat pada templat ini"
-                      >
-                        <Play size={13} className="text-emerald-700" /> Uji
-                      </Button>
-
-                      <a
-                        href={previewUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="rounded-xl bg-slate-100 p-2 text-slate-600 transition hover:bg-red-50 hover:text-red-800"
-                        title="Lihat fail PDF asal"
-                      >
-                        <Eye size={15} />
-                      </a>
-
+                    <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between gap-1">
                       <button
                         type="button"
-                        onClick={() => setDeleteTarget(item)}
-                        className="rounded-xl bg-rose-50 p-2 text-rose-600 transition hover:bg-rose-100"
-                        title="Padam templat ini"
+                        onClick={() => setPreviewTarget(item)}
+                        className="inline-flex items-center gap-0.5 text-[9.5px] font-bold text-red-700 hover:underline"
+                        title="Besarkan pratonton sijil"
                       >
-                        <Trash2 size={15} />
+                        <Maximize2 size={10} /> Besarkan
                       </button>
+
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setTestTarget(item)}
+                          className="rounded-lg bg-emerald-50 px-2 py-1 text-[10px] font-bold text-emerald-700 hover:bg-emerald-100 transition inline-flex items-center gap-0.5"
+                          title="Uji janaan nama pada templat"
+                        >
+                          <Play size={10} /> Uji
+                        </button>
+
+                        <a
+                          href={previewUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="rounded-lg bg-slate-100 p-1 text-slate-600 hover:bg-red-50 hover:text-red-800 transition"
+                          title="Buka fail PDF asal"
+                        >
+                          <Eye size={12} />
+                        </a>
+
+                        <button
+                          type="button"
+                          onClick={() => setDeleteTarget(item)}
+                          className="rounded-lg bg-rose-50 p-1 text-rose-600 hover:bg-rose-100 transition"
+                          title="Padam templat ini"
+                        >
+                          <Trash2 size={12} />
+                        </button>
+                      </div>
                     </div>
                   </div>
                 );
