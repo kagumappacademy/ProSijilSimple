@@ -140,6 +140,162 @@ function ImportStudentsModal({ open, onClose, onSaved }) {
   );
 }
 
+function ExportStudentsModal({ open, onClose, branches = [], levels = [], currentBranch = '', currentLevel = '' }) {
+  const { lang } = useLang();
+  const [selectedBranch, setSelectedBranch] = useState(currentBranch || '');
+  const [selectedLevel, setSelectedLevel] = useState(currentLevel || '');
+  const [count, setCount] = useState(null);
+  const [loadingCount, setLoadingCount] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setSelectedBranch(currentBranch || '');
+      setSelectedLevel(currentLevel || '');
+    }
+  }, [open, currentBranch, currentLevel]);
+
+  // Semak bilangan pesilat sepadan
+  useEffect(() => {
+    if (!open) return;
+    let active = true;
+    setLoadingCount(true);
+    const params = new URLSearchParams({ limit: '1' });
+    if (selectedBranch) params.set('branch', selectedBranch);
+    if (selectedLevel) params.set('level', selectedLevel);
+
+    api('/admin/students?' + params.toString())
+      .then((r) => {
+        if (active) setCount(r.total ?? 0);
+      })
+      .catch(() => {
+        if (active) setCount(null);
+      })
+      .finally(() => {
+        if (active) setLoadingCount(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [open, selectedBranch, selectedLevel]);
+
+  function downloadCsv(branchToUse, levelToUse) {
+    const params = new URLSearchParams();
+    if (branchToUse) params.set('branch', branchToUse);
+    if (levelToUse) params.set('level', levelToUse);
+    const url = '/api/admin/students/export' + (params.toString() ? '?' + params.toString() : '');
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.setAttribute('download', '');
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    toast.success(
+      lang === 'eng'
+        ? 'Downloading student CSV file...'
+        : 'Memuat turun fail CSV pesilat mengikut tapisan...'
+    );
+    onClose();
+  }
+
+  return (
+    <Modal open={open} onClose={onClose} title={lang === 'eng' ? 'Export Students List (CSV)' : 'Eksport Senarai Pesilat (CSV)'}>
+      <div className="space-y-4">
+        <p className="text-xs text-slate-500 leading-relaxed">
+          {lang === 'eng'
+            ? 'Download student records into CSV / Excel format. You can filter by specific branch and rank, or export all registered students.'
+            : 'Muat turun data pesilat ke format fail CSV (Excel). Anda boleh memilih cawangan dan peringkat tertentu, atau muat turun semua rekod pesilat berdaftar.'}
+        </p>
+
+        {/* Pilihan Cawangan & Peringkat */}
+        <div className="space-y-3 rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5 sm:p-4">
+          <div>
+            <label className="mb-1.5 block text-xs font-bold text-slate-700 flex items-center gap-1.5">
+              <MapPin size={13} className="text-red-700" />
+              <span>{lang === 'eng' ? 'Select Branch' : 'Pilih Cawangan'}</span>
+            </label>
+            <select
+              value={selectedBranch}
+              onChange={(e) => setSelectedBranch(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-slate-900 outline-none focus:border-red-600 focus:ring-4 focus:ring-red-100"
+            >
+              <option value="">{lang === 'eng' ? 'All Branches (Semua Cawangan)' : 'Semua Cawangan'}</option>
+              {branches.map((b) => (
+                <option key={b} value={b}>
+                  {b}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-xs font-bold text-slate-700 flex items-center gap-1.5">
+              <Award size={13} className="text-red-700" />
+              <span>{lang === 'eng' ? 'Select Rank / Level' : 'Pilih Peringkat / Bengkung'}</span>
+            </label>
+            <select
+              value={selectedLevel}
+              onChange={(e) => setSelectedLevel(e.target.value)}
+              className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-slate-900 outline-none focus:border-red-600 focus:ring-4 focus:ring-red-100"
+            >
+              <option value="">{lang === 'eng' ? 'All Levels (Semua Peringkat)' : 'Semua Peringkat'}</option>
+              {levels.map((l) => (
+                <option key={l} value={l}>
+                  {l}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        {/* Ringkasan Rekod Sepadan */}
+        <div className="rounded-xl border border-red-100 bg-red-50/70 p-3 text-xs space-y-1.5">
+          <div className="flex items-center justify-between font-bold text-slate-900">
+            <span>{lang === 'eng' ? 'Matching Records:' : 'Jumlah Rekod Sepadan:'}</span>
+            <span className="font-mono text-sm text-red-700 font-extrabold">
+              {loadingCount ? 'Mengira...' : count !== null ? `${count} pesilat` : '—'}
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-600 pt-1 border-t border-red-200/50">
+            <span className="font-semibold text-slate-500">{lang === 'eng' ? 'Criteria:' : 'Kriteria:'}</span>
+            <Chip color="slate">{selectedBranch || (lang === 'eng' ? 'All Branches' : 'Semua Cawangan')}</Chip>
+            <span>•</span>
+            <Chip color="gold">{selectedLevel || (lang === 'eng' ? 'All Levels' : 'Semua Peringkat')}</Chip>
+          </div>
+        </div>
+
+        {/* Butang Tindakan */}
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100">
+          <button
+            type="button"
+            onClick={() => downloadCsv('', '')}
+            className="text-xs font-semibold text-slate-500 hover:text-red-700 transition underline underline-offset-2"
+          >
+            {lang === 'eng' ? 'Export All (No Filters)' : 'Eksport Semua (Tanpa Tapisan)'}
+          </button>
+
+          <div className="flex items-center gap-2">
+            <Button type="button" variant="secondary" onClick={onClose} className="text-xs">
+              {lang === 'eng' ? 'Cancel' : 'Batal'}
+            </Button>
+            <Button
+              type="button"
+              onClick={() => downloadCsv(selectedBranch, selectedLevel)}
+              disabled={count === 0}
+              className="text-xs"
+            >
+              <Download size={14} />
+              <span>{lang === 'eng' ? 'Download CSV' : 'Muat Turun CSV'}</span>
+            </Button>
+          </div>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
 function EditCertModal({ open, onClose, cert, onSaved }) {
   const [title, setTitle] = useState('');
   const [date, setDate] = useState('');
@@ -546,6 +702,7 @@ export function Students(){
     [edit,setEdit]=useState(null),
     [formOpen,setFormOpen]=useState(false),
     [importOpen,setImportOpen]=useState(false),
+    [exportOpen,setExportOpen]=useState(false),
     [deleteTarget,setDeleteTarget]=useState(null),
     [deleting,setDeleting]=useState(false),
     [viewTarget,setViewTarget]=useState(null);
@@ -587,12 +744,18 @@ export function Students(){
         desc={t('studentsDesc')}
         actions={
           <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-            <a
-              href="/api/admin/students/export"
-              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-900 transition hover:bg-slate-50 shadow-xs"
+            <button
+              type="button"
+              onClick={() => setExportOpen(true)}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-900 transition hover:bg-red-50 hover:border-red-200 hover:text-red-700 shadow-xs cursor-pointer"
+              title="Eksport senarai pesilat mengikut cawangan, peringkat atau semua rekod"
             >
-              <Download size={14}/> Export CSV
-            </a>
+              <Download size={14} className="text-red-700"/>
+              <span>Export CSV</span>
+              {(branch || level) && (
+                <span className="h-2 w-2 rounded-full bg-red-600 animate-pulse" title="Tapisan cawangan/peringkat aktif" />
+              )}
+            </button>
             <Button variant="secondary" onClick={()=>setImportOpen(true)} className="!px-3 !py-2 text-xs">
               <FileUp size={14}/> {t('btnImportCSV')}
             </Button>
@@ -829,6 +992,14 @@ export function Students(){
       />
       <StudentEditor open={formOpen} onClose={()=>setFormOpen(false)} onSaved={fetchRows} selected={edit}/>
       <ImportStudentsModal open={importOpen} onClose={()=>setImportOpen(false)} onSaved={fetchRows}/>
+      <ExportStudentsModal
+        open={exportOpen}
+        onClose={()=>setExportOpen(false)}
+        branches={data?.branches || []}
+        levels={data?.levels || []}
+        currentBranch={branch}
+        currentLevel={level}
+      />
       <Confirm
         open={!!deleteTarget}
         onClose={()=>setDeleteTarget(null)}

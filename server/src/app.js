@@ -331,11 +331,34 @@ app.get('/api/admin/students/:id/certificates',requireAdmin,(req,res)=>{
  const rows=db.prepare('SELECT id,pesilat_id,nama_sijil,tarikh_isu,jenis,file_type,public_token,created_at FROM sijil WHERE pesilat_id=? ORDER BY tarikh_isu DESC,id DESC').all(id);
  res.json({student,certificates:rows});
 });
-app.get('/api/admin/students/export',requireAdmin,(_req,res)=>{
- const rows=db.prepare('SELECT nama_penuh,no_kp_atau_id,peringkat,cawangan,tarikh_daftar FROM pesilat ORDER BY cawangan,nama_penuh').all();
- const cols=['nama_penuh','no_kp_atau_id','peringkat','cawangan','tarikh_daftar'];
- const csv='\uFEFF'+cols.join(',')+'\r\n'+rows.map(r=>cols.map(k=>csvSafe(r[k])).join(',')).join('\r\n');
- res.setHeader('Content-Disposition','attachment; filename="prosijil-pesilat.csv"');res.type('text/csv; charset=utf-8').send(csv);
+app.get('/api/admin/students/export',requireAdmin,async (req,res,next)=>{
+ try {
+  const q=trim(req.query.q,160);
+  const branch=trim(req.query.branch || req.query.cawangan,160);
+  const level=trim(req.query.level || req.query.peringkat,90);
+
+  const where=[];const p=[];
+  if(q){where.push('(p.nama_penuh LIKE ? OR p.no_kp_atau_id LIKE ?)');p.push(`%${q}%`,`%${q}%`);}
+  if(branch){where.push('p.cawangan=?');p.push(branch);}
+  if(level){
+   const cleanLevel=level.replace(/^ujian\s+/i,'');
+   where.push('(p.peringkat=? OR p.peringkat=? OR p.peringkat=? COLLATE NOCASE)');
+   p.push(level,cleanLevel,'Ujian '+cleanLevel);
+  }
+  const w=where.length?' WHERE '+where.join(' AND '):'';
+  const rows=db.prepare('SELECT p.nama_penuh, p.no_kp_atau_id, p.peringkat, p.cawangan, p.tarikh_daftar, (SELECT count(*) FROM sijil s WHERE s.pesilat_id=p.id) as jumlah_sijil FROM pesilat p'+w+' ORDER BY p.cawangan, p.peringkat, p.nama_penuh').all(...p);
+
+  const cols=['nama_penuh','no_kp_atau_id','peringkat','cawangan','tarikh_daftar','jumlah_sijil'];
+  const csv='\uFEFF'+cols.join(',')+'\r\n'+rows.map(r=>cols.map(k=>csvSafe(r[k])).join(',')).join('\r\n');
+
+  let fileParts = ['prosijil-pesilat'];
+  if(branch) fileParts.push(branch.replace(/[^a-zA-Z0-9_-]/g,'_'));
+  if(level) fileParts.push(level.replace(/[^a-zA-Z0-9_-]/g,'_'));
+  const filename = `${fileParts.join('-')}.csv`;
+
+  res.setHeader('Content-Disposition',`attachment; filename="${encodeURIComponent(filename)}"`);
+  res.type('text/csv; charset=utf-8').send(csv);
+ } catch(e){ next(e); }
 });
 app.post('/api/admin/students/import',requireAdmin,upload.single('file'),async (req,res)=>{
  if(!req.file)return fail(res,'Sila pilih fail CSV.');
