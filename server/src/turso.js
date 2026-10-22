@@ -56,6 +56,7 @@ export const TURSO_SCHEMA_STATEMENTS = [
     file_path TEXT,
     file_type TEXT,
     public_token TEXT NOT NULL UNIQUE,
+    file_base64 TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   )`,
   `CREATE TABLE IF NOT EXISTS template_sijil (
@@ -63,9 +64,10 @@ export const TURSO_SCHEMA_STATEMENTS = [
     nama_template TEXT NOT NULL,
     peringkat TEXT NOT NULL,
     keterangan TEXT,
-    file_path TEXT NOT NULL,
+    file_path TEXT,
     file_name TEXT NOT NULL,
     file_size INTEGER DEFAULT 0,
+    file_base64 TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   )`,
   `CREATE TABLE IF NOT EXISTS settings (
@@ -193,19 +195,19 @@ export async function pushLocalToTurso() {
   stats.pesilat = localPesilat.length;
 
   // 4. Sijil
-  const localSijil = db.prepare('SELECT id, pesilat_id, nama_sijil, tarikh_isu, jenis, file_path, file_type, public_token, created_at FROM sijil').all();
+  const localSijil = db.prepare('SELECT id, pesilat_id, nama_sijil, tarikh_isu, jenis, file_path, file_type, public_token, file_base64, created_at FROM sijil').all();
   const sijilStmts = localSijil.map((row) => ({
-    sql: 'INSERT OR REPLACE INTO sijil (id, pesilat_id, nama_sijil, tarikh_isu, jenis, file_path, file_type, public_token, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    args: [row.id, row.pesilat_id, row.nama_sijil, row.tarikh_isu, row.jenis, row.file_path, row.file_type, row.public_token, row.created_at],
+    sql: 'INSERT OR REPLACE INTO sijil (id, pesilat_id, nama_sijil, tarikh_isu, jenis, file_path, file_type, public_token, file_base64, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    args: [row.id, row.pesilat_id, row.nama_sijil, row.tarikh_isu, row.jenis, row.file_path, row.file_type, row.public_token, row.file_base64 || null, row.created_at],
   }));
   await batchExecute(turso, sijilStmts);
   stats.sijil = localSijil.length;
 
   // 5. Template Sijil
-  const localTemplates = db.prepare('SELECT id, nama_template, peringkat, keterangan, file_path, file_name, file_size, created_at FROM template_sijil').all();
+  const localTemplates = db.prepare('SELECT id, nama_template, peringkat, keterangan, file_path, file_name, file_size, file_base64, created_at FROM template_sijil').all();
   const tplStmts = localTemplates.map((row) => ({
-    sql: 'INSERT OR REPLACE INTO template_sijil (id, nama_template, peringkat, keterangan, file_path, file_name, file_size, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-    args: [row.id, row.nama_template, row.peringkat, row.keterangan || null, row.file_path, row.file_name, row.file_size || 0, row.created_at],
+    sql: 'INSERT OR REPLACE INTO template_sijil (id, nama_template, peringkat, keterangan, file_path, file_name, file_size, file_base64, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    args: [row.id, row.nama_template, row.peringkat, row.keterangan || null, row.file_path, row.file_name, row.file_size || 0, row.file_base64 || null, row.created_at],
   }));
   await batchExecute(turso, tplStmts);
   stats.template_sijil = localTemplates.length;
@@ -257,18 +259,18 @@ export async function pullTursoToLocal() {
     }
 
     // 4. Sijil
-    const remoteSijil = await turso.execute('SELECT id, pesilat_id, nama_sijil, tarikh_isu, jenis, file_path, file_type, public_token, created_at FROM sijil');
-    const sijilStmt = db.prepare('INSERT OR REPLACE INTO sijil (id, pesilat_id, nama_sijil, tarikh_isu, jenis, file_path, file_type, public_token, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
+    const remoteSijil = await turso.execute('SELECT id, pesilat_id, nama_sijil, tarikh_isu, jenis, file_path, file_type, public_token, file_base64, created_at FROM sijil');
+    const sijilStmt = db.prepare('INSERT OR REPLACE INTO sijil (id, pesilat_id, nama_sijil, tarikh_isu, jenis, file_path, file_type, public_token, file_base64, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
     for (const row of remoteSijil.rows) {
-      sijilStmt.run(row.id, row.pesilat_id, row.nama_sijil, row.tarikh_isu, row.jenis, row.file_path, row.file_type, row.public_token, row.created_at);
+      sijilStmt.run(row.id, row.pesilat_id, row.nama_sijil, row.tarikh_isu, row.jenis, row.file_path, row.file_type, row.public_token, row.file_base64, row.created_at);
       stats.sijil++;
     }
 
     // 5. Template Sijil
-    const remoteTemplates = await turso.execute('SELECT id, nama_template, peringkat, keterangan, file_path, file_name, file_size, created_at FROM template_sijil');
-    const tplStmt = db.prepare('INSERT OR REPLACE INTO template_sijil (id, nama_template, peringkat, keterangan, file_path, file_name, file_size, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)');
+    const remoteTemplates = await turso.execute('SELECT id, nama_template, peringkat, keterangan, file_path, file_name, file_size, file_base64, created_at FROM template_sijil');
+    const tplStmt = db.prepare('INSERT OR REPLACE INTO template_sijil (id, nama_template, peringkat, keterangan, file_path, file_name, file_size, file_base64, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)');
     for (const row of remoteTemplates.rows) {
-      tplStmt.run(row.id, row.nama_template, row.peringkat, row.keterangan, row.file_path, row.file_name, row.file_size, row.created_at);
+      tplStmt.run(row.id, row.nama_template, row.peringkat, row.keterangan, row.file_path, row.file_name, row.file_size, row.file_base64, row.created_at);
       stats.template_sijil++;
     }
 
