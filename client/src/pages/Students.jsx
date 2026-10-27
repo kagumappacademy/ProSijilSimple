@@ -346,21 +346,21 @@ function EditCertModal({ open, onClose, cert, onSaved }) {
     <Modal open={open} onClose={onClose} title="Kemas Kini Maklumat Sijil">
       <form onSubmit={submit} className="space-y-4">
         <div>
-          <label className="mb-1.5 block text-xs font-bold text-slate-700">Kategori / Jenis Sijil *</label>
-          <div className="grid grid-cols-2 gap-2">
+          <label className="mb-2 block text-xs font-bold text-slate-700">Kategori / Jenis Sijil *</label>
+          <div className="grid grid-cols-2 gap-2.5">
             {CERT_CATEGORIES.map((cat) => (
               <button
                 key={cat.id}
                 type="button"
                 onClick={() => setCategory(cat.id)}
-                className={`flex items-center gap-1.5 p-2 rounded-xl border text-left text-xs transition cursor-pointer ${
+                className={`flex items-center gap-2 p-3 rounded-2xl border text-left text-xs transition-all cursor-pointer ${
                   category === cat.id
-                    ? `${cat.activeTabClass} border-transparent ring-2 ring-red-400/40`
-                    : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                    ? `${cat.activeTabClass} border-transparent ring-2 ring-red-400/40 shadow-xs font-extrabold`
+                    : 'bg-white border-slate-200/90 text-slate-700 hover:bg-slate-50 shadow-2xs'
                 }`}
               >
-                <span className="text-sm shrink-0">{cat.emoji}</span>
-                <span className="font-bold truncate text-[11px]">{cat.shortLabel}</span>
+                <span className="text-lg shrink-0">{cat.emoji}</span>
+                <span className="font-bold truncate text-xs">{cat.shortLabel}</span>
               </button>
             ))}
           </div>
@@ -456,21 +456,21 @@ function QuickAddCertModal({ open, onClose, student, onSaved }) {
     <Modal open={open} onClose={onClose} title={`Keluarkan Sijil: ${student.nama_penuh}`}>
       <form onSubmit={submit} className="space-y-4">
         <div>
-          <label className="mb-1.5 block text-xs font-bold text-slate-700">Kategori / Jenis Sijil *</label>
-          <div className="grid grid-cols-2 gap-2">
+          <label className="mb-2 block text-xs font-bold text-slate-700">Kategori / Jenis Sijil *</label>
+          <div className="grid grid-cols-2 gap-2.5">
             {CERT_CATEGORIES.map((cat) => (
               <button
                 key={cat.id}
                 type="button"
                 onClick={() => handleCategoryChange(cat.id)}
-                className={`flex items-center gap-1.5 p-2 rounded-xl border text-left text-xs transition cursor-pointer ${
+                className={`flex items-center gap-2 p-3 rounded-2xl border text-left text-xs transition-all cursor-pointer ${
                   category === cat.id
-                    ? `${cat.activeTabClass} border-transparent ring-2 ring-red-400/40`
-                    : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                    ? `${cat.activeTabClass} border-transparent ring-2 ring-red-400/40 shadow-xs font-extrabold`
+                    : 'bg-white border-slate-200/90 text-slate-700 hover:bg-slate-50 shadow-2xs'
                 }`}
               >
-                <span className="text-sm shrink-0">{cat.emoji}</span>
-                <span className="font-bold truncate text-[11px]">{cat.shortLabel}</span>
+                <span className="text-lg shrink-0">{cat.emoji}</span>
+                <span className="font-bold truncate text-xs">{cat.shortLabel}</span>
               </button>
             ))}
           </div>
