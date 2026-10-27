@@ -45,11 +45,19 @@ function NumberCard({ title, value, icon: Icon, tint, index }) {
   );
 }
 
-function BreakdownCard({ title, rows }) {
+function BreakdownCard({ title, rows, icon: Icon }) {
   const max = Math.max(...rows.map((x) => x.total), 1);
   return (
-    <div className="space-y-2.5 min-w-0 w-full overflow-hidden">
-      <h4 className="text-xs font-extrabold text-slate-950 uppercase tracking-wider truncate">{title}</h4>
+    <div className="rounded-xl bg-slate-50/70 p-3 sm:p-3.5 border border-slate-200/80 space-y-2.5 min-w-0 w-full overflow-hidden">
+      <div className="flex items-center justify-between border-b border-slate-200/60 pb-1.5">
+        <h4 className="text-xs font-extrabold text-slate-950 uppercase tracking-wider truncate flex items-center gap-1.5">
+          {Icon && <Icon size={13} className="text-red-700 shrink-0" />}
+          <span>{title}</span>
+        </h4>
+        <span className="text-[10px] font-bold text-slate-400 font-mono">
+          {rows.reduce((acc, x) => acc + x.total, 0)} rekod
+        </span>
+      </div>
       {rows.length ? (
         <div className="space-y-2 min-w-0 w-full">
           {rows.map((r, idx) => {
@@ -57,17 +65,17 @@ function BreakdownCard({ title, rows }) {
             return (
               <div key={r.name || r.label || idx} className="group min-w-0 w-full">
                 <div className="flex items-center justify-between text-xs gap-2 min-w-0 w-full">
-                  <span className="font-semibold text-slate-700 truncate min-w-0 flex-1 block" title={labelText}>
+                  <span className="font-semibold text-slate-700 text-[11px] truncate min-w-0 flex-1 block" title={labelText}>
                     {labelText}
                   </span>
                   <span className="font-bold text-slate-900 font-mono text-[11px] shrink-0 tabular-nums">{r.total}</span>
                 </div>
-                <div className="mt-1.5 h-1.5 w-full min-w-0 overflow-hidden rounded-full bg-slate-100">
+                <div className="mt-1 h-1.5 w-full min-w-0 overflow-hidden rounded-full bg-slate-200/70">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${Math.min(100, (r.total / max) * 100)}%` }}
                     transition={{ duration: 0.6, ease: 'easeOut' }}
-                    className="h-full max-w-full rounded-full bg-gradient-to-r from-red-600 to-rose-700"
+                    className="h-full rounded-full bg-gradient-to-r from-red-600 to-rose-700"
                   />
                 </div>
               </div>
@@ -102,7 +110,7 @@ export function Dashboard() {
       />
 
       {!data ? (
-        <Loading text="Memuatkan Data Statistik..." subtext="Mengumpul data pesilat, sijil dan cawangan..." />
+        <Loading />
       ) : (
         <div className="space-y-3.5 sm:space-y-4 w-full max-w-full min-w-0">
           {/* Top 3 Stat Cards */}
@@ -180,10 +188,10 @@ export function Dashboard() {
           {/* 2-Column Split: Analytics (Left) & Recent Certificates (Right) */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 w-full max-w-full min-w-0">
             {/* Left Column: Breakdowns */}
-            <Panel className="p-3.5 sm:p-4 lg:col-span-7 min-w-0 w-full max-w-full overflow-hidden">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 min-w-0 w-full">
-                <BreakdownCard title={t('analyticsRank')} rows={data.byLevel} />
-                <BreakdownCard title={t('analyticsBranch')} rows={data.byBranch} />
+            <Panel className="p-3 sm:p-4 lg:col-span-7 min-w-0 w-full max-w-full overflow-hidden">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 min-w-0 w-full">
+                <BreakdownCard title={t('analyticsRank')} rows={data.byLevel} icon={Award} />
+                <BreakdownCard title={t('analyticsBranch')} rows={data.byBranch} icon={MapPin} />
               </div>
             </Panel>
 
@@ -202,25 +210,31 @@ export function Dashboard() {
               </div>
 
               {data.recent.length ? (
-                <div className="divide-y divide-slate-100 max-h-[290px] overflow-y-auto w-full min-w-0">
+                <div className="divide-y divide-slate-100 max-h-[320px] overflow-y-auto w-full min-w-0">
                   {data.recent.map((r) => {
                     const cat = getCertCategory(r);
                     const catMeta = getCategoryMeta(cat);
                     return (
-                      <div key={r.id} className="flex items-center gap-2.5 sm:gap-3 px-3 sm:px-4 py-2.5 hover:bg-slate-50 transition min-w-0 w-full">
-                        <div className="grid h-8 w-8 place-items-center rounded-lg bg-red-50 text-red-700 shrink-0 border border-red-100 text-sm">
-                          {catMeta.emoji || <Award size={15} />}
+                      <div key={r.id} className="flex items-start gap-2.5 sm:gap-3 p-3 sm:px-4 sm:py-2.5 hover:bg-slate-50 transition min-w-0 w-full">
+                        <div className="grid h-8 w-8 place-items-center rounded-lg bg-red-50 text-red-700 shrink-0 border border-red-100 text-sm mt-0.5">
+                          {catMeta.emoji || <Award size={14} />}
                         </div>
-                        <div className="min-w-0 flex-1 overflow-hidden">
-                          {/* Student Name: preserved without change */}
-                          <div className="truncate text-xs font-bold text-slate-900" title={r.nama_penuh}>{r.nama_penuh}</div>
-                          <div className="truncate text-[10px] text-slate-400" title={`${r.nama_sijil} • ${r.cawangan}`}>
-                            {r.nama_sijil} • {r.cawangan}
+                        <div className="min-w-0 flex-1 overflow-hidden space-y-0.5">
+                          <div className="flex items-center justify-between gap-1.5 min-w-0">
+                            <span className="truncate text-xs font-bold text-slate-950 block" title={r.nama_penuh}>
+                              {r.nama_penuh}
+                            </span>
+                            <span className="inline-flex items-center gap-1 text-[10px] text-slate-400 shrink-0 font-medium font-mono">
+                              <CalendarDays size={10} className="shrink-0 text-slate-400" />
+                              <span>{fmtDate(r.tarikh_isu)}</span>
+                            </span>
                           </div>
-                        </div>
-                        <div className="flex items-center gap-1 text-[10px] text-slate-400 shrink-0 font-medium">
-                          <CalendarDays size={11} className="shrink-0" />
-                          <span>{fmtDate(r.tarikh_isu)}</span>
+                          <div className="flex items-center gap-1.5 text-[10.5px] text-slate-500 truncate" title={`${r.nama_sijil} • ${r.cawangan}`}>
+                            <span className={`inline-flex items-center px-1.5 py-0.2 rounded text-[8.5px] font-bold border ${catMeta.badge}`}>
+                              {catMeta.shortLabel}
+                            </span>
+                            <span className="truncate text-slate-500 font-medium">{r.cawangan}</span>
+                          </div>
                         </div>
                       </div>
                     );

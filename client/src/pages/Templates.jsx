@@ -162,21 +162,21 @@ function UploadTemplateModal({ open, onClose, onSaved }) {
 
         {/* Pilihan Jenis / Kategori Sijil */}
         <div>
-          <label className="mb-2 block text-xs font-bold text-slate-700">Jenis / Kategori Sijil *</label>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          <label className="mb-1.5 block text-xs font-bold text-slate-700">Jenis / Kategori Sijil *</label>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {CERT_CATEGORIES.map((cat) => (
               <button
                 type="button"
                 key={cat.id}
                 onClick={() => handleCategoryChange(cat.id)}
-                className={`flex flex-col items-center justify-center p-3 sm:p-3.5 rounded-2xl border text-center transition-all cursor-pointer ${
+                className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-center transition-all ${
                   kategori === cat.id
-                    ? `${cat.activeTabClass} border-transparent ring-2 ring-red-400/40 shadow-sm font-extrabold`
-                    : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700 shadow-2xs'
+                    ? 'border-red-600 bg-red-50/80 ring-2 ring-red-400/30 font-extrabold text-red-900 shadow-2xs'
+                    : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
                 }`}
               >
-                <span className="text-xl sm:text-2xl mb-1">{cat.emoji}</span>
-                <span className="text-xs font-bold leading-tight">{cat.shortLabel}</span>
+                <span className="text-base sm:text-lg mb-0.5">{cat.emoji}</span>
+                <span className="text-[11px] leading-tight font-bold">{cat.shortLabel}</span>
               </button>
             ))}
           </div>
@@ -599,23 +599,21 @@ export function Templates() {
           </div>
 
           {/* TAB 1: Kategori Utama Jenis Sijil (Sijil Kenaikan Tali Pinggang, Pencapaian, Penghargaan, Penyertaan) */}
-          <div className="flex flex-wrap items-center gap-2 pt-1 border-b border-slate-100 pb-3">
+          <div className="flex flex-wrap items-center gap-1.5 pt-0.5 border-b border-slate-100/80 pb-2.5">
             <button
               type="button"
               onClick={() => {
                 setFilterCategory('semua');
                 setFilterCula('semua');
               }}
-              className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition ${
                 filterCategory === 'semua'
-                  ? 'bg-slate-900 text-white shadow-sm ring-1 ring-slate-950/20'
-                  : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200/90 shadow-2xs hover:border-slate-300'
+                  ? 'bg-red-700 text-white shadow-xs'
+                  : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
               }`}
             >
               <span>Semua Jenis Sijil</span>
-              <span className={`text-[11px] px-2 py-0.5 rounded-full font-mono font-semibold ${
-                filterCategory === 'semua' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
-              }`}>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${filterCategory === 'semua' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}`}>
                 {categoryCounts.semua}
               </span>
             </button>
@@ -631,17 +629,15 @@ export function Templates() {
                     setFilterCategory(cat.id);
                     if (cat.id !== 'kenaikan_tali_pinggang') setFilterCula('semua');
                   }}
-                  className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition ${
                     active
-                      ? `${cat.activeTabClass} shadow-sm ring-1 ring-black/10`
-                      : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200/90 shadow-2xs hover:border-slate-300'
+                      ? cat.activeTabClass
+                      : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
                   }`}
                 >
-                  <span className="text-base sm:text-lg">{cat.emoji}</span>
+                  <span>{cat.emoji}</span>
                   <span>{cat.label}</span>
-                  <span className={`text-[11px] px-2 py-0.5 rounded-full font-mono font-semibold ${
-                    active ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
-                  }`}>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${active ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}`}>
                     {count}
                   </span>
                 </button>
@@ -651,22 +647,21 @@ export function Templates() {
 
           {/* TAB 2: Sub-Penapis Cula (Hanya dipaparkan untuk Sijil Kenaikan Tali Pinggang / Semua) */}
           {(filterCategory === 'semua' || filterCategory === 'kenaikan_tali_pinggang') && (
-            <div className="flex flex-wrap items-center justify-between gap-3 pt-1.5">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-xs font-bold text-slate-400 mr-1 flex items-center gap-1.5 uppercase tracking-wider">
+            <div className="flex flex-wrap items-center justify-between gap-2.5 pt-1">
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span className="text-[11px] font-bold text-slate-400 mr-1 flex items-center gap-1">
                   <span>Warna Cula:</span>
                 </span>
                 <button
                   type="button"
                   onClick={() => setFilterCula('semua')}
-                  className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                  className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition ${
                     filterCula === 'semua'
-                      ? 'bg-red-700 text-white shadow-xs'
-                      : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200/90 shadow-2xs hover:border-slate-300'
+                      ? 'bg-slate-900 text-white shadow-2xs'
+                      : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/70'
                   }`}
                 >
-                  <span>Semua Cula</span>
-                  <span className="text-[11px] opacity-80 font-mono">({culaCounts.semua})</span>
+                  Semua Cula ({culaCounts.semua})
                 </button>
                 {CULA_GROUPS.map((tab) => {
                   const active = filterCula === tab.id;
@@ -676,39 +671,39 @@ export function Templates() {
                       key={tab.id}
                       type="button"
                       onClick={() => setFilterCula(tab.id)}
-                      className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer border ${
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition ${
                         active
-                          ? `${tab.badge} ring-2 ring-red-400/40 shadow-xs font-extrabold`
-                          : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200/90 shadow-2xs hover:border-slate-300'
+                          ? 'bg-red-700 text-white shadow-xs'
+                          : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/70'
                       }`}
                     >
-                      <span className={`h-2.5 w-2.5 rounded-full ${tab.dot}`} />
+                      <span className={`h-2 w-2 rounded-full ${tab.dot}`} />
                       <span>{tab.label}</span>
-                      <span className="text-[11px] opacity-80 font-mono">({cCount})</span>
+                      <span className="text-[10px] opacity-75 font-mono">({cCount})</span>
                     </button>
                   );
                 })}
               </div>
 
               {/* Search and Sort Selectors */}
-              <div className="flex flex-wrap items-center gap-2">
-                <div className="relative min-w-[160px] sm:min-w-[190px]">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full lg:w-auto">
+                <div className="relative flex-1 sm:w-56">
                   <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
                     type="text"
                     placeholder={lang === 'eng' ? 'Search templates...' : 'Cari templat...'}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-white pl-8 pr-3 py-2 text-xs text-slate-950 placeholder:text-slate-400 outline-none focus:border-red-600 focus:ring-2 focus:ring-red-100"
+                    className="w-full rounded-xl border border-slate-200 bg-white pl-8 pr-3 py-1.5 text-xs text-slate-950 placeholder:text-slate-400 outline-none focus:border-red-600 focus:ring-2 focus:ring-red-100"
                   />
                 </div>
 
-                <div className="flex items-center gap-1 text-xs text-slate-500">
+                <div className="flex items-center gap-1 text-xs text-slate-500 w-full sm:w-auto">
                   <ArrowUpDown size={13} className="text-slate-400 shrink-0" />
                   <select
                     value={sortBy}
                     onChange={(e) => setSortBy(e.target.value)}
-                    className="rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-xs font-semibold text-slate-700 outline-none focus:border-red-600"
+                    className="w-full sm:w-auto rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 outline-none focus:border-red-600"
                   >
                     <option value="peringkat">Urutan Kategori & Cula</option>
                     <option value="terkini">Terkini Dimuat Naik</option>
@@ -722,7 +717,7 @@ export function Templates() {
 
         {/* Main Content Area */}
         {!data ? (
-          <Loading text="Memuatkan Koleksi Templat Sijil..." subtext="Menyegerak fail PDF dari Cloud..." />
+          <Loading />
         ) : data.rows.length === 0 ? (
           <Empty
             icon={Layers}
@@ -757,39 +752,37 @@ export function Templates() {
                     </span>
                   </div>
 
-                  {/* Grid Cards for this category - Roomy, Aesthetic Minimalist */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 p-3.5 sm:p-4 bg-slate-50/70 rounded-2xl border border-slate-200/80">
+                  {/* Grid Cards for this category */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5 sm:gap-3 p-2.5 sm:p-3 bg-slate-50/70 rounded-2xl border border-slate-200/80">
                     {items.map((item) => {
                       const meta = getRankMeta(item.peringkat);
                       const previewUrl = `/api/admin/templates/${item.id}/preview`;
-                      const isBelt = catId === 'kenaikan_tali_pinggang';
 
                       return (
                         <div
                           key={item.id}
-                          className={`group relative flex flex-col justify-between rounded-2xl border bg-white p-3.5 sm:p-4 shadow-2xs transition-all duration-200 hover:shadow-apple-md hover:-translate-y-1 ${meta.border}`}
+                          className={`group relative flex flex-col justify-between rounded-xl border bg-white p-2.5 shadow-2xs transition-all hover:shadow-md hover:-translate-y-0.5 ${meta.border}`}
                         >
                           <div>
-                            {/* Live Certificate Visual Preview - Larger & Crisper */}
+                            {/* Live Certificate Visual Preview */}
                             <div
                               onClick={() => setPreviewTarget(item)}
-                              className="relative aspect-[1/1.34] w-full overflow-hidden rounded-xl border border-slate-200/90 bg-slate-100/70 cursor-pointer group-hover:border-red-400 group-hover:shadow-xs transition duration-200"
+                              className="relative aspect-[1/1.34] w-full overflow-hidden rounded-lg border border-slate-200/90 bg-slate-50 cursor-pointer group-hover:border-red-500 transition"
                               title="Klik untuk lihat pratonton sijil saiz besar"
                             >
                               <PdfThumbnail
                                 url={previewUrl}
                                 title={item.nama_template}
-                                scale={0.82}
-                                className="h-full w-full pointer-events-none transition duration-200 group-hover:scale-[1.02]"
+                                scale={0.65}
+                                className="h-full w-full pointer-events-none"
                               />
 
-                              {/* Top-left Rank / Category Badge on preview */}
-                              <div className="absolute top-2 left-2 z-10">
+                              {/* Top-left Rank/Category Badge on preview */}
+                              <div className="absolute top-1.5 left-1.5 z-10">
                                 <span
-                                  className={`inline-flex items-center gap-1.5 rounded-lg bg-white/95 backdrop-blur-xs px-2.5 py-1 text-[10px] sm:text-[11px] font-extrabold uppercase tracking-tight border shadow-xs ${meta.badge}`}
+                                  className="inline-flex items-center rounded-md bg-white/95 px-1.5 py-0.5 text-[8.5px] font-bold uppercase tracking-tight text-slate-700 border border-slate-200/90 shadow-2xs"
                                 >
-                                  {isBelt && <span className={`inline-block h-2 w-2 rounded-full ${meta.dot}`} />}
-                                  <span>{item.peringkat.replace(/^ujian\s+/i, '')}</span>
+                                  {item.peringkat.replace(/^ujian\s+/i, '')}
                                 </span>
                               </div>
 
@@ -800,69 +793,58 @@ export function Templates() {
                                   e.stopPropagation();
                                   setPreviewTarget(item);
                                 }}
-                                className="absolute top-2 right-2 z-10 rounded-lg bg-white/95 backdrop-blur-xs p-1.5 text-slate-700 hover:bg-red-50 hover:text-red-700 shadow-xs border border-slate-200/90 transition"
+                                className="absolute top-1.5 right-1.5 z-10 rounded-md bg-white/95 p-1 text-slate-700 hover:bg-red-50 hover:text-red-700 shadow-2xs border border-slate-200/90 transition"
                                 title="Lihat pratonton saiz besar"
                               >
-                                <Maximize2 size={13} />
+                                <Maximize2 size={12} />
                               </button>
                             </div>
 
                             {/* Card Details */}
-                            <div className="mt-3 min-w-0">
+                            <div className="mt-2 min-w-0">
                               <div
-                                className="text-xs sm:text-sm font-extrabold text-slate-950 truncate cursor-pointer hover:text-red-700 transition"
+                                className="text-[11px] font-extrabold text-slate-950 truncate cursor-pointer hover:text-red-700 transition"
                                 title={item.peringkat}
                                 onClick={() => setPreviewTarget(item)}
                               >
                                 {item.peringkat}
                               </div>
-                              <div className="text-[11px] sm:text-xs text-slate-500 truncate mt-0.5" title={item.nama_template}>
+                              <div className="text-[10px] text-slate-500 truncate mt-0.5" title={item.nama_template}>
                                 {item.nama_template}
                               </div>
                             </div>
                           </div>
 
-                          {/* Card Actions Footer - Aesthetic Minimalist */}
-                          <div className="mt-3.5 pt-2.5 border-t border-slate-100 flex items-center justify-between gap-1.5 w-full min-w-0">
+                          {/* Card Actions Footer - Muat Sempurna & Kemas Tanpa Terkeluar di Telefon */}
+                          <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center gap-1.5 w-full min-w-0">
                             <button
                               type="button"
                               onClick={() => setTestTarget(item)}
-                              className="rounded-xl bg-emerald-50 px-3 py-1.5 text-xs font-bold text-emerald-800 hover:bg-emerald-100 border border-emerald-200/70 transition inline-flex items-center gap-1.5 shrink-0 active:scale-95 shadow-2xs cursor-pointer"
+                              className="flex-1 rounded-lg bg-emerald-50 px-2 py-1.5 text-[10.5px] font-bold text-emerald-700 hover:bg-emerald-100 transition inline-flex items-center justify-center gap-1 active:scale-95"
                               title="Uji janaan nama pada templat"
                             >
-                              <Play size={11} className="fill-emerald-800 text-emerald-800" />
-                              <span>Uji Sijil</span>
+                              <Play size={10} />
+                              <span>Uji</span>
                             </button>
 
-                            <div className="flex items-center gap-1.5 shrink-0">
-                              <button
-                                type="button"
-                                onClick={() => setPreviewTarget(item)}
-                                className="rounded-xl bg-slate-50 p-2 text-slate-600 hover:bg-slate-100 hover:text-red-700 border border-slate-200/70 transition active:scale-95 shadow-2xs cursor-pointer"
-                                title="Pratonton saiz besar"
-                              >
-                                <Maximize2 size={13} />
-                              </button>
+                            <a
+                              href={previewUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="rounded-lg bg-slate-100 p-1.5 text-slate-600 hover:bg-red-50 hover:text-red-700 transition active:scale-95 shrink-0"
+                              title="Buka fail PDF asal"
+                            >
+                              <Eye size={13} />
+                            </a>
 
-                              <a
-                                href={previewUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="rounded-xl bg-slate-50 p-2 text-slate-600 hover:bg-slate-100 hover:text-red-700 border border-slate-200/70 transition active:scale-95 shadow-2xs"
-                                title="Buka fail PDF asal"
-                              >
-                                <Eye size={13} />
-                              </a>
-
-                              <button
-                                type="button"
-                                onClick={() => setDeleteTarget(item)}
-                                className="rounded-xl bg-rose-50 p-2 text-rose-600 hover:bg-rose-100 border border-rose-200/70 transition active:scale-95 shadow-2xs cursor-pointer"
-                                title="Padam templat ini"
-                              >
-                                <Trash2 size={13} />
-                              </button>
-                            </div>
+                            <button
+                              type="button"
+                              onClick={() => setDeleteTarget(item)}
+                              className="rounded-lg bg-rose-50 p-1.5 text-rose-600 hover:bg-rose-100 transition active:scale-95 shrink-0"
+                              title="Padam templat ini"
+                            >
+                              <Trash2 size={13} />
+                            </button>
                           </div>
                         </div>
                       );

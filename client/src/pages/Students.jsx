@@ -112,12 +112,6 @@ function ImportStudentsModal({ open, onClose, onSaved }) {
           </div>
         </div>
 
-        {busy && (
-          <div className="py-2">
-            <Loading text="Sedang Memproses Fail CSV..." subtext="Menyemak baris dan menyegerak ke pangkalan data..." size="sm" />
-          </div>
-        )}
-
         {result && (
           <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 p-5">
             <div className="flex items-center gap-2 font-extrabold text-emerald-800 text-sm">
@@ -352,21 +346,21 @@ function EditCertModal({ open, onClose, cert, onSaved }) {
     <Modal open={open} onClose={onClose} title="Kemas Kini Maklumat Sijil">
       <form onSubmit={submit} className="space-y-4">
         <div>
-          <label className="mb-2 block text-xs font-bold text-slate-700">Kategori / Jenis Sijil *</label>
-          <div className="grid grid-cols-2 gap-2.5">
+          <label className="mb-1.5 block text-xs font-bold text-slate-700">Kategori / Jenis Sijil *</label>
+          <div className="grid grid-cols-2 gap-2">
             {CERT_CATEGORIES.map((cat) => (
               <button
                 key={cat.id}
                 type="button"
                 onClick={() => setCategory(cat.id)}
-                className={`flex items-center gap-2 p-3 rounded-2xl border text-left text-xs transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 p-2 rounded-xl border text-left text-xs transition cursor-pointer ${
                   category === cat.id
-                    ? `${cat.activeTabClass} border-transparent ring-2 ring-red-400/40 shadow-xs font-extrabold`
-                    : 'bg-white border-slate-200/90 text-slate-700 hover:bg-slate-50 shadow-2xs'
+                    ? `${cat.activeTabClass} border-transparent ring-2 ring-red-400/40`
+                    : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
                 }`}
               >
-                <span className="text-lg shrink-0">{cat.emoji}</span>
-                <span className="font-bold truncate text-xs">{cat.shortLabel}</span>
+                <span className="text-sm shrink-0">{cat.emoji}</span>
+                <span className="font-bold truncate text-[11px]">{cat.shortLabel}</span>
               </button>
             ))}
           </div>
@@ -462,21 +456,21 @@ function QuickAddCertModal({ open, onClose, student, onSaved }) {
     <Modal open={open} onClose={onClose} title={`Keluarkan Sijil: ${student.nama_penuh}`}>
       <form onSubmit={submit} className="space-y-4">
         <div>
-          <label className="mb-2 block text-xs font-bold text-slate-700">Kategori / Jenis Sijil *</label>
-          <div className="grid grid-cols-2 gap-2.5">
+          <label className="mb-1.5 block text-xs font-bold text-slate-700">Kategori / Jenis Sijil *</label>
+          <div className="grid grid-cols-2 gap-2">
             {CERT_CATEGORIES.map((cat) => (
               <button
                 key={cat.id}
                 type="button"
                 onClick={() => handleCategoryChange(cat.id)}
-                className={`flex items-center gap-2 p-3 rounded-2xl border text-left text-xs transition-all cursor-pointer ${
+                className={`flex items-center gap-1.5 p-2 rounded-xl border text-left text-xs transition cursor-pointer ${
                   category === cat.id
-                    ? `${cat.activeTabClass} border-transparent ring-2 ring-red-400/40 shadow-xs font-extrabold`
-                    : 'bg-white border-slate-200/90 text-slate-700 hover:bg-slate-50 shadow-2xs'
+                    ? `${cat.activeTabClass} border-transparent ring-2 ring-red-400/40`
+                    : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
                 }`}
               >
-                <span className="text-lg shrink-0">{cat.emoji}</span>
-                <span className="font-bold truncate text-xs">{cat.shortLabel}</span>
+                <span className="text-sm shrink-0">{cat.emoji}</span>
+                <span className="font-bold truncate text-[11px]">{cat.shortLabel}</span>
               </button>
             ))}
           </div>
@@ -621,7 +615,7 @@ function StudentDetailsModal({ open, onClose, student, onEdit, onSaved }) {
             </div>
 
             {loadingCerts ? (
-              <Loading text="Menyemak Rekod Sijil Pesilat..." size="sm" />
+              <div className="p-8 text-center text-xs text-slate-400">Sedang menyemak rekod sijil...</div>
             ) : certs.length === 0 ? (
               <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/60 p-8 text-center">
                 <Award size={28} className="mx-auto text-slate-400 mb-2"/>
@@ -899,7 +893,7 @@ export function Students(){
 
         {/* Table / Card content: Touch-friendly cards on mobile, full table on desktop */}
         {!data ? (
-          <Loading text="Memuatkan Senarai Pesilat..." subtext="Mengambil data pesilat mengikut cawangan & peringkat..." />
+          <Loading/>
         ) : data.rows.length ? (
           <>
             {/* Mobile Card View (< md) */}
@@ -907,14 +901,14 @@ export function Students(){
               {data.rows.map((r, i) => (
                 <div key={r.id} className="p-3.5 space-y-2.5 hover:bg-slate-50/70 transition">
                   <div className="flex items-start justify-between gap-2">
-                    <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="flex items-center gap-2.5 min-w-0 flex-1">
                       <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-red-50 text-xs font-black text-red-700 border border-red-100 shadow-2xs">
                         {r.nama_penuh.split(' ').slice(0, 2).map((x) => x[0]).join('').toUpperCase()}
                       </div>
-                      <div className="min-w-0">
+                      <div className="min-w-0 flex-1">
                         <button
                           onClick={() => setViewTarget(r)}
-                          className="font-bold text-slate-950 text-xs sm:text-sm hover:underline text-left block truncate"
+                          className="font-bold text-slate-950 text-xs sm:text-sm hover:underline text-left block truncate w-full"
                           title={r.nama_penuh}
                         >
                           {r.nama_penuh}
@@ -924,7 +918,9 @@ export function Students(){
                         </div>
                       </div>
                     </div>
-                    <Chip color="gold">{r.peringkat}</Chip>
+                    <Chip color="gold" className="max-w-[125px] sm:max-w-none truncate shrink-0">
+                      {r.peringkat}
+                    </Chip>
                   </div>
 
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-500 pt-0.5">

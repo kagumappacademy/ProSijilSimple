@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api, fmtDate } from '../lib/api';
-import { PageIntro, Panel, Button, Input, Chip, Loading, Empty, SearchField, ProcessingModal } from '../components/UI';
+import { PageIntro, Panel, Button, Input, Chip, Loading, Empty, SearchField } from '../components/UI';
 import { PdfThumbnail } from '../components/PdfThumbnail';
 import { LargeTemplatePreviewModal } from './Templates';
 import { useLang } from '../lib/i18n';
@@ -468,29 +468,29 @@ export function GenerateCerts() {
               </div>
             </div>
 
-            {/* Kategori Jenis Sijil (Tab Utama) - Aesthetic Minimalist */}
-            <div className="space-y-2.5 pt-2 border-t border-slate-100">
+            {/* Kategori Jenis Sijil (Tab Utama) */}
+            <div className="space-y-2 pt-1 border-t border-slate-100">
               <div className="flex items-center justify-between">
-                <label className="block text-xs font-bold text-slate-700">
+                <label className="block text-[11px] font-bold text-slate-600">
                   {lang === 'eng' ? 'Certificate Category:' : 'Kategori / Jenis Sijil:'}
                 </label>
-                <span className="text-[11px] text-slate-400">
+                <span className="text-[10px] text-slate-400">
                   {lang === 'eng' ? 'Sort by category & cula belt' : 'Asingkan ikut kategori & cula tali pinggang'}
                 </span>
               </div>
 
-              <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
                 <button
                   type="button"
                   onClick={() => { setSelectedCategory('semua'); setSelectedCula('semua'); }}
-                  className={`inline-flex items-center gap-2 rounded-2xl px-4 py-2.5 text-xs sm:text-sm font-bold transition-all shrink-0 cursor-pointer ${
+                  className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition shrink-0 cursor-pointer ${
                     selectedCategory === 'semua'
-                      ? 'bg-slate-900 text-white shadow-sm ring-1 ring-slate-950/20'
-                      : 'bg-white border border-slate-200/90 text-slate-700 hover:bg-slate-50 shadow-2xs hover:border-slate-300'
+                      ? 'bg-slate-900 text-white shadow-xs'
+                      : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
                   }`}
                 >
                   <span>{lang === 'eng' ? 'All Types' : 'Semua Jenis'}</span>
-                  <span className={`rounded-full px-2 py-0.5 text-[11px] font-mono font-semibold ${
+                  <span className={`rounded-full px-1.5 py-0.2 text-[10px] font-mono ${
                     selectedCategory === 'semua' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
                   }`}>
                     {categoryCounts.semua}
@@ -508,15 +508,15 @@ export function GenerateCerts() {
                         setSelectedCategory(cat.id);
                         if (!cat.hasCula) setSelectedCula('semua');
                       }}
-                      className={`inline-flex items-center gap-2 rounded-2xl px-4 py-2.5 text-xs sm:text-sm font-bold transition-all shrink-0 cursor-pointer ${
+                      className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition shrink-0 cursor-pointer ${
                         active
-                          ? `${cat.activeTabClass} shadow-sm ring-1 ring-black/10`
-                          : 'bg-white border border-slate-200/90 text-slate-700 hover:bg-slate-50 shadow-2xs hover:border-slate-300'
+                          ? cat.activeTabClass
+                          : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
                       }`}
                     >
-                      <span className="text-base sm:text-lg">{cat.emoji}</span>
+                      <span>{cat.emoji}</span>
                       <span>{cat.label}</span>
-                      <span className={`rounded-full px-2 py-0.5 text-[11px] font-mono font-semibold ${
+                      <span className={`rounded-full px-1.5 py-0.2 text-[10px] font-mono ${
                         active ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
                       }`}>
                         {count}
@@ -528,21 +528,21 @@ export function GenerateCerts() {
 
               {/* Sub-kategori Warna Cula (khusus untuk Sijil Kenaikan Tali Pinggang) */}
               {(selectedCategory === 'kenaikan_tali_pinggang' || selectedCategory === 'semua') && (
-                <div className="flex items-center gap-2 overflow-x-auto py-1 pl-1 scrollbar-none border-t border-slate-100">
-                  <span className="text-xs font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1">
+                <div className="flex items-center gap-1.5 overflow-x-auto py-1 pl-1 scrollbar-none border-t border-slate-100">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1">
                     {lang === 'eng' ? 'Belt Cula:' : 'Cula Tali Pinggang:'}
                   </span>
                   <button
                     type="button"
                     onClick={() => setSelectedCula('semua')}
-                    className={`inline-flex items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs sm:text-sm font-bold transition-all shrink-0 cursor-pointer ${
+                    className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-bold transition shrink-0 cursor-pointer ${
                       selectedCula === 'semua'
-                        ? 'bg-red-700 text-white shadow-xs'
-                        : 'bg-white border border-slate-200/90 text-slate-700 hover:bg-slate-50 shadow-2xs hover:border-slate-300'
+                        ? 'bg-red-700 text-white shadow-2xs'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70'
                     }`}
                   >
                     <span>{lang === 'eng' ? 'All Cula' : 'Semua Cula'}</span>
-                    <span className="text-[11px] opacity-80 font-mono">({culaCounts.semua})</span>
+                    <span className="text-[9.5px] opacity-80">({culaCounts.semua})</span>
                   </button>
 
                   {CULA_GROUPS.map((g) => {
@@ -553,15 +553,15 @@ export function GenerateCerts() {
                         key={g.id}
                         type="button"
                         onClick={() => setSelectedCula(g.id)}
-                        className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs sm:text-sm font-bold transition-all shrink-0 cursor-pointer border ${
+                        className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-bold transition shrink-0 cursor-pointer border ${
                           active
-                            ? `${g.badge} ring-2 ring-red-400/40 shadow-xs font-extrabold`
-                            : 'bg-white border-slate-200/90 text-slate-700 hover:bg-slate-50 shadow-2xs hover:border-slate-300'
+                            ? `${g.badge} ring-2 ring-red-400/30 shadow-2xs font-extrabold`
+                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
                         }`}
                       >
-                        <span className={`inline-block h-2.5 w-2.5 rounded-full ${g.dot}`} />
+                        <span className={`inline-block h-2 w-2 rounded-full ${g.dot}`} />
                         <span>{g.label}</span>
-                        <span className="text-[11px] font-mono opacity-80">({count})</span>
+                        <span className="text-[9.5px] font-mono opacity-80">({count})</span>
                       </button>
                     );
                   })}
@@ -571,43 +571,43 @@ export function GenerateCerts() {
 
             {/* Kotak Pratonton Visual Templat Dari Luar ("view dari luar pilih template yang mana satu") */}
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-extrabold uppercase tracking-wider text-slate-950 flex items-center gap-1.5">
-                  <Eye size={15} className="text-red-700" />
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-950 flex items-center gap-1.5">
+                  <Eye size={13} className="text-red-700" />
                   {t('visualBoxTitle')}
                 </span>
-                <span className="text-[11px] text-slate-400">
+                <span className="text-[10px] text-slate-400">
                   {t('visualBoxDesc')}
                 </span>
               </div>
 
-              {/* Responsive Grid of Visual Template Cards - Roomy & Aesthetic Minimalist */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-5 p-3.5 sm:p-4 bg-slate-50/70 rounded-2xl border border-slate-200/80">
+              {/* Responsive Grid of Visual Template Cards (Besar, Jelas & Beresolusi Tinggi) */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5 sm:gap-3 p-2.5 sm:p-3 bg-slate-50/70 rounded-2xl border border-slate-200/80">
                 {/* Button Option: Semua Peringkat */}
                 <button
                   type="button"
                   onClick={() => handleSelectLevelChange('')}
-                  className={`group relative flex flex-col justify-between rounded-2xl border p-3.5 text-left transition-all cursor-pointer ${
+                  className={`group relative flex flex-col justify-between rounded-xl border p-2.5 text-left transition-all ${
                     !selectedLevel
                       ? 'border-red-600 bg-red-50/80 ring-2 ring-forest-400/40 shadow-xs'
-                      : 'border-slate-200/90 bg-white hover:border-slate-300 hover:bg-slate-50 shadow-2xs'
+                      : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
                   }`}
                 >
-                  <div className="aspect-[1/1.34] w-full rounded-xl border border-dashed border-red-300 bg-red-50/50 flex flex-col items-center justify-center p-3 text-center">
-                    <Sparkles size={28} className="text-red-700 mb-2" />
-                    <span className="text-sm font-extrabold text-slate-950 leading-tight">
+                  <div className="aspect-[1/1.34] w-full rounded-lg border border-dashed border-red-300 bg-red-50/50 flex flex-col items-center justify-center p-2.5 text-center">
+                    <Sparkles size={22} className="text-red-700 mb-1" />
+                    <span className="text-xs font-extrabold text-slate-950 leading-tight">
                       {t('allLevelsOption')}
                     </span>
-                    <span className="mt-1.5 text-[10.5px] text-slate-500 leading-snug">
+                    <span className="mt-1 text-[9.5px] text-slate-500">
                       {t('autoGenRankDesc')}
                     </span>
                   </div>
-                  <div className="mt-3 flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-900">
+                  <div className="mt-2 flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-slate-900">
                       {students.length} {t('studentsCountSuffix')}
                     </span>
                     {!selectedLevel && (
-                      <span className="text-[10px] font-extrabold text-red-700 bg-red-200/80 px-2 py-0.5 rounded-full">
+                      <span className="text-[9px] font-extrabold text-red-700 bg-red-200/80 px-1.5 py-0.2 rounded-full">
                         {t('activeBadge')}
                       </span>
                     )}
@@ -631,32 +631,32 @@ export function GenerateCerts() {
                     <div
                       key={template.id}
                       onClick={() => handleSelectLevelChip(template.peringkat)}
-                      className={`group relative flex flex-col justify-between rounded-2xl border p-3.5 sm:p-4 text-left cursor-pointer transition-all duration-200 hover:shadow-apple-md hover:-translate-y-1 ${
+                      className={`group relative flex flex-col justify-between rounded-xl border p-2.5 text-left cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5 ${
                         isSelected
                           ? 'border-red-600 ring-2 ring-red-400/30 bg-red-50/30 shadow-xs'
-                          : 'border-slate-200/90 bg-white hover:border-slate-300 shadow-2xs'
+                          : 'border-slate-200 bg-white hover:border-slate-300'
                       }`}
                       title={`Klik untuk pilih templat: ${template.peringkat}`}
                     >
                       {/* Visual Certificate Preview rendered from outside */}
-                      <div className="relative aspect-[1/1.34] w-full overflow-hidden rounded-xl border border-slate-200/90 bg-slate-100/70 group-hover:border-red-400 transition">
+                      <div className="relative aspect-[1/1.34] w-full overflow-hidden rounded-lg border border-slate-200/90 bg-slate-50">
                         <PdfThumbnail
                           url={previewUrl}
                           title={template.nama_template}
-                          scale={0.82}
-                          className="h-full w-full pointer-events-none transition duration-200 group-hover:scale-[1.02]"
+                          scale={0.65}
+                          className="h-full w-full pointer-events-none"
                         />
 
                         {/* Rank / Cula / Category Badge on top of preview */}
-                        <div className="absolute top-2 left-2 z-10 flex items-center gap-1 max-w-[85%]">
+                        <div className="absolute top-1.5 left-1.5 z-10 flex items-center gap-1 max-w-[85%]">
                           {isBelt ? (
-                            <span className={`inline-flex items-center gap-1.5 rounded-lg bg-white/95 backdrop-blur-xs px-2.5 py-1 text-[10px] sm:text-[11px] font-extrabold uppercase tracking-tight border shadow-xs truncate ${rankMeta.badge}`}>
-                              <span className={`inline-block h-2 w-2 rounded-full shrink-0 ${rankMeta.dot}`} />
+                            <span className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9px] font-bold border shadow-2xs truncate ${rankMeta.badge}`}>
+                              <span className={`inline-block h-1.5 w-1.5 rounded-full shrink-0 ${rankMeta.dot}`} />
                               <span className="truncate">{template.peringkat.replace(/^ujian\s+/i, '')}</span>
                             </span>
                           ) : (
-                            <span className={`inline-flex items-center gap-1.5 rounded-lg bg-white/95 backdrop-blur-xs px-2.5 py-1 text-[10px] sm:text-[11px] font-extrabold uppercase tracking-tight border shadow-xs truncate ${catMeta.badge}`}>
-                              <span className="text-xs">{catMeta.emoji}</span>
+                            <span className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9px] font-bold border shadow-2xs truncate ${catMeta.badge}`}>
+                              <span>{catMeta.emoji}</span>
                               <span className="truncate">{catMeta.shortLabel}</span>
                             </span>
                           )}
@@ -669,27 +669,27 @@ export function GenerateCerts() {
                             e.stopPropagation();
                             setPreviewTarget(template);
                           }}
-                          className="absolute top-2 right-2 z-10 rounded-lg bg-white/95 backdrop-blur-xs p-1.5 text-slate-700 hover:bg-red-50 hover:text-red-700 shadow-xs border border-slate-200/90 transition"
+                          className="absolute top-1.5 right-1.5 z-10 rounded-md bg-white/95 p-1 text-slate-700 hover:bg-red-50 hover:text-red-700 shadow-2xs border border-slate-200/90 transition"
                           title="Lihat pratonton saiz besar"
                         >
-                          <Maximize2 size={13} />
+                          <Maximize2 size={12} />
                         </button>
 
                         {/* Selection checkmark icon */}
                         {isSelected && (
-                          <div className="absolute bottom-2 right-2 z-10 bg-red-700 text-white p-1 rounded-full shadow-xs">
-                            <CheckCircle2 size={15} />
+                          <div className="absolute bottom-1.5 right-1.5 z-10 bg-red-700 text-white p-0.5 rounded-full shadow-xs">
+                            <CheckCircle2 size={13} />
                           </div>
                         )}
                       </div>
 
                       {/* Card Details */}
-                      <div className="mt-3">
-                        <div className="flex items-center gap-1.5 text-xs sm:text-sm font-extrabold text-slate-950 truncate" title={template.peringkat}>
-                          <span className="text-sm">{catMeta.emoji}</span>
+                      <div className="mt-2">
+                        <div className="flex items-center gap-1 text-[11px] font-extrabold text-slate-950 truncate" title={template.peringkat}>
+                          <span className="text-[10px]">{catMeta.emoji}</span>
                           <span className="truncate">{template.peringkat}</span>
                         </div>
-                        <div className="flex items-center justify-between text-[11px] text-slate-500 mt-1.5">
+                        <div className="flex items-center justify-between text-[10px] text-slate-500 mt-1">
                           <span>{count} {t('studentsCountSuffix')}</span>
                           <button
                             type="button"
@@ -697,10 +697,10 @@ export function GenerateCerts() {
                               e.stopPropagation();
                               setPreviewTarget(template);
                             }}
-                            className="inline-flex items-center gap-1 text-[10.5px] font-bold text-red-700 hover:underline"
+                            className="inline-flex items-center gap-0.5 text-[9.5px] font-bold text-red-700 hover:underline"
                             title="Buka saiz penuh"
                           >
-                            <Maximize2 size={11} /> Besarkan
+                            <Maximize2 size={10} /> Besarkan
                           </button>
                         </div>
                       </div>
@@ -776,41 +776,39 @@ export function GenerateCerts() {
         )}
 
         {/* Quick select buttons */}
-        <div className="flex flex-wrap items-center justify-between gap-2 bg-[#FBFCFA] px-4 py-1.5 border-b border-slate-100 text-xs">
-          <div className="flex flex-wrap items-center gap-2 text-[11px]">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 bg-[#FBFCFA] px-3 sm:px-4 py-2 border-b border-slate-100 text-xs">
+          <div className="flex flex-wrap items-center gap-1.5 text-[10.5px]">
             <button
               type="button"
               onClick={selectCurrentPage}
-              className="font-bold text-red-800 hover:underline inline-flex items-center gap-1"
+              className="font-bold text-red-800 bg-red-50 hover:bg-red-100 px-2 py-1 rounded-md border border-red-200/60 inline-flex items-center gap-1 transition active:scale-95 cursor-pointer"
             >
               <CheckSquare size={12} /> {t('btnSelectThisPage')} ({pageStudents.length})
             </button>
-            <span className="text-slate-300">|</span>
             <button
               type="button"
               onClick={selectAllFiltered}
-              className="font-bold text-red-800 hover:underline inline-flex items-center gap-1"
+              className="font-bold text-red-800 bg-red-50 hover:bg-red-100 px-2 py-1 rounded-md border border-red-200/60 inline-flex items-center gap-1 transition active:scale-95 cursor-pointer"
             >
               <CheckSquare size={12} /> {t('btnSelectAllRecords')} ({filteredStudents.length})
             </button>
-            <span className="text-slate-300">|</span>
             <button
               type="button"
               onClick={deselectAllFiltered}
-              className="font-bold text-slate-500 hover:underline inline-flex items-center gap-1"
+              className="font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded-md border border-slate-200/70 inline-flex items-center gap-1 transition active:scale-95 cursor-pointer"
             >
               <Square size={12} /> {t('btnDeselectAll')}
             </button>
           </div>
 
-          <span className="text-[11px] text-slate-500 font-semibold">
+          <span className="text-[10px] sm:text-[11px] text-slate-500 font-semibold text-right sm:text-left">
             {filteredStudents.length} {t('recordsFoundText')} • 20 {t('perPageText')}
           </span>
         </div>
 
         {/* Jadual Pesilat (20 pesilat setiap laman) */}
         {loading ? (
-          <Loading text="Memuatkan Senarai Pesilat..." subtext="Mengambil data pesilat dan padanan templat..." />
+          <Loading />
         ) : filteredStudents.length === 0 ? (
           <Empty
             title={t('noStudentsFound')}
@@ -1167,12 +1165,6 @@ export function GenerateCerts() {
         open={!!previewTarget}
         onClose={() => setPreviewTarget(null)}
         template={previewTarget}
-      />
-
-      <ProcessingModal
-        open={generating}
-        title="Sedang Menjana Sijil Rasmi..."
-        subtitle={`Memproses ${idsToGenerate.length} sijil digital & mencetak nama pesilat ke templat PDF...`}
       />
     </>
   );

@@ -109,21 +109,21 @@ function CertificateForm({ open, onClose, onSaved }) {
       <form onSubmit={submit} className="space-y-4">
         {/* Pilihan Jenis / Kategori Sijil */}
         <div>
-          <label className="mb-2 block text-xs font-bold text-slate-700">Jenis / Kategori Sijil *</label>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+          <label className="mb-1.5 block text-xs font-bold text-slate-700">Jenis / Kategori Sijil *</label>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
             {CERT_CATEGORIES.map((cat) => (
               <button
                 type="button"
                 key={cat.id}
                 onClick={() => handleCategorySelect(cat.id)}
-                className={`flex flex-col items-center justify-center p-3 sm:p-3.5 rounded-2xl border text-center transition-all cursor-pointer ${
+                className={`flex flex-col items-center justify-center p-2 rounded-xl border text-center transition-all ${
                   kategori === cat.id
-                    ? `${cat.activeTabClass} border-transparent ring-2 ring-red-400/40 shadow-sm font-extrabold`
-                    : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700 shadow-2xs'
+                    ? 'border-red-600 bg-red-50/80 ring-2 ring-red-400/30 font-extrabold text-red-900 shadow-2xs'
+                    : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
                 }`}
               >
-                <span className="text-xl sm:text-2xl mb-1">{cat.emoji}</span>
-                <span className="text-xs font-bold leading-tight">{cat.shortLabel}</span>
+                <span className="text-base mb-0.5">{cat.emoji}</span>
+                <span className="text-[11px] leading-tight font-bold">{cat.shortLabel}</span>
               </button>
             ))}
           </div>
@@ -509,11 +509,11 @@ export function Certificates() {
               )}
 
               {/* View Switch: By Kumpulan vs By Jadual */}
-              <div className="flex items-center gap-1.5 bg-slate-100 p-0.5 rounded-xl text-xs">
+              <div className="flex items-center gap-1 bg-slate-100 p-0.5 rounded-xl text-xs">
                 <button
                   type="button"
                   onClick={() => setViewMode('grouped')}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition ${
+                  className={`inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg font-bold transition ${
                     viewMode === 'grouped'
                       ? 'bg-white text-slate-900 shadow-xs'
                       : 'text-slate-500 hover:text-slate-800'
@@ -521,12 +521,12 @@ export function Certificates() {
                   title={lang === 'eng' ? 'By Branch & Rank' : 'Susunan Mengikut Cawangan & Peringkat'}
                 >
                   <Layers size={13} />
-                  <span>{lang === 'eng' ? 'By Branch & Rank' : 'By Cawangan & Peringkat'}</span>
+                  <span>{lang === 'eng' ? 'Grouped' : 'Berkumpulan'}</span>
                 </button>
                 <button
                   type="button"
                   onClick={() => setViewMode('table')}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition ${
+                  className={`inline-flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-lg font-bold transition ${
                     viewMode === 'table'
                       ? 'bg-white text-slate-900 shadow-xs'
                       : 'text-slate-500 hover:text-slate-800'
@@ -534,28 +534,28 @@ export function Certificates() {
                   title={lang === 'eng' ? 'Full Table View' : 'Paparan Jadual Penuh'}
                 >
                   <List size={13} />
-                  <span>{lang === 'eng' ? 'Full Table' : 'Jadual Penuh'}</span>
+                  <span>{lang === 'eng' ? 'Table' : 'Jadual'}</span>
                 </button>
               </div>
             </div>
           </div>
 
-          {/* Level 0: Kategori Utama Jenis Sijil (Sijil Kenaikan Tali Pinggang, Pencapaian, Penghargaan, Penyertaan) - Aesthetic Minimalist */}
-          <div className="flex flex-wrap items-center gap-2 pt-1 border-b border-slate-100 pb-3">
+          {/* Level 0: Kategori Utama Jenis Sijil (Sijil Kenaikan Tali Pinggang, Pencapaian, Penghargaan, Penyertaan) */}
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none pt-0.5 border-b border-slate-100/80">
             <button
               type="button"
               onClick={() => {
                 setSelectedCategory('semua');
                 setSelectedCula('semua');
               }}
-              className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+              className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition ${
                 selectedCategory === 'semua'
-                  ? 'bg-slate-900 text-white shadow-sm ring-1 ring-slate-950/20'
-                  : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200/90 shadow-2xs hover:border-slate-300'
+                  ? 'bg-red-700 text-white shadow-xs'
+                  : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
               }`}
             >
               <span>Semua Jenis Sijil</span>
-              <span className={`text-[11px] px-2 py-0.5 rounded-full font-mono font-semibold ${selectedCategory === 'semua' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}`}>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${selectedCategory === 'semua' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}`}>
                 {categoryCounts.semua}
               </span>
             </button>
@@ -571,15 +571,15 @@ export function Certificates() {
                     setSelectedCategory(cat.id);
                     if (cat.id !== 'kenaikan_tali_pinggang') setSelectedCula('semua');
                   }}
-                  className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                  className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition ${
                     active
-                      ? `${cat.activeTabClass} shadow-sm ring-1 ring-black/10`
-                      : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200/90 shadow-2xs hover:border-slate-300'
+                      ? cat.activeTabClass
+                      : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
                   }`}
                 >
-                  <span className="text-base sm:text-lg">{cat.emoji}</span>
+                  <span>{cat.emoji}</span>
                   <span>{cat.label}</span>
-                  <span className={`text-[11px] px-2 py-0.5 rounded-full font-mono font-semibold ${active ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${active ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}`}>
                     {count}
                   </span>
                 </button>
@@ -589,21 +589,20 @@ export function Certificates() {
 
           {/* Level 0.5: Sub-Penapis Warna Cula (Untuk Sijil Kenaikan Tali Pinggang) */}
           {(selectedCategory === 'semua' || selectedCategory === 'kenaikan_tali_pinggang') && (
-            <div className="flex flex-wrap items-center gap-2 pt-1.5">
-              <span className="text-xs font-bold text-slate-400 mr-1 flex items-center gap-1.5 uppercase tracking-wider">
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none pt-0.5">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mr-1 shrink-0 flex items-center gap-1">
                 Warna Cula:
               </span>
               <button
                 type="button"
                 onClick={() => setSelectedCula('semua')}
-                className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer ${
+                className={`shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition ${
                   selectedCula === 'semua'
-                    ? 'bg-red-700 text-white shadow-xs'
-                    : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200/90 shadow-2xs hover:border-slate-300'
+                    ? 'bg-slate-900 text-white shadow-2xs'
+                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/70'
                 }`}
               >
-                <span>Semua Cula</span>
-                <span className="text-[11px] opacity-80 font-mono">({culaCounts.semua})</span>
+                Semua Cula ({culaCounts.semua})
               </button>
               {CULA_GROUPS.map((tab) => {
                 const active = selectedCula === tab.id;
@@ -613,15 +612,15 @@ export function Certificates() {
                     key={tab.id}
                     type="button"
                     onClick={() => setSelectedCula(active ? 'semua' : tab.id)}
-                    className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer border ${
+                    className={`shrink-0 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition ${
                       active
-                        ? `${tab.badge} ring-2 ring-red-400/40 shadow-xs font-extrabold`
-                        : 'bg-white text-slate-700 hover:bg-slate-50 border-slate-200/90 shadow-2xs hover:border-slate-300'
+                        ? 'bg-red-700 text-white shadow-xs'
+                        : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/70'
                     }`}
                   >
-                    <span className={`h-2.5 w-2.5 rounded-full ${tab.dot}`} />
+                    <span className={`h-2 w-2 rounded-full ${tab.dot}`} />
                     <span>{tab.label}</span>
-                    <span className="text-[11px] opacity-80 font-mono">({cCount})</span>
+                    <span className="text-[10px] opacity-75 font-mono">({cCount})</span>
                   </button>
                 );
               })}
@@ -782,7 +781,7 @@ export function Certificates() {
 
         {/* Kandungan Utama Sijil */}
         {!data ? (
-          <Loading text="Memuatkan Pusat Rekod Sijil..." subtext="Menyusun mengikut cawangan dan kategori..." />
+          <Loading />
         ) : tableRows.length === 0 ? (
           <Empty
             icon={Award}
@@ -856,7 +855,7 @@ export function Certificates() {
                               }`}
                             >
                               <CheckSquare size={13} className={allGroupSelected ? 'text-red-700' : 'text-slate-400'} />
-                              <span>{allGroupSelected ? (lang === 'eng' ? 'Deselect Group' : 'Nyahpilih Peringkat') : (lang === 'eng' ? 'Select Group' : 'Pilih Semua Peringkat Ini')}</span>
+                              <span>{allGroupSelected ? (lang === 'eng' ? 'Deselect Group' : 'Nyahpilih') : (lang === 'eng' ? 'Select Group' : 'Pilih Peringkat Ini')}</span>
                             </button>
                           </div>
 

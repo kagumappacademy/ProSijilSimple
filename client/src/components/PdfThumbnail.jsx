@@ -1,11 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.js?url';
-import { RotateCw } from 'lucide-react';
+import { RotateCw, FileText, Sparkles } from 'lucide-react';
 
 if (typeof window !== 'undefined') {
   pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 }
+
+// In-memory buffer cache to avoid re-fetching the same template repeatedly on mobile
+const pdfBufferCache = new Map();
 
 export function PdfThumbnail({ url, className = '', title = 'Sijil', scale = 0.7, pageNum = 1 }) {
   const canvasRef = useRef(null);
@@ -22,16 +25,25 @@ export function PdfThumbnail({ url, className = '', title = 'Sijil', scale = 0.7
       setLoading(true);
       setError(false);
       try {
-        const response = await fetch(url, {
-          credentials: 'same-origin',
-          signal: abortCtrl.signal,
-        });
-        if (!response.ok) throw new Error('HTTP ' + response.status);
-        const arrayBuffer = await response.arrayBuffer();
+        let arrayBuffer = pdfBufferCache.get(url);
+        if (!arrayBuffer) {
+          const response = await fetch(url, {
+            credentials: 'same-origin',
+            signal: abortCtrl.signal,
+          });
+          if (!response.ok) throw new Error('HTTP ' + response.status);
+          arrayBuffer = await response.arrayBuffer();
+          if (arrayBuffer && arrayBuffer.byteLength > 0) {
+            pdfBufferCache.set(url, arrayBuffer);
+          }
+        }
+
         if (!active) return;
 
         const loadingTask = pdfjsLib.getDocument({
           data: new Uint8Array(arrayBuffer),
+          cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
+          cMapPacked: true,
         });
         const pdf = await loadingTask.promise;
         if (!active) return;
@@ -44,11 +56,14 @@ export function PdfThumbnail({ url, className = '', title = 'Sijil', scale = 0.7
         const canvas = canvasRef.current;
         if (!canvas) return;
 
-        const context = canvas.getContext('2d');
-        const viewport = page.getViewport({ scale: scale || 0.7 });
+        const context = canvas.getContext('2d', { alpha: false });
+        const dpr = typeof window !== 'undefined' ? Math.min(window.devicePixelRatio || 1, 2) : 1;
+        const viewport = page.getViewport({ scale: (scale || 0.7) * dpr });
 
         canvas.height = viewport.height;
         canvas.width = viewport.width;
+        canvas.style.width = '100%';
+        canvas.style.height = '100%';
 
         renderTask = page.render({
           canvasContext: context,
@@ -63,11 +78,12 @@ export function PdfThumbnail({ url, className = '', title = 'Sijil', scale = 0.7
       } catch (err) {
         if (err.name !== 'AbortError' && active) {
           console.warn('PDF thumbnail load error:', err);
-          // If first attempt failed on mobile network hiccup, auto-retry once after 1s
-          if (attempt === 0) {
-            setTimeout(() => {
-              if (active) setAttempt(1);
-            }, 1000);
+          // If first attempt failed on mobile network or canvas race, auto-retry once after 800ms
+          if (attempt < 2) {
+            const timer = setTimeout(() => {
+              if (active) setAttempt((a) => a + 1);
+            }, 800);
+            return () => clearTimeout(timer);
           } else {
             setError(true);
             setLoading(false);
@@ -92,31 +108,30 @@ export function PdfThumbnail({ url, className = '', title = 'Sijil', scale = 0.7
   return (
     <div className={`relative overflow-hidden bg-slate-50 flex items-center justify-center ${className}`}>
       {loading && (
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-slate-50/95 backdrop-blur-2xs text-slate-400 p-2 text-center select-none">
-          <div className="relative flex items-center justify-center">
-            <div className="h-8 w-8 rounded-full border-2 border-slate-200 border-t-red-600 animate-spin" />
-            <img
-              src="/logo-prosijil.png"
-              alt="ProSijil"
-              className="absolute h-4 w-4 object-contain"
-            />
-          </div>
-          <span className="mt-2 text-[9.5px] font-bold text-slate-500 tracking-tight">Memuatkan sijil...</span>
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-slate-50/95 text-slate-400 p-2 text-center">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-red-600 border-t-transparent" />
+          <span className="mt-1.5 text-[9px] font-bold text-slate-500">Memuatkan sijil...</span>
         </div>
       )}
 
       {error ? (
-        <div className="flex h-full w-full flex-col items-center justify-center p-2.5 text-center bg-amber-50/40">
-          <div className="rounded-xl border border-amber-200 bg-white p-2.5 shadow-xs w-full max-w-[140px]">
-            <div className="text-[10px] font-bold text-slate-900 truncate" title={title}>{title}</div>
-            <div className="mt-0.5 text-[8.5px] text-slate-400">Pratonton gagal dimuat</div>
+        <div className="flex h-full w-full flex-col items-center justify-center p-2 text-center bg-gradient-to-b from-red-50/30 to-slate-50">
+          <div className="rounded-xl border border-red-100 bg-white p-2.5 shadow-2xs w-full max-w-[130px] flex flex-col items-center">
+            <div className="h-7 w-7 rounded-lg bg-red-50 text-red-700 grid place-items-center mb-1">
+              <FileText size={14} />
+            </div>
+            <div className="text-[9.5px] font-extrabold text-slate-900 truncate w-full" title={title}>
+              {title}
+            </div>
+            <span className="mt-0.5 text-[8.5px] font-semibold text-slate-400">PDF Rasmi</span>
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                setAttempt((a) => a + 1);
+                pdfBufferCache.delete(url);
+                setAttempt(0);
               }}
-              className="mt-2 inline-flex items-center gap-1 rounded-md bg-red-50 px-2 py-0.5 text-[9px] font-bold text-red-700 hover:bg-red-100 transition border border-red-200/60"
+              className="mt-2 inline-flex items-center gap-1 rounded-md bg-red-50 px-2 py-0.5 text-[8.5px] font-bold text-red-700 hover:bg-red-100 transition border border-red-200/60 active:scale-95"
             >
               <RotateCw size={9} />
               <span>Muat Semula</span>
