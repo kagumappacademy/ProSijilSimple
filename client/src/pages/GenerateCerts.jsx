@@ -27,6 +27,15 @@ import { PageIntro, Panel, Button, Input, Chip, Loading, Empty, SearchField } fr
 import { PdfThumbnail } from '../components/PdfThumbnail';
 import { LargeTemplatePreviewModal } from './Templates';
 import { useLang } from '../lib/i18n';
+import {
+  CERT_CATEGORIES,
+  CULA_GROUPS,
+  getCertCategory,
+  getCategoryMeta,
+  getCulaCategory,
+  getRankMeta,
+  sortTemplatesList,
+} from '../lib/certTypes';
 
 const PAGE_SIZE = 20;
 
@@ -38,6 +47,8 @@ export function GenerateCerts() {
   const [templateGroups, setTemplateGroups] = useState({});
   const [allTemplates, setAllTemplates] = useState([]);
   const [selectedTemplateName, setSelectedTemplateName] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('semua');
+  const [selectedCula, setSelectedCula] = useState('semua');
   const [issueDate, setIssueDate] = useState(new Date().toISOString().slice(0, 10));
 
   // Students list & filters
@@ -160,19 +171,72 @@ export function GenerateCerts() {
     return filteredStudents.slice(startIndex, endIndex);
   }, [filteredStudents, startIndex, endIndex]);
 
-  // Current templates for selected template name
-  const currentTemplatesForName = templateGroups[selectedTemplateName] || [];
+  // Kiraan setiap kategori untuk paparan tab
+  const categoryCounts = useMemo(() => {
+    const counts = { semua: allTemplates.length, kenaikan_tali_pinggang: 0, pencapaian: 0, penghargaan: 0, penyertaan: 0 };
+    for (const t of allTemplates) {
+      const cat = getCertCategory(t);
+      if (counts[cat] !== undefined) counts[cat] += 1;
+      else counts.kenaikan_tali_pinggang += 1;
+    }
+    return counts;
+  }, [allTemplates]);
+
+  // Kiraan cula untuk tab sub-filter tali pinggang
+  const culaCounts = useMemo(() => {
+    const counts = { semua: 0, merah: 0, kuning: 0, hijau: 0, hitam: 0 };
+    for (const t of allTemplates) {
+      if (getCertCategory(t) === 'kenaikan_tali_pinggang') {
+        counts.semua += 1;
+        const c = getCulaCategory(t.peringkat);
+        if (counts[c] !== undefined) counts[c] += 1;
+      }
+    }
+    return counts;
+  }, [allTemplates]);
+
+  // Senarai nama template ditapis mengikut kategori
+  const templateNames = useMemo(() => {
+    const allNames = Object.keys(templateGroups);
+    if (selectedCategory === 'semua') return allNames;
+    const filtered = allNames.filter((name) => {
+      const list = templateGroups[name] || [];
+      return list.some((t) => getCertCategory(t) === selectedCategory);
+    });
+    return filtered.length > 0 ? filtered : allNames;
+  }, [templateGroups, selectedCategory]);
+
+  useEffect(() => {
+    if (templateNames.length > 0 && !templateNames.includes(selectedTemplateName)) {
+      setSelectedTemplateName(templateNames[0]);
+    }
+  }, [templateNames, selectedTemplateName]);
+
+  // Semua templat mentah bagi nama template terpilih (untuk pemadanan auto semasa janaan)
+  const rawTemplatesForName = templateGroups[selectedTemplateName] || [];
+
+  // Templat yang ditapis & disusun mengikut Kategori dan Cula (Merah -> Kuning -> Hijau -> Hitam)
+  const currentTemplatesForName = useMemo(() => {
+    let list = templateGroups[selectedTemplateName] || [];
+    if (selectedCategory !== 'semua') {
+      list = list.filter((t) => getCertCategory(t) === selectedCategory);
+    }
+    if (selectedCula !== 'semua') {
+      list = list.filter((t) => getCulaCategory(t.peringkat) === selectedCula);
+    }
+    return sortTemplatesList(list);
+  }, [templateGroups, selectedTemplateName, selectedCategory, selectedCula]);
 
   function getMatchingTemplate(student) {
-    if (!currentTemplatesForName.length) return null;
+    if (!rawTemplatesForName.length) return null;
     const sNorm = norm(student.peringkat);
-    const match = currentTemplatesForName.find(
+    const match = rawTemplatesForName.find(
       (t) =>
         norm(t.peringkat) === sNorm ||
         t.peringkat.trim().toLowerCase() === student.peringkat.trim().toLowerCase()
     );
     if (match) return match;
-    const universal = currentTemplatesForName.find(
+    const universal = rawTemplatesForName.find(
       (t) => t.peringkat.trim().toLowerCase() === 'semua peringkat'
     );
     return universal || null;
@@ -281,8 +345,6 @@ export function GenerateCerts() {
       setGenerating(false);
     }
   }
-
-  const templateNames = Object.keys(templateGroups);
 
   return (
     <>
@@ -406,6 +468,107 @@ export function GenerateCerts() {
               </div>
             </div>
 
+            {/* Kategori Jenis Sijil (Tab Utama) */}
+            <div className="space-y-2 pt-1 border-t border-slate-100">
+              <div className="flex items-center justify-between">
+                <label className="block text-[11px] font-bold text-slate-600">
+                  {lang === 'eng' ? 'Certificate Category:' : 'Kategori / Jenis Sijil:'}
+                </label>
+                <span className="text-[10px] text-slate-400">
+                  {lang === 'eng' ? 'Sort by category & cula belt' : 'Asingkan ikut kategori & cula tali pinggang'}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                <button
+                  type="button"
+                  onClick={() => { setSelectedCategory('semua'); setSelectedCula('semua'); }}
+                  className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition shrink-0 cursor-pointer ${
+                    selectedCategory === 'semua'
+                      ? 'bg-slate-900 text-white shadow-xs'
+                      : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                  }`}
+                >
+                  <span>{lang === 'eng' ? 'All Types' : 'Semua Jenis'}</span>
+                  <span className={`rounded-full px-1.5 py-0.2 text-[10px] font-mono ${
+                    selectedCategory === 'semua' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+                  }`}>
+                    {categoryCounts.semua}
+                  </span>
+                </button>
+
+                {CERT_CATEGORIES.map((cat) => {
+                  const active = selectedCategory === cat.id;
+                  const count = categoryCounts[cat.id] || 0;
+                  return (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => {
+                        setSelectedCategory(cat.id);
+                        if (!cat.hasCula) setSelectedCula('semua');
+                      }}
+                      className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition shrink-0 cursor-pointer ${
+                        active
+                          ? cat.activeTabClass
+                          : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
+                      }`}
+                    >
+                      <span>{cat.emoji}</span>
+                      <span>{cat.label}</span>
+                      <span className={`rounded-full px-1.5 py-0.2 text-[10px] font-mono ${
+                        active ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+                      }`}>
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Sub-kategori Warna Cula (khusus untuk Sijil Kenaikan Tali Pinggang) */}
+              {(selectedCategory === 'kenaikan_tali_pinggang' || selectedCategory === 'semua') && (
+                <div className="flex items-center gap-1.5 overflow-x-auto py-1 pl-1 scrollbar-none border-t border-slate-100">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1">
+                    {lang === 'eng' ? 'Belt Cula:' : 'Cula Tali Pinggang:'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCula('semua')}
+                    className={`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 text-[11px] font-bold transition shrink-0 cursor-pointer ${
+                      selectedCula === 'semua'
+                        ? 'bg-red-700 text-white shadow-2xs'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200/70'
+                    }`}
+                  >
+                    <span>{lang === 'eng' ? 'All Cula' : 'Semua Cula'}</span>
+                    <span className="text-[9.5px] opacity-80">({culaCounts.semua})</span>
+                  </button>
+
+                  {CULA_GROUPS.map((g) => {
+                    const active = selectedCula === g.id;
+                    const count = culaCounts[g.id] || 0;
+                    return (
+                      <button
+                        key={g.id}
+                        type="button"
+                        onClick={() => setSelectedCula(g.id)}
+                        className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-bold transition shrink-0 cursor-pointer border ${
+                          active
+                            ? `${g.badge} ring-2 ring-red-400/30 shadow-2xs font-extrabold`
+                            : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'
+                        }`}
+                      >
+                        <span className={`inline-block h-2 w-2 rounded-full ${g.dot}`} />
+                        <span>{g.label}</span>
+                        <span className="text-[9.5px] font-mono opacity-80">({count})</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
             {/* Kotak Pratonton Visual Templat Dari Luar ("view dari luar pilih template yang mana satu") */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
@@ -459,6 +622,10 @@ export function GenerateCerts() {
                       selectedLevel === template.peringkat);
                   const count = getStudentCountForLevel(template.peringkat);
                   const previewUrl = `/api/admin/templates/${template.id}/preview`;
+                  const cat = getCertCategory(template);
+                  const catMeta = getCategoryMeta(cat);
+                  const rankMeta = getRankMeta(template.peringkat);
+                  const isBelt = cat === 'kenaikan_tali_pinggang';
 
                   return (
                     <div
@@ -480,11 +647,19 @@ export function GenerateCerts() {
                           className="h-full w-full pointer-events-none"
                         />
 
-                        {/* Rank Badge on top of preview - Neutral, no color */}
-                        <div className="absolute top-1.5 left-1.5 z-10">
-                          <span className="inline-flex items-center rounded-md bg-white/95 px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-tight text-slate-700 border border-slate-200/90 shadow-2xs">
-                            {template.peringkat.replace(/^ujian\s+/i, '')}
-                          </span>
+                        {/* Rank / Cula / Category Badge on top of preview */}
+                        <div className="absolute top-1.5 left-1.5 z-10 flex items-center gap-1 max-w-[85%]">
+                          {isBelt ? (
+                            <span className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9px] font-bold border shadow-2xs truncate ${rankMeta.badge}`}>
+                              <span className={`inline-block h-1.5 w-1.5 rounded-full shrink-0 ${rankMeta.dot}`} />
+                              <span className="truncate">{template.peringkat.replace(/^ujian\s+/i, '')}</span>
+                            </span>
+                          ) : (
+                            <span className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9px] font-bold border shadow-2xs truncate ${catMeta.badge}`}>
+                              <span>{catMeta.emoji}</span>
+                              <span className="truncate">{catMeta.shortLabel}</span>
+                            </span>
+                          )}
                         </div>
 
                         {/* Top-right zoom button */}
@@ -510,8 +685,9 @@ export function GenerateCerts() {
 
                       {/* Card Details */}
                       <div className="mt-2">
-                        <div className="text-[11px] font-extrabold text-slate-950 truncate" title={template.peringkat}>
-                          {template.peringkat}
+                        <div className="flex items-center gap-1 text-[11px] font-extrabold text-slate-950 truncate" title={template.peringkat}>
+                          <span className="text-[10px]">{catMeta.emoji}</span>
+                          <span className="truncate">{template.peringkat}</span>
                         </div>
                         <div className="flex items-center justify-between text-[10px] text-slate-500 mt-1">
                           <span>{count} {t('studentsCountSuffix')}</span>

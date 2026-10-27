@@ -5,6 +5,12 @@ import {toast} from 'sonner';
 import {api,fmtDate} from '../lib/api';
 import {PageIntro,Panel,Button,Input,Select,Modal,Confirm,Loading,Empty,SearchField,Pagination,Chip} from '../components/UI';
 import {useLang} from '../lib/i18n';
+import {
+  CERT_CATEGORIES,
+  getCertCategory,
+  getCategoryMeta,
+  getRankMeta,
+} from '../lib/certTypes';
 const base={nama_penuh:'',no_kp_atau_id:'',peringkat:'Awan Putih',cawangan:'',tarikh_daftar:new Date().toISOString().slice(0,10)};
 
 const demoCsv = '\uFEFFnama_penuh,no_kp_atau_id,peringkat,cawangan,tarikh_daftar\r\n"Muhammad Adam Bin Ali","080102011234","Awan Putih","Skudai","2026-10-21"\r\n"Siti Aisyah Binti Ahmad","","Awan Kuning","Kulai","2026-10-21"\r\n';
@@ -298,6 +304,7 @@ function ExportStudentsModal({ open, onClose, branches = [], levels = [], curren
 
 function EditCertModal({ open, onClose, cert, onSaved }) {
   const [title, setTitle] = useState('');
+  const [category, setCategory] = useState('kenaikan_tali_pinggang');
   const [date, setDate] = useState('');
   const [file, setFile] = useState(null);
   const [saving, setSaving] = useState(false);
@@ -305,6 +312,7 @@ function EditCertModal({ open, onClose, cert, onSaved }) {
   useEffect(() => {
     if (cert) {
       setTitle(cert.nama_sijil || '');
+      setCategory(cert.kategori || getCertCategory(cert) || 'kenaikan_tali_pinggang');
       setDate(cert.tarikh_isu || '');
       setFile(null);
     }
@@ -317,6 +325,7 @@ function EditCertModal({ open, onClose, cert, onSaved }) {
     if (title.trim().length < 3) return toast.error('Nama sijil perlu sekurang-kurangnya 3 aksara.');
     const form = new FormData();
     form.append('nama_sijil', title.trim());
+    form.append('kategori', category);
     form.append('tarikh_isu', date);
     if (file) form.append('file', file);
 
@@ -336,6 +345,27 @@ function EditCertModal({ open, onClose, cert, onSaved }) {
   return (
     <Modal open={open} onClose={onClose} title="Kemas Kini Maklumat Sijil">
       <form onSubmit={submit} className="space-y-4">
+        <div>
+          <label className="mb-1.5 block text-xs font-bold text-slate-700">Kategori / Jenis Sijil *</label>
+          <div className="grid grid-cols-2 gap-2">
+            {CERT_CATEGORIES.map((cat) => (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => setCategory(cat.id)}
+                className={`flex items-center gap-1.5 p-2 rounded-xl border text-left text-xs transition cursor-pointer ${
+                  category === cat.id
+                    ? `${cat.activeTabClass} border-transparent ring-2 ring-red-400/40`
+                    : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                <span className="text-sm shrink-0">{cat.emoji}</span>
+                <span className="font-bold truncate text-[11px]">{cat.shortLabel}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         <Input
           label="Nama Sijil *"
           required
@@ -369,18 +399,33 @@ function EditCertModal({ open, onClose, cert, onSaved }) {
 }
 
 function QuickAddCertModal({ open, onClose, student, onSaved }) {
-  const [title, setTitle] = useState('Sijil Kenaikan Bengkung');
+  const [category, setCategory] = useState('kenaikan_tali_pinggang');
+  const [title, setTitle] = useState('Sijil Ujian Kenaikan Tali Pinggang (Penggal 1/2026)');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [file, setFile] = useState(null);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (open) {
-      setTitle('Sijil Kenaikan Bengkung');
+      setCategory('kenaikan_tali_pinggang');
+      setTitle('Sijil Ujian Kenaikan Tali Pinggang (Penggal 1/2026)');
       setDate(new Date().toISOString().slice(0, 10));
       setFile(null);
     }
   }, [open]);
+
+  function handleCategoryChange(newCat) {
+    setCategory(newCat);
+    if (newCat === 'kenaikan_tali_pinggang') {
+      setTitle('Sijil Ujian Kenaikan Tali Pinggang (Penggal 1/2026)');
+    } else if (newCat === 'pencapaian') {
+      setTitle('Sijil Pencapaian Kejohanan Silat');
+    } else if (newCat === 'penghargaan') {
+      setTitle('Sijil Penghargaan Jawatankuasa / Jurulatih');
+    } else if (newCat === 'penyertaan') {
+      setTitle('Sijil Penyertaan Kursus / Latihan Silat');
+    }
+  }
 
   if (!student) return null;
 
@@ -390,6 +435,7 @@ function QuickAddCertModal({ open, onClose, student, onSaved }) {
     const form = new FormData();
     form.append('pesilat_id', student.id);
     form.append('nama_sijil', title.trim());
+    form.append('kategori', category);
     form.append('tarikh_isu', date);
     if (file) form.append('file', file);
 
@@ -409,6 +455,27 @@ function QuickAddCertModal({ open, onClose, student, onSaved }) {
   return (
     <Modal open={open} onClose={onClose} title={`Keluarkan Sijil: ${student.nama_penuh}`}>
       <form onSubmit={submit} className="space-y-4">
+        <div>
+          <label className="mb-1.5 block text-xs font-bold text-slate-700">Kategori / Jenis Sijil *</label>
+          <div className="grid grid-cols-2 gap-2">
+            {CERT_CATEGORIES.map((cat) => (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => handleCategoryChange(cat.id)}
+                className={`flex items-center gap-1.5 p-2 rounded-xl border text-left text-xs transition cursor-pointer ${
+                  category === cat.id
+                    ? `${cat.activeTabClass} border-transparent ring-2 ring-red-400/40`
+                    : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50'
+                }`}
+              >
+                <span className="text-sm shrink-0">{cat.emoji}</span>
+                <span className="font-bold truncate text-[11px]">{cat.shortLabel}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         <Input
           label="Nama Sijil *"
           required
@@ -480,6 +547,21 @@ function StudentDetailsModal({ open, onClose, student, onEdit, onSaved }) {
     }
   }
 
+  const sortedCerts = React.useMemo(() => {
+    const catOrder = {
+      kenaikan_tali_pinggang: 1,
+      pencapaian: 2,
+      penghargaan: 3,
+      penyertaan: 4,
+    };
+    return [...certs].sort((a, b) => {
+      const cA = getCertCategory(a);
+      const cB = getCertCategory(b);
+      if (cA !== cB) return (catOrder[cA] || 99) - (catOrder[cB] || 99);
+      return new Date(b.tarikh_isu || 0) - new Date(a.tarikh_isu || 0);
+    });
+  }, [certs]);
+
   if (!student) return null;
 
   return (
@@ -544,30 +626,38 @@ function StudentDetailsModal({ open, onClose, student, onEdit, onSaved }) {
               </div>
             ) : (
               <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
-                {certs.map(c => (
-                  <div
-                    key={c.id}
-                    className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200/90 bg-[#FCFDFB] p-3.5 transition hover:border-red-600 hover:bg-red-50/30"
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-red-50 text-red-700">
-                        <FileText size={19}/>
-                      </div>
-                      <div className="min-w-0">
-                        <div className="font-bold text-slate-950 text-sm truncate" title={c.nama_sijil}>
-                          {c.nama_sijil}
+                {sortedCerts.map(c => {
+                  const cat = getCertCategory(c);
+                  const catMeta = getCategoryMeta(cat);
+                  return (
+                    <div
+                      key={c.id}
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200/90 bg-[#FCFDFB] p-3.5 transition hover:border-red-600 hover:bg-red-50/30"
+                    >
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-red-50 text-red-700">
+                          <FileText size={19}/>
                         </div>
-                        <div className="flex items-center gap-2 text-[11px] text-slate-500 mt-0.5">
-                          <span className="inline-flex items-center gap-1">
-                            <CalendarDays size={12}/>{fmtDate(c.tarikh_isu)}
-                          </span>
-                          <span>•</span>
-                          <Chip color={c.jenis === 'generated' ? 'emerald' : 'gold'}>
-                            {c.jenis === 'generated' ? 'Auto PDF' : 'Fail PDF'}
-                          </Chip>
+                        <div className="min-w-0">
+                          <div className="font-bold text-slate-950 text-sm truncate" title={c.nama_sijil}>
+                            {c.nama_sijil}
+                          </div>
+                          <div className="flex items-center gap-2 text-[11px] text-slate-500 mt-1 flex-wrap">
+                            <span className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9.5px] font-bold border ${catMeta.badge}`}>
+                              <span>{catMeta.emoji}</span>
+                              <span>{catMeta.shortLabel}</span>
+                            </span>
+                            <span>•</span>
+                            <span className="inline-flex items-center gap-1">
+                              <CalendarDays size={12}/>{fmtDate(c.tarikh_isu)}
+                            </span>
+                            <span>•</span>
+                            <Chip color={c.jenis === 'generated' ? 'emerald' : 'gold'}>
+                              {c.jenis === 'generated' ? 'Auto PDF' : 'Fail PDF'}
+                            </Chip>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
                     <div className="flex items-center gap-1.5 shrink-0">
                       <a
@@ -605,7 +695,8 @@ function StudentDetailsModal({ open, onClose, student, onEdit, onSaved }) {
                       </button>
                     </div>
                   </div>
-                ))}
+                );
+              })}
               </div>
             )}
           </div>

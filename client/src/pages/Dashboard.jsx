@@ -14,8 +14,9 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { api, fmtDate } from '../lib/api';
-import { PageIntro, Panel, Loading, Empty } from '../components/UI';
+import { PageIntro, Panel, Loading, Empty, Chip } from '../components/UI';
 import { useLang } from '../lib/i18n';
+import { getCertCategory, getCategoryMeta } from '../lib/certTypes';
 
 function NumberCard({ title, value, icon: Icon, tint, index }) {
   const { lang } = useLang();
@@ -202,24 +203,28 @@ export function Dashboard() {
 
               {data.recent.length ? (
                 <div className="divide-y divide-slate-100 max-h-[290px] overflow-y-auto w-full min-w-0">
-                  {data.recent.map((r) => (
-                    <div key={r.id} className="flex items-center gap-2.5 sm:gap-3 px-3 sm:px-4 py-2.5 hover:bg-slate-50 transition min-w-0 w-full">
-                      <div className="grid h-8 w-8 place-items-center rounded-lg bg-red-50 text-red-700 shrink-0 border border-red-100">
-                        <Award size={15} />
-                      </div>
-                      <div className="min-w-0 flex-1 overflow-hidden">
-                        {/* Student Name: preserved without change */}
-                        <div className="truncate text-xs font-bold text-slate-900" title={r.nama_penuh}>{r.nama_penuh}</div>
-                        <div className="truncate text-[10px] text-slate-400" title={`${r.nama_sijil} • ${r.cawangan}`}>
-                          {r.nama_sijil} • {r.cawangan}
+                  {data.recent.map((r) => {
+                    const cat = getCertCategory(r);
+                    const catMeta = getCategoryMeta(cat);
+                    return (
+                      <div key={r.id} className="flex items-center gap-2.5 sm:gap-3 px-3 sm:px-4 py-2.5 hover:bg-slate-50 transition min-w-0 w-full">
+                        <div className="grid h-8 w-8 place-items-center rounded-lg bg-red-50 text-red-700 shrink-0 border border-red-100 text-sm">
+                          {catMeta.emoji || <Award size={15} />}
+                        </div>
+                        <div className="min-w-0 flex-1 overflow-hidden">
+                          {/* Student Name: preserved without change */}
+                          <div className="truncate text-xs font-bold text-slate-900" title={r.nama_penuh}>{r.nama_penuh}</div>
+                          <div className="truncate text-[10px] text-slate-400" title={`${r.nama_sijil} • ${r.cawangan}`}>
+                            {r.nama_sijil} • {r.cawangan}
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1 text-[10px] text-slate-400 shrink-0 font-medium">
+                          <CalendarDays size={11} className="shrink-0" />
+                          <span>{fmtDate(r.tarikh_isu)}</span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1 text-[10px] text-slate-400 shrink-0 font-medium">
-                        <CalendarDays size={11} className="shrink-0" />
-                        <span>{fmtDate(r.tarikh_isu)}</span>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <Empty title={t('noCertsYet')} message={t('noCertsYetDesc')} />

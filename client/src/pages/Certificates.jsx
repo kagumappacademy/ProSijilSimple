@@ -23,57 +23,38 @@ import { toast } from 'sonner';
 import { api, fmtDate, certDownload, certPreview } from '../lib/api';
 import { PageIntro, Panel, Button, Input, Modal, Confirm, Loading, Empty, SearchField, Chip } from '../components/UI';
 import { useLang } from '../lib/i18n';
-
-function getRankMeta(rank) {
-  const r = (rank || '').toLowerCase();
-  if (r.includes('merah')) {
-    return {
-      chip: 'rose',
-      border: 'border-rose-200',
-      badge: 'bg-rose-50 text-rose-700 border-rose-200',
-      dot: 'bg-rose-500',
-    };
-  }
-  if (r.includes('hijau')) {
-    return {
-      chip: 'emerald',
-      border: 'border-emerald-200',
-      badge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-      dot: 'bg-emerald-500',
-    };
-  }
-  if (r.includes('kuning')) {
-    return {
-      chip: 'gold',
-      border: 'border-amber-200',
-      badge: 'bg-amber-50 text-amber-800 border-amber-200',
-      dot: 'bg-amber-400',
-    };
-  }
-  if (r.includes('hitam')) {
-    return {
-      chip: 'slate',
-      border: 'border-slate-300',
-      badge: 'bg-slate-900 text-white border-slate-700',
-      dot: 'bg-slate-900',
-    };
-  }
-  return {
-    chip: 'red',
-    border: 'border-red-200',
-    badge: 'bg-red-50 text-red-700 border-red-200',
-    dot: 'bg-red-600',
-  };
-}
+import {
+  CERT_CATEGORIES,
+  CULA_GROUPS,
+  LEVEL_RANK_ORDER,
+  getCertCategory,
+  getCategoryMeta,
+  getCulaCategory,
+  getRankMeta,
+} from '../lib/certTypes';
 
 function CertificateForm({ open, onClose, onSaved }) {
   const [studentQ, setStudentQ] = useState('');
   const [matches, setMatches] = useState([]);
   const [selected, setSelected] = useState(null);
-  const [title, setTitle] = useState('Sijil Kenaikan Bengkung');
+  const [kategori, setKategori] = useState('kenaikan_tali_pinggang');
+  const [title, setTitle] = useState('Sijil Ujian Kenaikan Tali Pinggang (Penggal 1/2026)');
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [file, setFile] = useState(null);
   const [busy, setBusy] = useState(false);
+
+  const handleCategorySelect = (newCat) => {
+    setKategori(newCat);
+    if (newCat === 'kenaikan_tali_pinggang') {
+      setTitle('Sijil Ujian Kenaikan Tali Pinggang (Penggal 1/2026)');
+    } else if (newCat === 'pencapaian') {
+      setTitle('Sijil Pencapaian Kejohanan Silat');
+    } else if (newCat === 'penghargaan') {
+      setTitle('Sijil Penghargaan Khas');
+    } else if (newCat === 'penyertaan') {
+      setTitle('Sijil Penyertaan Kursus Silat');
+    }
+  };
 
   useEffect(() => {
     if (!open) return;
@@ -81,7 +62,8 @@ function CertificateForm({ open, onClose, onSaved }) {
     setSelected(null);
     setMatches([]);
     setFile(null);
-    setTitle('Sijil Kenaikan Bengkung');
+    setKategori('kenaikan_tali_pinggang');
+    setTitle('Sijil Ujian Kenaikan Tali Pinggang (Penggal 1/2026)');
     setDate(new Date().toISOString().slice(0, 10));
   }, [open]);
 
@@ -107,6 +89,7 @@ function CertificateForm({ open, onClose, onSaved }) {
     form.append('pesilat_id', selected.id);
     form.append('nama_sijil', title);
     form.append('tarikh_isu', date);
+    form.append('kategori', kategori);
     if (file) form.append('file', file);
     setBusy(true);
     try {
@@ -124,6 +107,28 @@ function CertificateForm({ open, onClose, onSaved }) {
   return (
     <Modal open={open} onClose={onClose} title="Keluarkan Sijil Baharu" wide>
       <form onSubmit={submit} className="space-y-4">
+        {/* Pilihan Jenis / Kategori Sijil */}
+        <div>
+          <label className="mb-1.5 block text-xs font-bold text-slate-700">Jenis / Kategori Sijil *</label>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {CERT_CATEGORIES.map((cat) => (
+              <button
+                type="button"
+                key={cat.id}
+                onClick={() => handleCategorySelect(cat.id)}
+                className={`flex flex-col items-center justify-center p-2 rounded-xl border text-center transition-all ${
+                  kategori === cat.id
+                    ? 'border-red-600 bg-red-50/80 ring-2 ring-red-400/30 font-extrabold text-red-900 shadow-2xs'
+                    : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+                }`}
+              >
+                <span className="text-base mb-0.5">{cat.emoji}</span>
+                <span className="text-[11px] leading-tight font-bold">{cat.shortLabel}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
         <div>
           <label className="mb-1.5 block text-xs font-bold text-slate-600">Cari & Pilih Pesilat *</label>
           {selected ? (
@@ -131,7 +136,7 @@ function CertificateForm({ open, onClose, onSaved }) {
               <div>
                 <div className="font-bold text-slate-900 text-sm">{selected.nama_penuh}</div>
                 <div className="mt-0.5 text-xs text-slate-500">
-                  {selected.no_kp_atau_id} • {selected.cawangan}
+                  {selected.no_kp_atau_id} • {selected.cawangan} • {selected.peringkat}
                   {selected.tarikh_daftar ? ` • Daftar: ${fmtDate(selected.tarikh_daftar)}` : ''}
                 </div>
               </div>
@@ -168,7 +173,7 @@ function CertificateForm({ open, onClose, onSaved }) {
                     >
                       <div className="text-xs sm:text-sm font-bold text-slate-900">{p.nama_penuh}</div>
                       <div className="text-[11px] text-slate-500">
-                        {p.no_kp_atau_id} • {p.cawangan}
+                        {p.no_kp_atau_id} • {p.cawangan} • {p.peringkat}
                       </div>
                     </button>
                   ))}
@@ -179,7 +184,7 @@ function CertificateForm({ open, onClose, onSaved }) {
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2">
-          <Input label="Nama Sijil *" required placeholder="Sijil Penyertaan" value={title} onChange={(e) => setTitle(e.target.value)} />
+          <Input label="Nama Sijil *" required placeholder="Contoh: Sijil Kenaikan Bengkung" value={title} onChange={(e) => setTitle(e.target.value)} />
           <Input label="Tarikh Dikeluarkan *" required type="date" value={date} onChange={(e) => setDate(e.target.value)} />
         </div>
 
@@ -219,6 +224,8 @@ export function Certificates() {
   const { t, lang } = useLang();
   const [data, setData] = useState(null);
   const [q, setQ] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('semua'); // 'semua', 'kenaikan_tali_pinggang', 'pencapaian', 'penghargaan', 'penyertaan'
+  const [selectedCula, setSelectedCula] = useState('semua'); // 'semua', 'merah', 'kuning', 'hijau', 'hitam'
   const [selectedBranch, setSelectedBranch] = useState('');
   const [selectedLevel, setSelectedLevel] = useState('');
   const [viewMode, setViewMode] = useState('grouped'); // 'grouped' (By Cawangan -> Peringkat) or 'table'
@@ -234,7 +241,7 @@ export function Certificates() {
   // Padam pilihan jika carian atau penapis berubah
   useEffect(() => {
     setSelectedIds(new Set());
-  }, [q, selectedBranch, selectedLevel]);
+  }, [q, selectedCategory, selectedCula, selectedBranch, selectedLevel]);
 
   const toggleSelect = useCallback((id) => {
     setSelectedIds((prev) => {
@@ -306,11 +313,14 @@ export function Certificates() {
     if (q) params.set('q', q);
     if (selectedBranch) params.set('branch', selectedBranch);
     if (selectedLevel) params.set('level', selectedLevel);
+    if (selectedCategory && selectedCategory !== 'semua') {
+      params.set('category', selectedCategory);
+    }
 
     api('/admin/certificates?' + params.toString())
       .then(setData)
       .catch((e) => toast.error(e.message));
-  }, [q, selectedBranch, selectedLevel]);
+  }, [q, selectedBranch, selectedLevel, selectedCategory]);
 
   useEffect(() => {
     const timer = setTimeout(load, 200);
@@ -336,12 +346,46 @@ export function Certificates() {
     return data?.branches || [];
   }, [data?.branches]);
 
-  // Hierarchical grouping: Cawangan -> Peringkat -> Certificates
+  // Kiraan mengikut Kategori Jenis Sijil
+  const categoryCounts = useMemo(() => {
+    const counts = { semua: 0, kenaikan_tali_pinggang: 0, pencapaian: 0, penghargaan: 0, penyertaan: 0 };
+    if (!data?.rows) return counts;
+    counts.semua = data.rows.length;
+    for (const r of data.rows) {
+      const cat = getCertCategory(r);
+      if (counts[cat] !== undefined) counts[cat] += 1;
+      else counts.kenaikan_tali_pinggang += 1;
+    }
+    return counts;
+  }, [data?.rows]);
+
+  // Kiraan mengikut warna Cula
+  const culaCounts = useMemo(() => {
+    const counts = { semua: 0, merah: 0, kuning: 0, hijau: 0, hitam: 0 };
+    if (!data?.rows) return counts;
+    for (const r of data.rows) {
+      if (getCertCategory(r) === 'kenaikan_tali_pinggang') {
+        counts.semua += 1;
+        const c = getCulaCategory(r.peringkat);
+        if (counts[c] !== undefined) counts[c] += 1;
+      }
+    }
+    return counts;
+  }, [data?.rows]);
+
+  // Hierarchical grouping: Cawangan -> Peringkat (Tersusun ikut Cula) -> Sijil
   const groupedTree = useMemo(() => {
     if (!data?.rows) return {};
     const tree = {};
 
     for (const cert of data.rows) {
+      const cat = getCertCategory(cert);
+      if (selectedCategory !== 'semua' && cat !== selectedCategory) continue;
+
+      if (selectedCula !== 'semua' && cat === 'kenaikan_tali_pinggang') {
+        if (getCulaCategory(cert.peringkat) !== selectedCula) continue;
+      }
+
       const bKey = cert.cawangan || (lang === 'eng' ? 'No Branch' : 'Tiada Cawangan');
       const rKey = cert.peringkat || (lang === 'eng' ? 'Unassigned Rank' : 'Belum Ditetapkan');
 
@@ -360,7 +404,7 @@ export function Certificates() {
     }
 
     return tree;
-  }, [data?.rows, lang]);
+  }, [data?.rows, selectedCategory, selectedCula, lang]);
 
   // Available peringkat within the currently selected cawangan (for sub-filter tabs)
   const availableLevelsForBranch = useMemo(() => {
@@ -368,19 +412,50 @@ export function Certificates() {
     const setL = new Set();
     const counts = {};
     for (const c of data.rows) {
+      const cat = getCertCategory(c);
+      if (selectedCategory !== 'semua' && cat !== selectedCategory) continue;
+      if (selectedCula !== 'semua' && cat === 'kenaikan_tali_pinggang') {
+        if (getCulaCategory(c.peringkat) !== selectedCula) continue;
+      }
       if (!selectedBranch || c.cawangan === selectedBranch) {
         setL.add(c.peringkat);
         counts[c.peringkat] = (counts[c.peringkat] || 0) + 1;
       }
     }
-    return Array.from(setL).map((name) => ({
-      name,
-      count: counts[name] || 0,
-    }));
-  }, [data?.rows, selectedBranch]);
+
+    // Sort according to belt rank order: Merah -> Kuning -> Hijau -> Hitam
+    return Array.from(setL)
+      .sort((a, b) => {
+        const idxA = LEVEL_RANK_ORDER.indexOf(a);
+        const idxB = LEVEL_RANK_ORDER.indexOf(b);
+        if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+        if (idxA !== -1) return -1;
+        if (idxB !== -1) return 1;
+        return a.localeCompare(b);
+      })
+      .map((name) => ({
+        name,
+        count: counts[name] || 0,
+      }));
+  }, [data?.rows, selectedBranch, selectedCategory, selectedCula]);
 
   // Cawangan keys to display
   const cawanganEntries = Object.entries(groupedTree);
+
+  // Filtered rows for table view
+  const tableRows = useMemo(() => {
+    if (!data?.rows) return [];
+    return data.rows.filter((c) => {
+      const cat = getCertCategory(c);
+      if (selectedCategory !== 'semua' && cat !== selectedCategory) return false;
+      if (selectedCula !== 'semua' && cat === 'kenaikan_tali_pinggang') {
+        if (getCulaCategory(c.peringkat) !== selectedCula) return false;
+      }
+      if (selectedBranch && c.cawangan !== selectedBranch) return false;
+      if (selectedLevel && c.peringkat !== selectedLevel) return false;
+      return true;
+    });
+  }, [data?.rows, selectedCategory, selectedCula, selectedBranch, selectedLevel]);
 
   return (
     <>
@@ -404,29 +479,29 @@ export function Certificates() {
               <div className="text-xs sm:text-sm font-extrabold text-slate-950">
                 {lang === 'eng' ? 'Certificate Records Center' : 'Pusat Rekod Sijil'}
               </div>
-              <Chip color="red">{data?.total || 0} {t('certsCountSuffix')}</Chip>
+              <Chip color="red">{tableRows.length} daripada {data?.total || 0} Sijil</Chip>
             </div>
 
             {/* View Switch & Quick Select All */}
             <div className="flex flex-wrap items-center gap-2">
-              {data?.rows && data.rows.length > 0 && (
+              {tableRows.length > 0 && (
                 <button
                   type="button"
-                  onClick={() => toggleSelectAllVisible(data.rows)}
+                  onClick={() => toggleSelectAllVisible(tableRows)}
                   className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition ${
-                    data.rows.length > 0 && data.rows.every((r) => selectedIds.has(r.id))
+                    tableRows.length > 0 && tableRows.every((r) => selectedIds.has(r.id))
                       ? 'bg-red-50 text-red-700 border-red-300 shadow-2xs'
                       : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 shadow-2xs'
                   }`}
                   title={
-                    data.rows.length > 0 && data.rows.every((r) => selectedIds.has(r.id))
+                    tableRows.length > 0 && tableRows.every((r) => selectedIds.has(r.id))
                       ? 'Nyahpilih semua pelajar/sijil'
                       : 'Pilih semua pelajar/sijil'
                   }
                 >
-                  <CheckSquare size={13} className={data.rows.length > 0 && data.rows.every((r) => selectedIds.has(r.id)) ? 'text-red-700' : 'text-slate-400'} />
+                  <CheckSquare size={13} className={tableRows.length > 0 && tableRows.every((r) => selectedIds.has(r.id)) ? 'text-red-700' : 'text-slate-400'} />
                   <span>
-                    {data.rows.length > 0 && data.rows.every((r) => selectedIds.has(r.id))
+                    {tableRows.length > 0 && tableRows.every((r) => selectedIds.has(r.id))
                       ? (lang === 'eng' ? 'Deselect All' : 'Nyahpilih Semua')
                       : (lang === 'eng' ? 'Select All' : 'Pilih Semua')}
                   </span>
@@ -465,8 +540,95 @@ export function Certificates() {
             </div>
           </div>
 
+          {/* Level 0: Kategori Utama Jenis Sijil (Sijil Kenaikan Tali Pinggang, Pencapaian, Penghargaan, Penyertaan) */}
+          <div className="flex flex-wrap items-center gap-1.5 pt-0.5 border-b border-slate-100/80 pb-2.5">
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedCategory('semua');
+                setSelectedCula('semua');
+              }}
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                selectedCategory === 'semua'
+                  ? 'bg-red-700 text-white shadow-xs'
+                  : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+              }`}
+            >
+              <span>Semua Jenis Sijil</span>
+              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${selectedCategory === 'semua' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                {categoryCounts.semua}
+              </span>
+            </button>
+
+            {CERT_CATEGORIES.map((cat) => {
+              const active = selectedCategory === cat.id;
+              const count = categoryCounts[cat.id] || 0;
+              return (
+                <button
+                  key={cat.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedCategory(cat.id);
+                    if (cat.id !== 'kenaikan_tali_pinggang') setSelectedCula('semua');
+                  }}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                    active
+                      ? cat.activeTabClass
+                      : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                  }`}
+                >
+                  <span>{cat.emoji}</span>
+                  <span>{cat.label}</span>
+                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${active ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                    {count}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Level 0.5: Sub-Penapis Warna Cula (Untuk Sijil Kenaikan Tali Pinggang) */}
+          {(selectedCategory === 'semua' || selectedCategory === 'kenaikan_tali_pinggang') && (
+            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mr-1 flex items-center gap-1">
+                Warna Cula:
+              </span>
+              <button
+                type="button"
+                onClick={() => setSelectedCula('semua')}
+                className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+                  selectedCula === 'semua'
+                    ? 'bg-slate-900 text-white shadow-2xs'
+                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/70'
+                }`}
+              >
+                Semua Cula ({culaCounts.semua})
+              </button>
+              {CULA_GROUPS.map((tab) => {
+                const active = selectedCula === tab.id;
+                const cCount = culaCounts[tab.id] || 0;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setSelectedCula(active ? 'semua' : tab.id)}
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+                      active
+                        ? 'bg-red-700 text-white shadow-xs'
+                        : 'bg-slate-50 text-slate-600 hover:bg-slate-100 border border-slate-200/70'
+                    }`}
+                  >
+                    <span className={`h-2 w-2 rounded-full ${tab.dot}`} />
+                    <span>{tab.label}</span>
+                    <span className="text-[10px] opacity-75 font-mono">({cCount})</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           {/* Level 1: Pilihan Cawangan (By Cawangan) */}
-          <div className="space-y-1.5 pt-1">
+          <div className="space-y-1.5 pt-1 border-t border-slate-100">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-1">
                 <MapPin size={11} className="text-red-600" />
@@ -496,7 +658,7 @@ export function Certificates() {
                     !selectedBranch ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
                   }`}
                 >
-                  {data?.total || 0}
+                  {tableRows.length}
                 </span>
               </button>
 
@@ -534,7 +696,7 @@ export function Certificates() {
             </div>
           </div>
 
-          {/* Level 2: Di Dalam Cawangan Mengikut Peringkat (In Cawangan By Peringkat) */}
+          {/* Level 2: Di Dalam Cawangan Mengikut Peringkat (Tersusun ikut Cula) */}
           <div className="flex flex-wrap items-center justify-between gap-2.5 pt-1 border-t border-slate-100">
             <div className="flex flex-wrap items-center gap-1.5">
               <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mr-1 flex items-center gap-1">
@@ -571,327 +733,217 @@ export function Certificates() {
                   >
                     <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
                     <span>{lvl.name}</span>
-                    <span
-                      className={`text-[9px] px-1 py-0.2 rounded-full ${
-                        isSelected ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
-                      }`}
-                    >
-                      {lvl.count}
-                    </span>
+                    <span className="text-[10px] opacity-75 font-mono">({lvl.count})</span>
                   </button>
                 );
               })}
             </div>
 
-            {/* Carian Pantas */}
-            <div className="w-full sm:w-auto">
+            {/* Kotak Carian */}
+            <div className="w-full sm:w-64 pt-1 sm:pt-0">
               <SearchField
                 value={q}
                 onChange={setQ}
-                placeholder="Cari nama, ID atau sijil..."
+                placeholder={lang === 'eng' ? 'Search student, IC, cert...' : 'Cari pesilat, no. KP, sijil...'}
               />
             </div>
           </div>
         </div>
 
-        {/* Bar Tindakan Pukal (Batch Selection Action Bar) */}
+        {/* Bar Tindakan Pukal (Floating Batch Action Bar bila ada sijil dipilih) */}
         {selectedIds.size > 0 && (
-          <div className="mx-3 sm:mx-4 mt-3 rounded-2xl border border-red-200 bg-gradient-to-r from-red-50/95 via-rose-50/80 to-red-50/95 p-3 sm:px-4 sm:py-2.5 shadow-xs flex flex-wrap items-center justify-between gap-3 animate-in fade-in duration-200">
-            <div className="flex items-center gap-2.5">
-              <span className="flex h-7 w-7 items-center justify-center rounded-xl bg-red-700 text-white shadow-xs">
-                <CheckSquare size={15} />
-              </span>
-              <div>
-                <div className="text-xs sm:text-sm font-extrabold text-slate-900 flex items-center gap-1.5">
-                  <span className="text-red-700">{selectedIds.size}</span>
-                  <span>{lang === 'eng' ? 'certificates selected' : 'sijil dipilih'}</span>
-                </div>
-                <p className="text-[10px] text-slate-500 hidden sm:block">
-                  {lang === 'eng'
-                    ? 'Select certificates and click delete to remove them in batch.'
-                    : 'Pilih pelajar/sijil dan klik buang untuk memadam rekod secara pukal.'}
-                </p>
+          <div className="sticky top-14 sm:top-16 z-20 flex flex-wrap items-center justify-between gap-3 bg-red-700 text-white px-4 py-3 shadow-lg border-b border-red-800">
+            <div className="flex items-center gap-2">
+              <CheckSquare size={18} className="text-white" />
+              <div className="text-xs sm:text-sm font-extrabold">
+                {selectedIds.size} {lang === 'eng' ? 'certificates selected' : 'sijil dipilih'}
               </div>
             </div>
-
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={clearSelection}
-                className="rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 hover:bg-slate-50 transition shadow-2xs"
+                className="rounded-xl bg-white/10 hover:bg-white/20 px-3 py-1.5 text-xs font-bold transition text-white"
               >
-                {lang === 'eng' ? 'Deselect All' : 'Batal Pilihan'}
+                {lang === 'eng' ? 'Cancel Selection' : 'Batal Pilihan'}
               </button>
               <button
                 type="button"
                 onClick={() => setBatchModal(true)}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-red-700 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-red-800 transition active:scale-95"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-white px-3.5 py-1.5 text-xs font-extrabold text-red-700 hover:bg-red-50 transition shadow-xs"
               >
-                <Trash2 size={13} />
-                <span>{lang === 'eng' ? `Delete (${selectedIds.size})` : `Buang (${selectedIds.size})`}</span>
+                <Trash2 size={14} className="text-red-700" />
+                <span>{lang === 'eng' ? 'Delete Selected' : 'Padam Sijil Dipilih'}</span>
               </button>
             </div>
           </div>
         )}
 
-        {/* Kandungan Sijil (By Cawangan -> By Peringkat) */}
+        {/* Kandungan Utama Sijil */}
         {!data ? (
           <Loading />
-        ) : data.rows.length === 0 ? (
+        ) : tableRows.length === 0 ? (
           <Empty
-            title="Tiada rekod sijil ditemui"
-            message="Tiada sijil yang sepadan dengan cawangan, peringkat atau kriteria carian anda."
+            icon={Award}
+            title={t('noCertsYet')}
+            message={t('noCertsYetDesc')}
           />
         ) : viewMode === 'grouped' ? (
-          /* Paparan Hierarki Berkumpulan (By Cawangan, dan di dalam Cawangan By Peringkat) */
-          <div className="p-3 sm:p-4 max-h-[calc(100vh-250px)] overflow-y-auto space-y-4">
+          /* Paparan 1: Berkelompok Mengikut Cawangan -> Peringkat (Tersusun ikut Cula: Merah, Kuning, Hijau, Hitam) */
+          <div className="divide-y divide-slate-200/80 p-3 sm:p-5 space-y-6">
             {cawanganEntries.map(([cawanganName, branchData]) => {
-              const levelEntries = Object.entries(branchData.levels);
+              // Susun peringkat mengikut urutan bengkung silat (Merah -> Kuning -> Hijau -> Hitam)
+              const sortedLevels = Object.entries(branchData.levels).sort(([a], [b]) => {
+                const idxA = LEVEL_RANK_ORDER.indexOf(a);
+                const idxB = LEVEL_RANK_ORDER.indexOf(b);
+                if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+                if (idxA !== -1) return -1;
+                if (idxB !== -1) return 1;
+                return a.localeCompare(b);
+              });
 
               return (
-                <div
-                  key={cawanganName}
-                  className="rounded-2xl border border-slate-200/90 bg-white overflow-hidden shadow-xs"
-                >
-                  {/* Header Cawangan (Level 1) */}
-                  <div className="flex items-center justify-between bg-gradient-to-r from-red-50/70 via-slate-50 to-white px-4 py-2.5 border-b border-slate-200/80">
-                    <div className="flex items-center gap-2">
-                      <div className="grid h-7 w-7 place-items-center rounded-lg bg-red-700 text-white shadow-xs">
-                        <MapPin size={14} />
+                <div key={cawanganName} className="space-y-4 pt-2 first:pt-0">
+                  {/* Cawangan Group Header */}
+                  <div className="flex flex-wrap items-center justify-between gap-2 bg-gradient-to-r from-slate-100/90 to-red-50/50 p-3 rounded-2xl border border-slate-200/80">
+                    <div className="flex items-center gap-2.5">
+                      <div className="grid h-8 w-8 place-items-center rounded-xl bg-red-700 text-white font-black text-xs shadow-xs">
+                        <MapPin size={15} />
                       </div>
                       <div>
-                        <h2 className="text-xs sm:text-sm font-extrabold text-slate-950">
+                        <h2 className="text-sm sm:text-base font-extrabold text-slate-950 uppercase tracking-tight">
                           {cawanganName}
                         </h2>
-                        <p className="text-[10px] text-slate-400">
-                          {levelEntries.length} peringkat berdaftar di cawangan ini
-                        </p>
+                        <span className="text-[11px] font-semibold text-slate-500">
+                          {branchData.total} {lang === 'eng' ? 'official certificates issued' : 'sijil rasmi dikeluarkan'}
+                        </span>
                       </div>
                     </div>
-                    <span className="inline-flex items-center gap-1 rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-extrabold text-red-800">
-                      <Award size={12} /> {branchData.total} sijil
-                    </span>
+                    <Chip color="red">{branchData.total} {t('certsCountSuffix')}</Chip>
                   </div>
 
-                  {/* Di dalam Cawangan: Kumpulan Mengikut Peringkat (Level 2) */}
-                  <div className="p-3 sm:p-4 space-y-3.5 bg-slate-50/40">
-                    {levelEntries.map(([peringkatName, certList]) => {
-                      const rankMeta = getRankMeta(peringkatName);
+                  {/* Ranks inside Cawangan (Sorted directly by Cula) */}
+                  <div className="space-y-4 pl-0 sm:pl-3">
+                    {sortedLevels.map(([levelName, certList]) => {
+                      const rankMeta = getRankMeta(levelName);
+                      const allGroupSelected = certList.every((c) => selectedIds.has(c.id));
 
                       return (
                         <div
-                          key={peringkatName}
-                          className="rounded-xl border border-slate-200/80 bg-white overflow-hidden shadow-2xs"
+                          key={levelName}
+                          className="rounded-2xl border border-slate-200/80 bg-white p-3.5 sm:p-4 shadow-2xs space-y-3"
                         >
-                          {/* Header Peringkat Di Dalam Cawangan */}
-                          <div className="flex items-center justify-between px-3.5 py-2 bg-white border-b border-slate-100">
+                          {/* Rank Header with quick Select All for group */}
+                          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
                             <div className="flex items-center gap-2">
-                              <span className={`h-2.5 w-2.5 rounded-full ${rankMeta.dot}`} />
-                              <h3 className="text-xs font-extrabold text-slate-900">
-                                {peringkatName}
-                              </h3>
+                              <span className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold border ${rankMeta.badge}`}>
+                                <span className={`h-2 w-2 rounded-full ${rankMeta.dot}`} />
+                                {levelName}
+                              </span>
+                              <span className="text-xs text-slate-400 font-bold font-mono">
+                                ({certList.length} {t('studentsCountSuffix')})
+                              </span>
                             </div>
-                            <Chip color={rankMeta.chip}>
-                              {certList.length} sijil
-                            </Chip>
+
+                            <button
+                              type="button"
+                              onClick={() => toggleGroupSelect(certList)}
+                              className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-lg border transition ${
+                                allGroupSelected
+                                  ? 'bg-red-50 text-red-700 border-red-300'
+                                  : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                              }`}
+                            >
+                              <CheckSquare size={13} className={allGroupSelected ? 'text-red-700' : 'text-slate-400'} />
+                              <span>{allGroupSelected ? (lang === 'eng' ? 'Deselect Group' : 'Nyahpilih Peringkat') : (lang === 'eng' ? 'Select Group' : 'Pilih Semua Peringkat Ini')}</span>
+                            </button>
                           </div>
 
-                          {/* Senarai Sijil Di Bawah Peringkat Ini: Mobile Cards View */}
-                          <div className="block md:hidden p-2.5 space-y-2">
-                            {certList.map((r, idx) => (
-                              <div
-                                key={r.id}
-                                className={`rounded-xl border p-3 transition ${
-                                  selectedIds.has(r.id) ? 'bg-red-50/70 border-red-200' : 'bg-[#FCFDFB] border-slate-200/80 shadow-2xs'
-                                }`}
-                              >
-                                <div className="flex items-start justify-between gap-2">
-                                  <div className="flex items-start gap-2.5 min-w-0">
-                                    <input
-                                      type="checkbox"
-                                      aria-label={`Pilih sijil ${r.nama_penuh}`}
-                                      checked={selectedIds.has(r.id)}
-                                      onChange={() => toggleSelect(r.id)}
-                                      className="mt-0.5 h-4 w-4 rounded border-slate-300 text-red-700 focus:ring-red-500 cursor-pointer shrink-0"
-                                    />
-                                    <div className="min-w-0">
-                                      <div className="font-bold text-slate-950 text-xs sm:text-sm truncate">
-                                        {r.nama_penuh}
-                                      </div>
-                                      <div className="text-[10px] font-mono text-slate-500">
-                                        {r.no_kp_atau_id || '—'}
-                                      </div>
-                                    </div>
-                                  </div>
-                                  <span
-                                    className={`shrink-0 inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                                      r.jenis === 'generated'
-                                        ? 'bg-red-50 text-red-700 border-red-200'
-                                        : 'bg-amber-50 text-amber-800 border-amber-200'
-                                    }`}
-                                  >
-                                    {r.jenis === 'generated' ? 'Auto PDF' : 'Fail Sendiri'}
-                                  </span>
-                                </div>
+                          {/* Student Certificate Cards in this Rank */}
+                          <div className="grid gap-2.5 sm:gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                            {certList.map((r) => {
+                              const isChecked = selectedIds.has(r.id);
+                              const catMeta = getCategoryMeta(getCertCategory(r));
 
-                                <div className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-slate-800">
-                                  <FileText size={13} className="text-red-600 shrink-0" />
-                                  <span className="truncate" title={r.nama_sijil}>{r.nama_sijil}</span>
-                                </div>
-
-                                <div className="mt-2.5 flex items-center justify-between border-t border-slate-100 pt-2">
-                                  <span className="inline-flex items-center gap-1 text-[11px] text-slate-500">
-                                    <CalendarDays size={11} className="text-slate-400" />
-                                    {fmtDate(r.tarikh_isu)}
-                                  </span>
-                                  <div className="flex items-center gap-1">
-                                    <a
-                                      href={certPreview(r.public_token)}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      title="Lihat sijil"
-                                      aria-label="Lihat sijil"
-                                      className="rounded-lg bg-slate-100 p-1.5 text-slate-600 transition hover:bg-red-50 hover:text-red-800"
-                                    >
-                                      <Eye size={13} />
-                                    </a>
-                                    <a
-                                      href={certDownload(r.public_token)}
-                                      download={`${r.nama_penuh}.pdf`}
-                                      title="Muat turun sijil"
-                                      aria-label="Muat turun sijil"
-                                      className="rounded-lg bg-red-50 p-1.5 text-red-700 transition hover:bg-red-100 border border-red-100"
-                                    >
-                                      <Download size={13} />
-                                    </a>
-                                    <button
-                                      onClick={() => setTarget(r)}
-                                      title="Padam sijil"
-                                      aria-label="Padam sijil"
-                                      className="rounded-lg bg-rose-50 p-1.5 text-rose-600 transition hover:bg-rose-100"
-                                    >
-                                      <Trash2 size={13} />
-                                    </button>
-                                  </div>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-
-                          {/* Senarai Sijil Di Bawah Peringkat Ini: Desktop Table View */}
-                          <div className="hidden md:block overflow-x-auto">
-                            <table className="w-full text-left text-xs">
-                              <thead className="bg-[#FAFBF9] text-[9px] font-extrabold uppercase tracking-wider text-slate-400 border-b border-slate-100">
-                                <tr>
-                                  <th className="w-9 px-2 py-2 text-center">
-                                    <input
-                                      type="checkbox"
-                                      aria-label="Pilih semua sijil peringkat ini"
-                                      checked={certList.length > 0 && certList.every((c) => selectedIds.has(c.id))}
-                                      onChange={() => toggleGroupSelect(certList)}
-                                      className="h-3.5 w-3.5 rounded border-slate-300 text-red-700 focus:ring-red-500 cursor-pointer"
-                                      title={
-                                        certList.length > 0 && certList.every((c) => selectedIds.has(c.id))
-                                          ? 'Nyahpilih semua dalam peringkat ini'
-                                          : 'Pilih semua dalam peringkat ini'
-                                      }
-                                    />
-                                  </th>
-                                  <th className="w-8 px-2 py-2 text-center">Bil.</th>
-                                  <th className="px-3 py-2">Nama Pesilat</th>
-                                  <th className="px-3 py-2">No. KP / ID</th>
-                                  <th className="px-3 py-2">Nama Sijil</th>
-                                  <th className="px-3 py-2">Tarikh Dikeluarkan</th>
-                                  <th className="px-3 py-2">Format</th>
-                                  <th className="px-3 py-2 text-right">Tindakan</th>
-                                </tr>
-                              </thead>
-                              <tbody className="divide-y divide-slate-100">
-                                {certList.map((r, idx) => (
-                                  <tr
-                                    key={r.id}
-                                    className={`transition ${selectedIds.has(r.id) ? 'bg-red-50/70 border-y border-red-200' : 'hover:bg-slate-50/80'}`}
-                                  >
-                                    <td className="px-2 py-2 text-center">
+                              return (
+                                <div
+                                  key={r.id}
+                                  className={`group relative rounded-xl border p-3 transition shadow-2xs ${
+                                    isChecked
+                                      ? 'border-red-600 bg-red-50/50 ring-2 ring-red-400/30'
+                                      : 'border-slate-200/90 bg-white hover:border-slate-300 hover:shadow-xs'
+                                  }`}
+                                >
+                                  {/* Top student row with selection checkbox */}
+                                  <div className="flex items-start justify-between gap-2">
+                                    <div className="flex items-start gap-2 min-w-0">
                                       <input
                                         type="checkbox"
-                                        aria-label={`Pilih sijil ${r.nama_penuh}`}
-                                        checked={selectedIds.has(r.id)}
+                                        checked={isChecked}
                                         onChange={() => toggleSelect(r.id)}
-                                        className="h-3.5 w-3.5 rounded border-slate-300 text-red-700 focus:ring-red-500 cursor-pointer"
+                                        className="mt-0.5 h-4 w-4 rounded border-slate-300 text-red-600 focus:ring-red-500 cursor-pointer shrink-0"
                                       />
-                                    </td>
-                                    <td className="px-2 py-2 text-center font-mono text-slate-400 text-[10px]">
-                                      {idx + 1}
-                                    </td>
-                                    <td className="px-3 py-2">
-                                      <span className="font-bold text-slate-950 text-xs sm:text-sm">
-                                        {r.nama_penuh}
-                                      </span>
-                                    </td>
-                                    <td className="px-3 py-2 font-mono text-slate-500 text-[11px] whitespace-nowrap">
-                                      {r.no_kp_atau_id || '—'}
-                                    </td>
-                                    <td className="px-3 py-2">
-                                      <div className="flex items-center gap-1 font-semibold text-slate-800 text-xs">
-                                        <FileText size={13} className="text-red-600 shrink-0" />
-                                        <span className="truncate max-w-[220px]" title={r.nama_sijil}>
-                                          {r.nama_sijil}
-                                        </span>
+                                      <div className="min-w-0">
+                                        <div className="font-extrabold text-slate-950 text-xs sm:text-sm truncate" title={r.nama_penuh}>
+                                          {r.nama_penuh}
+                                        </div>
+                                        <div className="text-[10px] font-mono text-slate-500">
+                                          {r.no_kp_atau_id || '—'}
+                                        </div>
                                       </div>
-                                    </td>
-                                    <td className="px-3 py-2 text-slate-500 text-[11px] whitespace-nowrap">
-                                      <span className="inline-flex items-center gap-1">
-                                        <CalendarDays size={11} className="text-slate-400" />
-                                        {fmtDate(r.tarikh_isu)}
-                                      </span>
-                                    </td>
-                                    <td className="px-3 py-2 whitespace-nowrap">
-                                      <span
-                                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold border ${
-                                          r.jenis === 'generated'
-                                            ? 'bg-red-50 text-red-700 border-red-200'
-                                            : 'bg-amber-50 text-amber-800 border-amber-200'
-                                        }`}
+                                    </div>
+
+                                    {/* Category Badge */}
+                                    <span className={`shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9.5px] font-bold border ${catMeta.badge}`}>
+                                      <span>{catMeta.emoji}</span>
+                                      <span>{catMeta.shortLabel}</span>
+                                    </span>
+                                  </div>
+
+                                  <div className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-slate-800">
+                                    <FileText size={13} className="text-red-600 shrink-0" />
+                                    <span className="truncate" title={r.nama_sijil}>{r.nama_sijil}</span>
+                                  </div>
+
+                                  <div className="mt-2.5 flex items-center justify-between border-t border-slate-100 pt-2">
+                                    <span className="inline-flex items-center gap-1 text-[11px] text-slate-500">
+                                      <CalendarDays size={11} className="text-slate-400" />
+                                      {fmtDate(r.tarikh_isu)}
+                                    </span>
+                                    <div className="flex items-center gap-1">
+                                      <a
+                                        href={certPreview(r.public_token)}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        title="Lihat sijil"
+                                        aria-label="Lihat sijil"
+                                        className="rounded-lg bg-slate-100 p-1.5 text-slate-600 transition hover:bg-red-50 hover:text-red-800"
                                       >
-                                        {r.jenis === 'generated' ? 'Auto PDF' : 'Fail Sendiri'}
-                                      </span>
-                                    </td>
-                                    <td className="px-3 py-2 text-right whitespace-nowrap">
-                                      <div className="inline-flex items-center gap-1">
-                                        <a
-                                          href={certPreview(r.public_token)}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          title="Lihat sijil"
-                                          aria-label="Lihat sijil"
-                                          className="rounded-lg bg-slate-100 p-1.5 text-slate-600 transition hover:bg-red-50 hover:text-red-800"
-                                        >
-                                          <Eye size={13} />
-                                        </a>
-                                        <a
-                                          href={certDownload(r.public_token)}
-                                          download={`${r.nama_penuh}.pdf`}
-                                          title="Muat turun sijil"
-                                          aria-label="Muat turun sijil"
-                                          className="rounded-lg bg-red-50 p-1.5 text-red-700 transition hover:bg-red-100 border border-red-100"
-                                        >
-                                          <Download size={13} />
-                                        </a>
-                                        <button
-                                          onClick={() => setTarget(r)}
-                                          title="Padam sijil"
-                                          aria-label="Padam sijil"
-                                          className="rounded-lg bg-rose-50 p-1.5 text-rose-600 transition hover:bg-rose-100"
-                                        >
-                                          <Trash2 size={13} />
-                                        </button>
-                                      </div>
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
+                                        <Eye size={13} />
+                                      </a>
+                                      <a
+                                        href={certDownload(r.public_token)}
+                                        download={`${r.nama_penuh}.pdf`}
+                                        title="Muat turun sijil"
+                                        aria-label="Muat turun sijil"
+                                        className="rounded-lg bg-red-50 p-1.5 text-red-700 transition hover:bg-red-100 border border-red-100"
+                                      >
+                                        <Download size={13} />
+                                      </a>
+                                      <button
+                                        type="button"
+                                        onClick={() => setTarget(r)}
+                                        title="Padam sijil"
+                                        aria-label="Padam sijil"
+                                        className="rounded-lg bg-rose-50 p-1.5 text-rose-600 transition hover:bg-rose-100"
+                                      >
+                                        <Trash2 size={13} />
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
                           </div>
                         </div>
                       );
@@ -902,38 +954,44 @@ export function Certificates() {
             })}
           </div>
         ) : (
-          /* Paparan Jadual Penuh Bertapis */
+          /* Paparan 2: Jadual Penuh (Table View) */
           <div>
-            {/* Mobile Cards View */}
+            {/* Mobile Table View (< md) */}
             <div className="block md:hidden divide-y divide-slate-100 p-3 space-y-3">
-              {data.rows.map((r) => {
+              {tableRows.map((r) => {
                 const rankMeta = getRankMeta(r.peringkat);
+                const isChecked = selectedIds.has(r.id);
+                const catMeta = getCategoryMeta(getCertCategory(r));
+
                 return (
                   <div
                     key={r.id}
-                    className={`rounded-2xl border p-3.5 space-y-2.5 transition ${
-                      selectedIds.has(r.id) ? 'bg-red-50/70 border-red-200' : 'bg-white border-slate-200/80 shadow-2xs'
+                    className={`rounded-2xl border p-3.5 space-y-2.5 transition shadow-2xs ${
+                      isChecked
+                        ? 'border-red-600 bg-red-50/40 ring-1 ring-red-400'
+                        : 'border-slate-200/80 bg-white'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="flex items-start gap-2.5 min-w-0">
                         <input
                           type="checkbox"
-                          aria-label={`Pilih sijil ${r.nama_penuh}`}
-                          checked={selectedIds.has(r.id)}
+                          checked={isChecked}
                           onChange={() => toggleSelect(r.id)}
-                          className="mt-0.5 h-4 w-4 rounded border-slate-300 text-red-700 focus:ring-red-500 cursor-pointer shrink-0"
+                          className="mt-1 h-4 w-4 rounded border-slate-300 text-red-600 focus:ring-red-500 cursor-pointer shrink-0"
                         />
                         <div className="min-w-0">
-                          <div className="font-bold text-slate-950 text-xs sm:text-sm truncate">
-                            {r.nama_penuh}
-                          </div>
-                          <div className="text-[10px] font-mono text-slate-500">
-                            {r.no_kp_atau_id || '—'}
-                          </div>
+                          <div className="font-extrabold text-slate-950 text-sm truncate">{r.nama_penuh}</div>
+                          <div className="text-xs text-slate-400 font-mono">{r.no_kp_atau_id || '—'}</div>
                         </div>
                       </div>
-                      <Chip color={rankMeta.chip}>{r.peringkat}</Chip>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9.5px] font-bold border ${catMeta.badge}`}>
+                          <span>{catMeta.emoji}</span>
+                          <span>{catMeta.shortLabel}</span>
+                        </span>
+                        <Chip color={rankMeta.chip}>{r.peringkat}</Chip>
+                      </div>
                     </div>
 
                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-slate-600">
@@ -945,9 +1003,6 @@ export function Certificates() {
                         <CalendarDays size={11} className="text-slate-400" />
                         {fmtDate(r.tarikh_isu)}
                       </span>
-                      <Chip color={r.jenis === 'generated' ? 'red' : 'gold'}>
-                        {r.jenis === 'generated' ? 'Auto PDF' : 'Fail Sendiri'}
-                      </Chip>
                     </div>
 
                     <div className="flex items-center gap-1.5 font-semibold text-slate-800 text-xs">
@@ -989,117 +1044,114 @@ export function Certificates() {
               })}
             </div>
 
-            {/* Desktop Full Table View */}
-            <div className="hidden md:block overflow-x-auto max-h-[calc(100vh-250px)] overflow-y-auto">
+            {/* Desktop Table View (>= md) */}
+            <div className="hidden md:block overflow-x-auto max-h-[calc(100vh-235px)] overflow-y-auto">
               <table className="w-full min-w-[760px] text-left text-xs sm:text-sm">
-              <thead className="sticky top-0 z-10 bg-[#FBFCFA] text-[10px] font-extrabold uppercase tracking-[.13em] text-slate-400 border-b border-slate-100 shadow-2xs">
-                <tr>
-                  <th className="w-10 px-3.5 py-2.5 text-center">
-                    <input
-                      type="checkbox"
-                      aria-label="Pilih semua sijil"
-                      checked={data.rows.length > 0 && data.rows.every((c) => selectedIds.has(c.id))}
-                      onChange={() => toggleSelectAllVisible(data.rows)}
-                      className="h-4 w-4 rounded border-slate-300 text-red-700 focus:ring-red-500 cursor-pointer"
-                      title={
-                        data.rows.length > 0 && data.rows.every((c) => selectedIds.has(c.id))
-                          ? 'Nyahpilih semua sijil'
-                          : 'Pilih semua sijil'
-                      }
-                    />
-                  </th>
-                  <th className="px-3.5 py-2.5">Nama Pesilat</th>
-                  <th className="px-3.5 py-2.5">Cawangan</th>
-                  <th className="px-3.5 py-2.5">Peringkat</th>
-                  <th className="px-3.5 py-2.5">Nama Sijil</th>
-                  <th className="px-3.5 py-2.5">Tarikh</th>
-                  <th className="px-3.5 py-2.5">Format</th>
-                  <th className="px-3.5 py-2.5 text-right">Tindakan</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {data.rows.map((r) => {
-                  const rankMeta = getRankMeta(r.peringkat);
+                <thead className="sticky top-0 z-10 bg-[#FBFCFA] text-[10px] font-extrabold uppercase tracking-[.14em] text-slate-400 border-b border-slate-100 shadow-2xs">
+                  <tr>
+                    <th className="px-3.5 py-2.5 w-10">
+                      <input
+                        type="checkbox"
+                        checked={tableRows.length > 0 && tableRows.every((r) => selectedIds.has(r.id))}
+                        onChange={() => toggleSelectAllVisible(tableRows)}
+                        className="h-4 w-4 rounded border-slate-300 text-red-600 focus:ring-red-500 cursor-pointer"
+                        title="Pilih semua di jadual ini"
+                      />
+                    </th>
+                    <th className="px-3.5 py-2.5">Kategori</th>
+                    <th className="px-3.5 py-2.5">{t('thStudent')}</th>
+                    <th className="px-3.5 py-2.5">{t('thLevel')}</th>
+                    <th className="px-3.5 py-2.5">{t('thBranch')}</th>
+                    <th className="px-3.5 py-2.5">{t('thCertName')}</th>
+                    <th className="px-3.5 py-2.5">{t('thIssueDate')}</th>
+                    <th className="px-3.5 py-2.5 text-right">{t('thActions')}</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {tableRows.map((r) => {
+                    const rankMeta = getRankMeta(r.peringkat);
+                    const isChecked = selectedIds.has(r.id);
+                    const catMeta = getCategoryMeta(getCertCategory(r));
 
-                  return (
-                    <tr
-                      key={r.id}
-                      className={`transition ${selectedIds.has(r.id) ? 'bg-red-50/70 border-y border-red-200' : 'hover:bg-slate-50'}`}
-                    >
-                      <td className="px-3.5 py-2.5 text-center">
-                        <input
-                          type="checkbox"
-                          aria-label={`Pilih sijil ${r.nama_penuh}`}
-                          checked={selectedIds.has(r.id)}
-                          onChange={() => toggleSelect(r.id)}
-                          className="h-4 w-4 rounded border-slate-300 text-red-700 focus:ring-red-500 cursor-pointer"
-                        />
-                      </td>
-                      <td className="px-3.5 py-2.5">
-                        <div className="font-bold text-slate-950 text-xs sm:text-sm">{r.nama_penuh}</div>
-                        <div className="text-[10px] text-slate-400">{r.no_kp_atau_id || '—'}</div>
-                      </td>
-                      <td className="px-3.5 py-2.5 font-semibold text-slate-700 whitespace-nowrap text-xs">
-                        {r.cawangan}
-                      </td>
-                      <td className="px-3.5 py-2.5 whitespace-nowrap">
-                        <Chip color={rankMeta.chip}>{r.peringkat}</Chip>
-                      </td>
-                      <td className="px-3.5 py-2.5">
-                        <div className="flex items-center gap-1.5 font-semibold text-slate-800 text-xs">
-                          <FileText className="shrink-0 text-red-600" size={14} />
-                          <span className="truncate max-w-[240px]" title={r.nama_sijil}>
-                            {r.nama_sijil}
+                    return (
+                      <tr
+                        key={r.id}
+                        className={`transition ${isChecked ? 'bg-red-50/50' : 'hover:bg-slate-50'}`}
+                      >
+                        <td className="px-3.5 py-2.5">
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => toggleSelect(r.id)}
+                            className="h-4 w-4 rounded border-slate-300 text-red-600 focus:ring-red-500 cursor-pointer"
+                          />
+                        </td>
+                        <td className="px-3.5 py-2.5 whitespace-nowrap">
+                          <span className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-bold border ${catMeta.badge}`}>
+                            <span>{catMeta.emoji}</span>
+                            <span>{catMeta.shortLabel}</span>
                           </span>
-                        </div>
-                      </td>
-                      <td className="px-3.5 py-2.5 text-xs text-slate-500 whitespace-nowrap">
-                        {fmtDate(r.tarikh_isu)}
-                      </td>
-                      <td className="px-3.5 py-2.5 whitespace-nowrap">
-                        <Chip color={r.jenis === 'generated' ? 'red' : 'gold'}>
-                          {r.jenis === 'generated' ? 'Auto PDF' : 'Fail Sendiri'}
-                        </Chip>
-                      </td>
-                      <td className="px-3.5 py-2.5 text-right whitespace-nowrap">
-                        <div className="inline-flex items-center gap-1">
-                          <a
-                            href={certPreview(r.public_token)}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            title="Lihat sijil"
-                            aria-label="Lihat sijil"
-                            className="rounded-lg bg-slate-100 p-1.5 text-slate-600 transition hover:bg-red-50 hover:text-red-800"
-                          >
-                            <Eye size={14} />
-                          </a>
-                          <a
-                            href={certDownload(r.public_token)}
-                            download={`${r.nama_penuh}.pdf`}
-                            title="Muat turun sijil"
-                            aria-label="Muat turun sijil"
-                            className="rounded-lg bg-red-50 p-1.5 text-red-700 transition hover:bg-red-100 border border-red-100"
-                          >
-                            <Download size={14} />
-                          </a>
-                          <button
-                            onClick={() => setTarget(r)}
-                            title="Padam sijil"
-                            aria-label="Padam sijil"
-                            className="rounded-lg bg-rose-50 p-1.5 text-rose-600 transition hover:bg-rose-100"
-                          >
-                            <Trash2 size={14} />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                        </td>
+                        <td className="px-3.5 py-2.5 font-bold text-slate-950">
+                          <div>{r.nama_penuh}</div>
+                          <div className="text-[10px] text-slate-400 font-mono font-normal">
+                            {r.no_kp_atau_id || '—'}
+                          </div>
+                        </td>
+                        <td className="px-3.5 py-2.5 whitespace-nowrap">
+                          <Chip color={rankMeta.chip}>{r.peringkat}</Chip>
+                        </td>
+                        <td className="px-3.5 py-2.5 text-slate-600 whitespace-nowrap">{r.cawangan}</td>
+                        <td className="px-3.5 py-2.5 font-medium text-slate-800">
+                          <div className="flex items-center gap-1.5">
+                            <FileText className="shrink-0 text-red-600" size={14} />
+                            <span className="truncate max-w-[240px]" title={r.nama_sijil}>
+                              {r.nama_sijil}
+                            </span>
+                          </div>
+                        </td>
+                        <td className="px-3.5 py-2.5 text-xs text-slate-500 whitespace-nowrap">
+                          {fmtDate(r.tarikh_isu)}
+                        </td>
+                        <td className="px-3.5 py-2.5 text-right whitespace-nowrap">
+                          <div className="inline-flex items-center gap-1">
+                            <a
+                              href={certPreview(r.public_token)}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              title="Lihat sijil"
+                              aria-label="Lihat sijil"
+                              className="rounded-lg bg-slate-100 p-1.5 text-slate-600 transition hover:bg-red-50 hover:text-red-800"
+                            >
+                              <Eye size={14} />
+                            </a>
+                            <a
+                              href={certDownload(r.public_token)}
+                              download={`${r.nama_penuh}.pdf`}
+                              title="Muat turun sijil"
+                              aria-label="Muat turun sijil"
+                              className="rounded-lg bg-red-50 p-1.5 text-red-700 transition hover:bg-red-100 border border-red-100"
+                            >
+                              <Download size={14} />
+                            </a>
+                            <button
+                              onClick={() => setTarget(r)}
+                              title="Padam sijil"
+                              aria-label="Padam sijil"
+                              className="rounded-lg bg-rose-50 p-1.5 text-rose-600 transition hover:bg-rose-100"
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
-      )}
+        )}
       </Panel>
 
       <CertificateForm open={modal} onClose={() => setModal(false)} onSaved={load} />
@@ -1110,7 +1162,11 @@ export function Certificates() {
         onConfirm={remove}
         busy={busy}
         title={t('confirmDeleteCertTitle')}
-        message={lang === 'eng' ? `Certificate "${target?.nama_sijil || ''}" for ${target?.nama_penuh || ''} will be permanently deleted and its public verification link revoked.` : `Sijil “${target?.nama_sijil || ''}” untuk ${target?.nama_penuh || ''} akan dipadam secara kekal dan pautan awamnya tidak lagi sah.`}
+        message={
+          lang === 'eng'
+            ? `Certificate "${target?.nama_sijil || ''}" for ${target?.nama_penuh || ''} will be permanently deleted and its public verification link revoked.`
+            : `Sijil “${target?.nama_sijil || ''}” untuk ${target?.nama_penuh || ''} akan dipadam secara kekal dan pautan awamnya tidak lagi sah.`
+        }
       />
 
       <Confirm

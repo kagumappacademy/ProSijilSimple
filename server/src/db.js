@@ -27,6 +27,7 @@ CREATE TABLE IF NOT EXISTS sijil (
  jenis TEXT NOT NULL CHECK(jenis IN ('generated','uploaded')),
  file_path TEXT, file_type TEXT, public_token TEXT NOT NULL UNIQUE,
  file_base64 TEXT,
+ kategori TEXT DEFAULT 'kenaikan_tali_pinggang',
  created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE TABLE IF NOT EXISTS template_sijil (
@@ -38,6 +39,7 @@ CREATE TABLE IF NOT EXISTS template_sijil (
  file_name TEXT NOT NULL,
  file_size INTEGER DEFAULT 0,
  file_base64 TEXT,
+ kategori TEXT DEFAULT 'kenaikan_tali_pinggang',
  created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE TABLE IF NOT EXISTS settings (
@@ -51,6 +53,8 @@ CREATE INDEX IF NOT EXISTS idx_template_peringkat ON template_sijil(nama_templat
 // Migrasi lajur tambahan jika jadual telah wujud sebelum ini
 try { db.exec('ALTER TABLE template_sijil ADD COLUMN file_base64 TEXT;'); } catch (_) {}
 try { db.exec('ALTER TABLE sijil ADD COLUMN file_base64 TEXT;'); } catch (_) {}
+try { db.exec('ALTER TABLE template_sijil ADD COLUMN kategori TEXT;'); } catch (_) {}
+try { db.exec('ALTER TABLE sijil ADD COLUMN kategori TEXT;'); } catch (_) {}
 const defaults = {
  nama_organisasi: 'AKADEMI PRO SILAT',
  sub_organisasi: 'Pusat Latihan Silat Pintar',
