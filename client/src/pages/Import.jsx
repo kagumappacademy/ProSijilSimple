@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { FileUp, Download, FileSpreadsheet, CheckCircle2, AlertCircle, ArrowRight, Info, UploadCloud } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
-import { PageIntro, Panel, Button, Chip } from '../components/UI';
+import { PageIntro, Panel, Button, Chip, ProcessingModal } from '../components/UI';
 import { useLang } from '../lib/i18n';
 
 const demo = '\uFEFFnama_penuh,no_kp_atau_id,peringkat,cawangan\r\n"Muhammad Adam Bin Ali",,"Ujian Awan Putih Cula Merah 1","Skudai"\r\n"Siti Aisyah Binti Ahmad","010203041234","Ujian Awan Putih Cula Kuning 2","Kulai"\r\n';
@@ -222,6 +222,12 @@ export function ImportCSV() {
           </Panel>
         </div>
       </div>
+
+      <ProcessingModal
+        open={busy}
+        title={lang === 'eng' ? 'Importing Student Records...' : 'Sedang Mengimport Rekod Pesilat...'}
+        subtitle={lang === 'eng' ? 'Validating CSV records and syncing with database...' : 'Menentusahkan baris CSV & menyegerakkan ke pangkalan data...'}
+      />
     </>
   );
 }

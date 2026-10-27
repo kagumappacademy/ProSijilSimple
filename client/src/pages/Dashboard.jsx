@@ -102,7 +102,7 @@ export function Dashboard() {
       />
 
       {!data ? (
-        <Loading />
+        <Loading text="Memuatkan Data Statistik..." subtext="Mengumpul data pesilat, sijil dan cawangan..." />
       ) : (
         <div className="space-y-3.5 sm:space-y-4 w-full max-w-full min-w-0">
           {/* Top 3 Stat Cards */}

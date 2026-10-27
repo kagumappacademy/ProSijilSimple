@@ -30,9 +30,12 @@ function App() {
 
   if (checking) {
     return (
-      <div className="grid min-h-screen place-items-center">
-        <Loading />
-      </div>
+      <Loading
+        fullScreen
+        text="Memulakan Sistem ProSijil..."
+        subtext="Menyemak status keselamatan & data pangkalan..."
+        size="lg"
+      />
     );
   }
 

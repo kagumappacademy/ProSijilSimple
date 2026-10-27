@@ -92,9 +92,16 @@ export function PdfThumbnail({ url, className = '', title = 'Sijil', scale = 0.7
   return (
     <div className={`relative overflow-hidden bg-slate-50 flex items-center justify-center ${className}`}>
       {loading && (
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-slate-50/90 text-slate-400">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-red-600 border-t-transparent" />
-          <span className="mt-1.5 text-[9.5px] font-semibold text-slate-500">Memuatkan sijil...</span>
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-slate-50/95 backdrop-blur-2xs text-slate-400 p-2 text-center select-none">
+          <div className="relative flex items-center justify-center">
+            <div className="h-8 w-8 rounded-full border-2 border-slate-200 border-t-red-600 animate-spin" />
+            <img
+              src="/logo-prosijil.png"
+              alt="ProSijil"
+              className="absolute h-4 w-4 object-contain"
+            />
+          </div>
+          <span className="mt-2 text-[9.5px] font-bold text-slate-500 tracking-tight">Memuatkan sijil...</span>
         </div>
       )}
 

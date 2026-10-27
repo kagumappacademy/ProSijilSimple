@@ -148,11 +148,137 @@ export function Empty({ title = 'Belum ada data', message = 'Rekod akan dipapark
   );
 }
 
-export function Loading() {
+export function Loading({
+  text = 'Sedang memuatkan data...',
+  subtext,
+  size = 'md', // 'sm', 'md', 'lg'
+  fullScreen = false,
+  className = '',
+}) {
+  const isSm = size === 'sm';
+  const isLg = size === 'lg';
+
+  const logoSize = isSm ? 'h-6 w-6' : isLg ? 'h-12 w-12 sm:h-14 sm:w-14' : 'h-8 w-8 sm:h-9 sm:w-9';
+  const ringSize = isSm ? 'h-11 w-11' : isLg ? 'h-22 w-22 sm:h-24 sm:w-24' : 'h-16 w-16 sm:h-17 sm:w-17';
+
+  const content = (
+    <div className={`flex flex-col items-center justify-center text-center select-none py-6 sm:py-8 px-4 ${className}`}>
+      {/* Animated Logo Container with glowing spinning ring */}
+      <div className="relative flex items-center justify-center">
+        {/* Outer ambient glow */}
+        <motion.div
+          animate={{
+            scale: [1, 1.15, 1],
+            opacity: [0.3, 0.6, 0.3],
+          }}
+          transition={{
+            duration: 2.4,
+            repeat: Infinity,
+            ease: 'easeInOut',
+          }}
+          className={`absolute rounded-full bg-gradient-to-tr from-red-600/25 via-rose-500/20 to-amber-500/20 blur-md pointer-events-none ${ringSize}`}
+        />
+
+        {/* Minimalist delicate spinning ring */}
+        <div
+          className={`absolute rounded-full border-[2.5px] border-slate-200/60 border-t-red-600 border-r-rose-400/80 animate-spin ${ringSize}`}
+          style={{ animationDuration: '1.2s' }}
+        />
+
+        {/* Inner white card holding the official ProSijil logo */}
+        <motion.div
+          animate={{
+            scale: [1, 1.05, 1],
+          }}
+          transition={{
+            duration: 2.4,
+            repeat: Infinity,
+            ease: 'easeInOut',
+          }}
+          className="relative z-10 flex items-center justify-center rounded-2xl bg-white p-2 sm:p-2.5 shadow-sm border border-slate-100/90"
+        >
+          <img
+            src="/logo-prosijil.png"
+            alt="ProSijil"
+            className={`${logoSize} object-contain`}
+          />
+        </motion.div>
+      </div>
+
+      {/* Text & Aesthetic Minimalist Progress Indicator */}
+      <div className="mt-3.5 flex flex-col items-center">
+        <div className="flex items-center gap-1.5 text-xs sm:text-sm font-extrabold tracking-tight text-slate-900">
+          <span>{text}</span>
+          <span className="flex gap-0.5 items-center">
+            <motion.span
+              animate={{ opacity: [0.2, 1, 0.2] }}
+              transition={{ duration: 1.2, repeat: Infinity, delay: 0 }}
+              className="inline-block h-1 w-1 rounded-full bg-red-600"
+            />
+            <motion.span
+              animate={{ opacity: [0.2, 1, 0.2] }}
+              transition={{ duration: 1.2, repeat: Infinity, delay: 0.2 }}
+              className="inline-block h-1 w-1 rounded-full bg-red-600"
+            />
+            <motion.span
+              animate={{ opacity: [0.2, 1, 0.2] }}
+              transition={{ duration: 1.2, repeat: Infinity, delay: 0.4 }}
+              className="inline-block h-1 w-1 rounded-full bg-red-600"
+            />
+          </span>
+        </div>
+
+        {subtext ? (
+          <p className="mt-1 text-[11px] text-slate-400 max-w-xs leading-relaxed">{subtext}</p>
+        ) : (
+          <div className="mt-2 h-1 w-18 sm:w-22 overflow-hidden rounded-full bg-slate-100">
+            <motion.div
+              animate={{
+                x: ['-100%', '100%'],
+              }}
+              transition={{
+                duration: 1.3,
+                repeat: Infinity,
+                ease: 'easeInOut',
+              }}
+              className="h-full w-1/2 rounded-full bg-gradient-to-r from-red-600 via-rose-500 to-red-600"
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+
+  if (fullScreen) {
+    return (
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white/95 backdrop-blur-md">
+        {content}
+      </div>
+    );
+  }
+
+  return content;
+}
+
+export function ProcessingModal({
+  open = false,
+  title = 'Sedang Memproses Data...',
+  subtitle = 'Sila tunggu sebentar sementara sistem memproses data anda.',
+}) {
+  if (!open) return null;
   return (
-    <div className="flex items-center justify-center p-8 text-red-700">
-      <Loader2 className="animate-spin" size={22} />
-      <span className="ml-2.5 text-xs font-semibold text-slate-600">Sedang memuatkan...</span>
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
+    >
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 8 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        className="w-full max-w-sm rounded-3xl bg-white p-6 sm:p-7 text-center shadow-2xl border border-slate-100"
+      >
+        <Loading text={title} subtext={subtitle} size="lg" />
+      </motion.div>
     </div>
   );
 }

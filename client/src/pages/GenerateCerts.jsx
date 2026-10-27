@@ -23,7 +23,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api, fmtDate } from '../lib/api';
-import { PageIntro, Panel, Button, Input, Chip, Loading, Empty, SearchField } from '../components/UI';
+import { PageIntro, Panel, Button, Input, Chip, Loading, Empty, SearchField, ProcessingModal } from '../components/UI';
 import { PdfThumbnail } from '../components/PdfThumbnail';
 import { LargeTemplatePreviewModal } from './Templates';
 import { useLang } from '../lib/i18n';
@@ -810,7 +810,7 @@ export function GenerateCerts() {
 
         {/* Jadual Pesilat (20 pesilat setiap laman) */}
         {loading ? (
-          <Loading />
+          <Loading text="Memuatkan Senarai Pesilat..." subtext="Mengambil data pesilat dan padanan templat..." />
         ) : filteredStudents.length === 0 ? (
           <Empty
             title={t('noStudentsFound')}
@@ -1167,6 +1167,12 @@ export function GenerateCerts() {
         open={!!previewTarget}
         onClose={() => setPreviewTarget(null)}
         template={previewTarget}
+      />
+
+      <ProcessingModal
+        open={generating}
+        title="Sedang Menjana Sijil Rasmi..."
+        subtitle={`Memproses ${idsToGenerate.length} sijil digital & mencetak nama pesilat ke templat PDF...`}
       />
     </>
   );

@@ -722,7 +722,7 @@ export function Templates() {
 
         {/* Main Content Area */}
         {!data ? (
-          <Loading />
+          <Loading text="Memuatkan Koleksi Templat Sijil..." subtext="Menyegerak fail PDF dari Cloud..." />
         ) : data.rows.length === 0 ? (
           <Empty
             icon={Layers}

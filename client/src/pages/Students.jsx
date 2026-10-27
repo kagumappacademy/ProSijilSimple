@@ -112,6 +112,12 @@ function ImportStudentsModal({ open, onClose, onSaved }) {
           </div>
         </div>
 
+        {busy && (
+          <div className="py-2">
+            <Loading text="Sedang Memproses Fail CSV..." subtext="Menyemak baris dan menyegerak ke pangkalan data..." size="sm" />
+          </div>
+        )}
+
         {result && (
           <div className="mt-4 rounded-2xl border border-emerald-100 bg-emerald-50 p-5">
             <div className="flex items-center gap-2 font-extrabold text-emerald-800 text-sm">
@@ -615,7 +621,7 @@ function StudentDetailsModal({ open, onClose, student, onEdit, onSaved }) {
             </div>
 
             {loadingCerts ? (
-              <div className="p-8 text-center text-xs text-slate-400">Sedang menyemak rekod sijil...</div>
+              <Loading text="Menyemak Rekod Sijil Pesilat..." size="sm" />
             ) : certs.length === 0 ? (
               <div className="rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/60 p-8 text-center">
                 <Award size={28} className="mx-auto text-slate-400 mb-2"/>
@@ -893,7 +899,7 @@ export function Students(){
 
         {/* Table / Card content: Touch-friendly cards on mobile, full table on desktop */}
         {!data ? (
-          <Loading/>
+          <Loading text="Memuatkan Senarai Pesilat..." subtext="Mengambil data pesilat mengikut cawangan & peringkat..." />
         ) : data.rows.length ? (
           <>
             {/* Mobile Card View (< md) */}

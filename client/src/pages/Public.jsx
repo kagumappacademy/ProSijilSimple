@@ -22,7 +22,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api, certDownload, fmtDate } from '../lib/api';
-import { Logo, Button, Chip, Empty } from '../components/UI';
+import { Logo, Button, Chip, Empty, Loading } from '../components/UI';
 import { useLang, LanguageSwitcher, LiveClock } from '../lib/i18n';
 
 const rise = {
@@ -554,7 +554,11 @@ export function Verify() {
 
         <div className="mt-6 sm:mt-8 rounded-2xl border border-slate-200/80 bg-white p-5 sm:p-7 text-center shadow-apple">
           {loading ? (
-            <Loader2 className="mx-auto animate-spin text-red-700" size={28} />
+            <Loading
+              text={lang === 'eng' ? 'Verifying Certificate...' : 'Menyemak Kesahihan Sijil...'}
+              subtext={lang === 'eng' ? 'Searching official academy registry...' : 'Mencari rekod rasmi di pengkalan data...'}
+              size="md"
+            />
           ) : record ? (
             <>
               <CheckCircle2 className="mx-auto text-emerald-600" size={44} />

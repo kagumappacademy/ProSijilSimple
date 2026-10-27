@@ -782,7 +782,7 @@ export function Certificates() {
 
         {/* Kandungan Utama Sijil */}
         {!data ? (
-          <Loading />
+          <Loading text="Memuatkan Pusat Rekod Sijil..." subtext="Menyusun mengikut cawangan dan kategori..." />
         ) : tableRows.length === 0 ? (
           <Empty
             icon={Award}
