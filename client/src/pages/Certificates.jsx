@@ -24,6 +24,7 @@ import { toast } from 'sonner';
 import { api, fmtDate, certDownload, certPreview } from '../lib/api';
 import { PageIntro, Panel, Button, Input, Modal, Confirm, Loading, Empty, SearchField, Chip } from '../components/UI';
 import { useLang } from '../lib/i18n';
+import { useSync } from '../lib/syncContext';
 import {
   CERT_CATEGORIES,
   CULA_GROUPS,
@@ -308,10 +309,12 @@ export function Certificates() {
     }
   }
 
+  const { setRefreshing: setGlobalRefreshing } = useSync();
   const [refreshing, setRefreshing] = useState(false);
 
   // Load all certificates matching filters for clean grouping
   const load = useCallback((isManual = false) => {
+    setGlobalRefreshing(true);
     if (isManual) setRefreshing(true);
     const params = new URLSearchParams({ all: '1' });
     if (q) params.set('q', q);
@@ -331,8 +334,9 @@ export function Certificates() {
       })
       .finally(() => {
         if (isManual) setRefreshing(false);
+        setGlobalRefreshing(false);
       });
-  }, [q, selectedBranch, selectedLevel, selectedCategory, lang]);
+  }, [q, selectedBranch, selectedLevel, selectedCategory, lang, setGlobalRefreshing]);
 
   useEffect(() => {
     const timer = setTimeout(() => load(false), 200);

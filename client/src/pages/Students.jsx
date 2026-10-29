@@ -5,6 +5,7 @@ import {toast} from 'sonner';
 import {api,fmtDate} from '../lib/api';
 import {PageIntro,Panel,Button,Input,Select,Modal,Confirm,Loading,Empty,SearchField,Pagination,Chip} from '../components/UI';
 import {useLang} from '../lib/i18n';
+import {useSync} from '../lib/syncContext';
 import {
   CERT_CATEGORIES,
   getCertCategory,
@@ -798,9 +799,11 @@ export function Students(){
     [deleting,setDeleting]=useState(false),
     [viewTarget,setViewTarget]=useState(null);
 
+  const { setRefreshing: setGlobalRefreshing } = useSync();
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchRows = useCallback((isManual = false) => {
+    setGlobalRefreshing(true);
     if (isManual) setRefreshing(true);
     return api('/admin/students?' + new URLSearchParams({ q, branch, level, page: String(page) }))
       .then((res) => {
@@ -812,8 +815,9 @@ export function Students(){
       })
       .finally(() => {
         if (isManual) setRefreshing(false);
+        setGlobalRefreshing(false);
       });
-  }, [q, branch, level, page, lang]);
+  }, [q, branch, level, page, lang, setGlobalRefreshing]);
 
   useEffect(() => {
     const t = setTimeout(() => fetchRows(false), 180);

@@ -32,6 +32,7 @@ import { PageIntro, Panel, Button, Input, Chip, Loading, Empty, SearchField } fr
 import { PdfThumbnail } from '../components/PdfThumbnail';
 import { LargeTemplatePreviewModal } from './Templates';
 import { useLang } from '../lib/i18n';
+import { useSync } from '../lib/syncContext';
 import {
   CERT_CATEGORIES,
   CULA_GROUPS,
@@ -77,6 +78,8 @@ export function GenerateCerts() {
   const [previewTarget, setPreviewTarget] = useState(null);
   const [result, setResult] = useState(null);
 
+  const { setRefreshing: setGlobalRefreshing } = useSync();
+
   // Scroll to step content
   const goToStep = (step) => {
     setCurrentStep(step);
@@ -85,6 +88,7 @@ export function GenerateCerts() {
 
   // Load templates
   const loadTemplates = useCallback(async (isManualRefresh = false) => {
+    setGlobalRefreshing(true);
     if (isManualRefresh) setRefreshingTemplates(true);
     try {
       const url = isManualRefresh ? '/admin/templates/groups?force_sync=1' : '/admin/templates/groups';
@@ -107,11 +111,13 @@ export function GenerateCerts() {
       toast.error('Gagal memuat senarai templat: ' + err.message);
     } finally {
       if (isManualRefresh) setRefreshingTemplates(false);
+      setGlobalRefreshing(false);
     }
-  }, [selectedTemplateName, lang]);
+  }, [selectedTemplateName, lang, setGlobalRefreshing]);
 
   // Load students
   const loadStudents = useCallback(async (isInitial = false) => {
+    if (!isInitial) setGlobalRefreshing(true);
     try {
       const res = await api('/admin/students?limit=10000&page=1');
       setStudents(res.rows || []);
@@ -125,9 +131,10 @@ export function GenerateCerts() {
     } catch (err) {
       if (isInitial) toast.error('Gagal memuat senarai pesilat: ' + err.message);
     } finally {
+      if (!isInitial) setGlobalRefreshing(false);
       setLoading(false);
     }
-  }, []);
+  }, [setGlobalRefreshing]);
 
   const [manualRefreshing, setManualRefreshing] = useState(false);
   const handleFullRefresh = useCallback(async () => {

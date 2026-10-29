@@ -5,6 +5,7 @@ import { Toaster } from 'sonner';
 import { api } from './lib/api';
 import { Loading } from './components/UI';
 import { LanguageProvider } from './lib/i18n';
+import { SyncProvider } from './lib/syncContext';
 import { AdminLayout } from './components/AdminLayout';
 import { Home, Verify } from './pages/Public';
 import { Login } from './pages/Auth';
@@ -41,6 +42,7 @@ function App() {
 
   return (
     <LanguageProvider>
+      <SyncProvider>
       <BrowserRouter>
         <Toaster position="top-right" richColors closeButton duration={4000} />
         <Routes>
@@ -59,6 +61,7 @@ function App() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
+      </SyncProvider>
     </LanguageProvider>
   );
 }

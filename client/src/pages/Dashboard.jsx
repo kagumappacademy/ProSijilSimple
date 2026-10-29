@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { api, fmtDate } from '../lib/api';
 import { PageIntro, Panel, Loading, Empty, Chip } from '../components/UI';
 import { useLang } from '../lib/i18n';
+import { useSync } from '../lib/syncContext';
 import { getCertCategory, getCategoryMeta } from '../lib/certTypes';
 
 function NumberCard({ title, value, icon: Icon, tint, badge }) {
@@ -91,9 +92,11 @@ function BreakdownCard({ title, rows, icon: Icon }) {
 export function Dashboard() {
   const { t, lang } = useLang();
   const [data, setData] = useState(null);
+  const { setRefreshing: setGlobalRefreshing } = useSync();
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchDashboard = useCallback((isManual = false) => {
+    setGlobalRefreshing(true);
     if (isManual) setRefreshing(true);
     return api('/admin/dashboard')
       .then((res) => {
@@ -103,8 +106,9 @@ export function Dashboard() {
       .catch(() => {})
       .finally(() => {
         if (isManual) setRefreshing(false);
+        setGlobalRefreshing(false);
       });
-  }, [lang]);
+  }, [lang, setGlobalRefreshing]);
 
   useEffect(() => {
     fetchDashboard(false);

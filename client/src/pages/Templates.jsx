@@ -24,6 +24,7 @@ import { api, fmtDate } from '../lib/api';
 import { PageIntro, Panel, Button, Input, Modal, Confirm, Loading, Empty, Chip } from '../components/UI';
 import { PdfThumbnail } from '../components/PdfThumbnail';
 import { useLang } from '../lib/i18n';
+import { useSync } from '../lib/syncContext';
 import {
   CERT_CATEGORIES,
   CULA_GROUPS,
@@ -632,9 +633,11 @@ export function Templates() {
   const [filterCula, setFilterCula] = useState('semua'); // 'semua', 'merah', 'kuning', 'hijau', 'hitam'
   const [sortBy, setSortBy] = useState('peringkat'); // 'peringkat', 'terkini', 'nama'
 
+  const { setRefreshing: setGlobalRefreshing } = useSync();
   const [refreshing, setRefreshing] = useState(false);
 
   const loadTemplates = useCallback((isManual = false) => {
+    setGlobalRefreshing(true);
     if (isManual) setRefreshing(true);
     const url = isManual ? '/admin/templates?force_sync=1' : '/admin/templates';
     return api(url)
@@ -647,8 +650,9 @@ export function Templates() {
       })
       .finally(() => {
         if (isManual) setRefreshing(false);
+        setGlobalRefreshing(false);
       });
-  }, [lang]);
+  }, [lang, setGlobalRefreshing]);
 
   // Initial load & Auto-refresh every 15 seconds
   useEffect(() => {
