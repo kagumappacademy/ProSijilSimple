@@ -1040,13 +1040,13 @@ app.post('/api/admin/templates/generate-batch',requireAdmin,async(req,res,next)=
   const tarikh=trim(req.body?.tarikh_isu,10)||today();
   if(!validDate(tarikh))return fail(res,'Tarikh sijil tidak sah.');
 
-  let templates=db.prepare('SELECT id,nama_template,peringkat,file_path,file_name,file_base64,layout_config FROM template_sijil WHERE nama_template=?').all(namaTemplate);
+  let templates=db.prepare('SELECT id,nama_template,peringkat,kategori,file_path,file_name,file_base64,layout_config FROM template_sijil WHERE nama_template=? ORDER BY (file_base64 IS NOT NULL AND file_base64 != \'\') DESC, id DESC').all(namaTemplate);
   if(!templates.length || !templates.some(t => t.file_base64 || (t.file_path && fs.existsSync(t.file_path)))){
    try {
     const { isTursoConfigured, pullTemplatesFromTurso } = await import('./turso.js');
     if (isTursoConfigured()) {
      await pullTemplatesFromTurso();
-     templates=db.prepare('SELECT id,nama_template,peringkat,file_path,file_name,file_base64,layout_config FROM template_sijil WHERE nama_template=?').all(namaTemplate);
+     templates=db.prepare('SELECT id,nama_template,peringkat,kategori,file_path,file_name,file_base64,layout_config FROM template_sijil WHERE nama_template=? ORDER BY (file_base64 IS NOT NULL AND file_base64 != \'\') DESC, id DESC').all(namaTemplate);
     }
    } catch(e) { console.warn('[Turso Batch Fetch Warning]', e.message); }
   }
@@ -1090,6 +1090,22 @@ app.post('/api/admin/templates/generate-batch',requireAdmin,async(req,res,next)=
       if (b64) tplBytes = Buffer.from(b64, 'base64');
      } catch (_) {}
     }
+
+    // Sandaran pintar: jika templat ini tiada fail, gunakan templat lain dalam kumpulan nama sama yang sah
+    if(!tplBytes){
+     const sibling = templates.find(t => t.file_base64 || (t.file_path && fs.existsSync(t.file_path)));
+     if(sibling){
+      if(sibling.file_base64){
+       tplBytes = Buffer.from(sibling.file_base64, 'base64');
+      }else if(sibling.file_path && fs.existsSync(sibling.file_path)){
+       tplBytes = fs.readFileSync(sibling.file_path);
+      }
+      if(tplBytes && !matchedTemplate.layout_config && sibling.layout_config){
+       matchedTemplate.layout_config = sibling.layout_config;
+      }
+     }
+    }
+
     if(tplBytes)templateCache.set(matchedTemplate.id,tplBytes);
    }
 

@@ -229,14 +229,19 @@ export async function pushLocalToTurso() {
   await batchExecute(turso, sijilStmts);
   stats.sijil = localSijil.length;
 
-  // 5. Template Sijil
+  // 5. Template Sijil (tolak secara individu untuk mengelakkan had saiz payload batch Turso)
   const localTemplates = db.prepare('SELECT id, nama_template, peringkat, keterangan, file_path, file_name, file_size, file_base64, kategori, page_count, thumbnail_base64, layout_config, created_at FROM template_sijil').all();
-  const tplStmts = localTemplates.map((row) => ({
-    sql: 'INSERT OR REPLACE INTO template_sijil (id, nama_template, peringkat, keterangan, file_path, file_name, file_size, file_base64, kategori, page_count, thumbnail_base64, layout_config, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    args: [row.id, row.nama_template, row.peringkat, row.keterangan || null, row.file_path, row.file_name, row.file_size || 0, row.file_base64 || null, row.kategori || 'kenaikan_tali_pinggang', row.page_count || 1, row.thumbnail_base64 || null, row.layout_config || null, row.created_at],
-  }));
-  await batchExecute(turso, tplStmts);
-  stats.template_sijil = localTemplates.length;
+  for (const row of localTemplates) {
+    try {
+      await turso.execute({
+        sql: 'INSERT OR REPLACE INTO template_sijil (id, nama_template, peringkat, keterangan, file_path, file_name, file_size, file_base64, kategori, page_count, thumbnail_base64, layout_config, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        args: [row.id, row.nama_template, row.peringkat, row.keterangan || null, row.file_path, row.file_name, row.file_size || 0, row.file_base64 || null, row.kategori || 'kenaikan_tali_pinggang', row.page_count || 1, row.thumbnail_base64 || null, row.layout_config || null, row.created_at],
+      });
+      stats.template_sijil++;
+    } catch (tplErr) {
+      console.warn(`[Turso Push Template ${row.id} Warning]:`, tplErr.message);
+    }
+  }
 
   return stats;
 }
@@ -401,11 +406,26 @@ export async function ensureTemplateFileBase64(templateId) {
   if (!isTursoConfigured()) return null;
   try {
     const turso = getTursoClient();
-    const res = await turso.execute({
+    let res = await turso.execute({
       sql: 'SELECT file_base64, layout_config FROM template_sijil WHERE id=?',
       args: [templateId]
     });
-    const tRow = res.rows?.[0];
+    let tRow = res.rows?.[0];
+
+    // Sandaran jika ID ini belum ada file_base64 di Turso, cari daripada templat dengan tajuk sama
+    if (!tRow?.file_base64) {
+      const localMeta = db.prepare('SELECT nama_template, peringkat FROM template_sijil WHERE id=?').get(templateId);
+      if (localMeta?.nama_template) {
+        const sibRes = await turso.execute({
+          sql: "SELECT file_base64, layout_config FROM template_sijil WHERE nama_template=? AND file_base64 IS NOT NULL AND file_base64 != '' ORDER BY id DESC LIMIT 1",
+          args: [localMeta.nama_template]
+        });
+        if (sibRes.rows?.[0]?.file_base64) {
+          tRow = sibRes.rows[0];
+        }
+      }
+    }
+
     if (tRow?.file_base64) {
       db.prepare('UPDATE template_sijil SET file_base64=?, layout_config=COALESCE(?, layout_config) WHERE id=?')
         .run(tRow.file_base64, tRow.layout_config || null, templateId);
