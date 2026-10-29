@@ -404,10 +404,10 @@ export function GenerateCerts() {
       {/* ======================================================== */}
       {/* GUIDED PROGRESS BAR (TOP STEP-BY-STEP WIZARD)            */}
       {/* ======================================================== */}
-      <div className="mb-4 rounded-2xl border border-slate-200/90 bg-white p-3 sm:p-4 shadow-2xs">
+      <div className="mb-5 rounded-3xl border border-slate-200/70 bg-white/95 backdrop-blur-sm p-4 sm:p-5 shadow-[0_2px_12px_-2px_rgba(0,0,0,0.03)]">
         <div className="relative">
           {/* Animated Connecting Track Line */}
-          <div className="absolute top-4 left-8 right-8 -translate-y-1/2 h-1 bg-slate-200 rounded-full z-0 hidden sm:block">
+          <div className="absolute top-4 left-8 right-8 -translate-y-1/2 h-1 bg-slate-100 rounded-full z-0 hidden sm:block">
             <div
               className="h-full bg-gradient-to-r from-red-600 via-red-700 to-emerald-600 rounded-full transition-all duration-500 ease-out"
               style={{
@@ -799,7 +799,7 @@ export function GenerateCerts() {
                 </div>
 
                 {/* Responsive Grid of Visual Template Cards */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5 sm:gap-3 p-2.5 sm:p-3 bg-slate-50/70 rounded-2xl border border-slate-200/80">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5 sm:gap-3 p-3 sm:p-4 bg-slate-50/50 rounded-3xl border border-slate-200/60">
                   {/* Button Option: Semua Peringkat */}
                   <button
                     type="button"
@@ -971,7 +971,7 @@ export function GenerateCerts() {
       {currentStep === 2 && (
         <Panel className="flex flex-col mb-4 animate-in fade-in duration-200">
           {/* Top Context Reminder Banner */}
-          <div className="m-3 sm:m-4 mb-0 rounded-xl border border-red-200/80 bg-red-50/70 p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          <div className="m-3 sm:m-4 mb-0 rounded-2xl border border-red-100 bg-red-50/60 p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="grid h-8 w-8 place-items-center rounded-lg bg-red-700 text-white shrink-0">
                 <Layers size={16} />

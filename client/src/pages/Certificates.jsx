@@ -752,7 +752,7 @@ export function Certificates() {
 
         {/* Bar Tindakan Pukal (Floating Batch Action Bar bila ada sijil dipilih) */}
         {selectedIds.size > 0 && (
-          <div className="sticky top-14 sm:top-16 z-20 flex flex-wrap items-center justify-between gap-3 bg-red-700 text-white px-4 py-3 shadow-lg border-b border-red-800">
+          <div className="sticky top-14 sm:top-16 z-20 flex flex-wrap items-center justify-between gap-3 bg-slate-900 text-white px-4 py-3 shadow-xl rounded-2xl border border-slate-800 my-2">
             <div className="flex items-center gap-2">
               <CheckSquare size={18} className="text-white" />
               <div className="text-xs sm:text-sm font-extrabold">
@@ -805,7 +805,7 @@ export function Certificates() {
               return (
                 <div key={cawanganName} className="space-y-4 pt-2 first:pt-0">
                   {/* Cawangan Group Header */}
-                  <div className="flex flex-wrap items-center justify-between gap-2 bg-gradient-to-r from-slate-100/90 to-red-50/50 p-3 rounded-2xl border border-slate-200/80">
+                  <div className="flex flex-wrap items-center justify-between gap-2.5 bg-slate-50/90 p-3 sm:p-3.5 rounded-2xl border border-slate-200/70 shadow-2xs">
                     <div className="flex items-center gap-2.5">
                       <div className="grid h-8 w-8 place-items-center rounded-xl bg-red-700 text-white font-black text-xs shadow-xs">
                         <MapPin size={15} />

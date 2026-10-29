@@ -86,7 +86,7 @@ export function Settings() {
           </form>
         </Panel>
 
-        <div className="flex gap-3 rounded-2xl border border-amber-200/80 bg-amber-50/70 p-4">
+        <div className="flex gap-3 rounded-3xl border border-amber-200/60 bg-amber-50/60 p-5 shadow-2xs">
           <ShieldCheck className="shrink-0 text-amber-700 mt-0.5" size={20} />
           <div>
             <div className="text-xs font-extrabold text-amber-900">{t('securityNoticeTitle')}</div>

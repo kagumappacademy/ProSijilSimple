@@ -85,7 +85,7 @@ export function ImportCSV() {
             className={`flex min-h-[160px] sm:min-h-[190px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-4 sm:p-6 text-center transition ${
               drag
                 ? 'border-red-600 bg-red-50'
-                : 'border-slate-200 bg-slate-50/70 hover:border-red-500 hover:bg-red-50/40'
+                : 'border-slate-200/80 bg-slate-50/50 hover:border-red-400 hover:bg-white'
             }`}
           >
             <div className="grid h-12 w-12 place-items-center rounded-xl bg-white text-red-700 shadow-xs border border-slate-100">

@@ -838,7 +838,7 @@ export function Students(){
             <button
               type="button"
               onClick={() => setExportOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-900 transition hover:bg-red-50 hover:border-red-200 hover:text-red-700 shadow-xs cursor-pointer"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-slate-100/90 hover:bg-slate-200/90 px-3.5 py-2 text-xs font-bold text-slate-800 transition-all shadow-2xs active:scale-[0.97] cursor-pointer"
               title="Eksport senarai pesilat mengikut cawangan, peringkat atau semua rekod"
             >
               <Download size={14} className="text-red-700"/>
@@ -872,7 +872,7 @@ export function Students(){
             <SearchField value={q} onChange={v=>{setQ(v);setPage(1);}} placeholder={t('searchPlaceholder')}/>
             <select
               aria-label="Tapis cawangan"
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 outline-none focus:border-red-500"
+              className="rounded-xl border border-slate-200/80 bg-slate-50/70 hover:bg-white focus:bg-white px-3 py-2 text-xs text-slate-800 outline-none transition-all focus:border-red-600/80 focus:ring-4 focus:ring-red-500/10 shadow-2xs"
               value={branch}
               onChange={e=>{setBranch(e.target.value);setPage(1);}}
             >
@@ -881,7 +881,7 @@ export function Students(){
             </select>
             <select
               aria-label="Tapis peringkat"
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 outline-none focus:border-red-500"
+              className="rounded-xl border border-slate-200/80 bg-slate-50/70 hover:bg-white focus:bg-white px-3 py-2 text-xs text-slate-800 outline-none transition-all focus:border-red-600/80 focus:ring-4 focus:ring-red-500/10 shadow-2xs"
               value={level}
               onChange={e=>{setLevel(e.target.value);setPage(1);}}
             >
@@ -975,7 +975,7 @@ export function Students(){
             {/* Desktop Table View (>= md) */}
             <div className="hidden md:block overflow-x-auto max-h-[calc(100vh-230px)] overflow-y-auto">
               <table className="w-full min-w-[800px] border-collapse text-left text-xs sm:text-sm">
-                <thead className="sticky top-0 z-10 bg-[#FBFCFA] text-[10px] font-extrabold uppercase tracking-[.14em] text-slate-400 border-b border-slate-100 shadow-2xs">
+                <thead className="sticky top-0 z-10 bg-slate-50/90 backdrop-blur-sm text-[10px] font-black uppercase tracking-[.14em] text-slate-400 border-b border-slate-100 shadow-2xs">
                   <tr>
                     <th className="w-12 px-3.5 py-2.5 text-center">{t('thNo')}</th>
                     <th className="px-3.5 py-2.5">{t('thName')}</th>
@@ -989,7 +989,7 @@ export function Students(){
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {data.rows.map((r,i)=>(
-                    <tr key={r.id} className="transition hover:bg-red-50/30">
+                    <tr key={r.id} className="transition-colors hover:bg-slate-50/80">
                       <td className="px-3.5 py-2.5 text-center text-xs font-bold text-slate-400 w-12">
                         {(page-1)*20+i+1}
                       </td>

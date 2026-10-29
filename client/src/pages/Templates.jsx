@@ -568,7 +568,7 @@ export function Templates() {
             </div>
 
             {/* View Switcher: Kotak (Grid) vs Jadual (List) */}
-            <div className="flex items-center gap-1.5 bg-slate-100/80 p-0.5 rounded-xl text-xs">
+            <div className="flex items-center gap-1 bg-slate-100/80 p-1 rounded-2xl text-xs">
               <button
                 type="button"
                 onClick={() => setViewMode('grid')}
@@ -753,7 +753,7 @@ export function Templates() {
                   </div>
 
                   {/* Grid Cards for this category */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5 sm:gap-3 p-2.5 sm:p-3 bg-slate-50/70 rounded-2xl border border-slate-200/80">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5 sm:gap-3 p-2.5 sm:p-3 bg-slate-50/50 rounded-3xl border border-slate-200/60">
                     {items.map((item) => {
                       const meta = getRankMeta(item.peringkat);
                       const previewUrl = `/api/admin/templates/${item.id}/preview`;
