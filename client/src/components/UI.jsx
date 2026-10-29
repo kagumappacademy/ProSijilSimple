@@ -158,86 +158,66 @@ export function Loading({
   const isSm = size === 'sm';
   const isLg = size === 'lg';
 
-  const logoSize = isSm ? 'h-6 w-6' : isLg ? 'h-12 w-12 sm:h-14 sm:w-14' : 'h-8 w-8 sm:h-9 sm:w-9';
-  const ringSize = isSm ? 'h-11 w-11' : isLg ? 'h-22 w-22 sm:h-24 sm:w-24' : 'h-16 w-16 sm:h-17 sm:w-17';
+  // Strictly concentric, perfectly scaled circular dimensions (standard Tailwind classes)
+  const outerSize = isSm ? 'h-9 w-9' : isLg ? 'h-20 w-20' : 'h-14 w-14';
+  const innerSize = isSm ? 'h-6 w-6' : isLg ? 'h-12 w-12' : 'h-9 w-9';
+  const logoSize = isSm ? 'h-3.5 w-3.5' : isLg ? 'h-7 w-7' : 'h-5 w-5';
+  const trackBorder = isSm ? 'border-2' : isLg ? 'border-[3px]' : 'border-[2.5px]';
 
   const content = (
-    <div className={`flex flex-col items-center justify-center text-center select-none py-6 sm:py-8 px-4 ${className}`}>
-      {/* Animated Logo Container with glowing spinning ring */}
-      <div className="relative flex items-center justify-center">
-        {/* Outer ambient glow */}
-        <motion.div
-          animate={{
-            scale: [1, 1.15, 1],
-            opacity: [0.3, 0.6, 0.3],
-          }}
-          transition={{
-            duration: 2.4,
-            repeat: Infinity,
-            ease: 'easeInOut',
-          }}
-          className={`absolute rounded-full bg-gradient-to-tr from-red-600/25 via-rose-500/20 to-amber-500/20 blur-md pointer-events-none ${ringSize}`}
-        />
+    <div className={`flex flex-col items-center justify-center text-center select-none py-8 sm:py-10 px-4 ${className}`}>
+      {/* Concentric Circular Spinner with Centered Brand Emblem (Zero corner clipping) */}
+      <div className={`relative flex items-center justify-center ${outerSize}`}>
+        {/* Soft ambient glow behind spinner */}
+        <div className="absolute inset-0 rounded-full bg-red-600/10 blur-md pointer-events-none" />
 
-        {/* Minimalist delicate spinning ring */}
+        {/* Outer Circular Track & Spinning Arc */}
         <div
-          className={`absolute rounded-full border-[2.5px] border-slate-200/60 border-t-red-600 border-r-rose-400/80 animate-spin ${ringSize}`}
-          style={{ animationDuration: '1.2s' }}
+          className={`absolute inset-0 rounded-full ${trackBorder} border-slate-100 border-t-red-600 border-r-rose-500/80 animate-spin`}
+          style={{ animationDuration: '0.9s' }}
         />
 
-        {/* Inner white card holding the official ProSijil logo */}
+        {/* Concentric Inner Circle: Strictly rounded-full to eliminate any corner clipping */}
         <motion.div
           animate={{
-            scale: [1, 1.05, 1],
+            scale: [0.97, 1.02, 0.97],
           }}
           transition={{
-            duration: 2.4,
+            duration: 2.2,
             repeat: Infinity,
             ease: 'easeInOut',
           }}
-          className="relative z-10 flex items-center justify-center rounded-2xl bg-white p-2 sm:p-2.5 shadow-sm border border-slate-100/90"
+          className={`relative z-10 flex items-center justify-center rounded-full bg-white shadow-xs border border-slate-100 ${innerSize}`}
         >
           <img
             src="/logo-prosijil.png"
             alt="ProSijil"
             className={`${logoSize} object-contain`}
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }}
           />
         </motion.div>
       </div>
 
       {/* Text & Aesthetic Minimalist Progress Indicator */}
-      <div className="mt-3.5 flex flex-col items-center">
-        <div className="flex items-center gap-1.5 text-xs sm:text-sm font-extrabold tracking-tight text-slate-900">
-          <span>{text}</span>
-          <span className="flex gap-0.5 items-center">
-            <motion.span
-              animate={{ opacity: [0.2, 1, 0.2] }}
-              transition={{ duration: 1.2, repeat: Infinity, delay: 0 }}
-              className="inline-block h-1 w-1 rounded-full bg-red-600"
-            />
-            <motion.span
-              animate={{ opacity: [0.2, 1, 0.2] }}
-              transition={{ duration: 1.2, repeat: Infinity, delay: 0.2 }}
-              className="inline-block h-1 w-1 rounded-full bg-red-600"
-            />
-            <motion.span
-              animate={{ opacity: [0.2, 1, 0.2] }}
-              transition={{ duration: 1.2, repeat: Infinity, delay: 0.4 }}
-              className="inline-block h-1 w-1 rounded-full bg-red-600"
-            />
-          </span>
+      <div className="mt-3.5 flex flex-col items-center max-w-xs">
+        <div className="text-xs sm:text-sm font-extrabold tracking-tight text-slate-800">
+          {text}
         </div>
 
         {subtext ? (
-          <p className="mt-1 text-[11px] text-slate-400 max-w-xs leading-relaxed">{subtext}</p>
+          <p className="mt-1 text-[11px] text-slate-400 max-w-xs leading-relaxed font-normal">
+            {subtext}
+          </p>
         ) : (
-          <div className="mt-2 h-1 w-18 sm:w-22 overflow-hidden rounded-full bg-slate-100">
+          <div className="mt-2.5 h-1 w-24 sm:w-28 overflow-hidden rounded-full bg-slate-100">
             <motion.div
               animate={{
-                x: ['-100%', '100%'],
+                x: ['-100%', '150%'],
               }}
               transition={{
-                duration: 1.3,
+                duration: 1.4,
                 repeat: Infinity,
                 ease: 'easeInOut',
               }}
@@ -251,8 +231,10 @@ export function Loading({
 
   if (fullScreen) {
     return (
-      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white/95 backdrop-blur-md">
-        {content}
+      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white/90 backdrop-blur-md p-4">
+        <div className="rounded-3xl border border-slate-100 bg-white/95 p-6 sm:p-8 shadow-2xl max-w-xs w-full">
+          {content}
+        </div>
       </div>
     );
   }

@@ -85,8 +85,11 @@ function SearchResult({ records, loading, q, searched }) {
             animate={{ opacity: 1 }}
             className="rounded-2xl border border-slate-200/80 bg-white p-8 text-center shadow-apple"
           >
-            <Loader2 className="mx-auto animate-spin text-red-600" size={26} />
-            <p className="mt-2 text-xs text-slate-500 font-medium">{t('btnSearching')}</p>
+            <Loading
+              text={t('btnSearching')}
+              subtext={lang === 'eng' ? 'Searching official database...' : 'Menyemak rekod rasmi pangkalan data...'}
+              size="md"
+            />
           </motion.div>
         ) : records.length ? (
           <motion.div key="records" initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }}>
