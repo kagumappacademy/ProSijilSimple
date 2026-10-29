@@ -56,7 +56,7 @@ export function GenerateCerts() {
   const [templateGroups, setTemplateGroups] = useState({});
   const [allTemplates, setAllTemplates] = useState([]);
   const [selectedTemplateName, setSelectedTemplateName] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('semua');
+  const [selectedCategory, setSelectedCategory] = useState('kenaikan_tali_pinggang');
   const [selectedCula, setSelectedCula] = useState('semua');
   const [issueDate, setIssueDate] = useState(new Date().toISOString().slice(0, 10));
 
@@ -701,23 +701,6 @@ export function GenerateCerts() {
                 </div>
 
                 <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
-                  <button
-                    type="button"
-                    onClick={() => { setSelectedCategory('semua'); setSelectedCula('semua'); }}
-                    className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition shrink-0 cursor-pointer ${
-                      selectedCategory === 'semua'
-                        ? 'bg-slate-900 text-white shadow-xs'
-                        : 'bg-white border border-slate-200 text-slate-600 hover:bg-slate-50'
-                    }`}
-                  >
-                    <span>{lang === 'eng' ? 'All Types' : 'Semua Jenis'}</span>
-                    <span className={`rounded-full px-1.5 py-0.2 text-[10px] font-mono ${
-                      selectedCategory === 'semua' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
-                    }`}>
-                      {categoryCounts.semua}
-                    </span>
-                  </button>
-
                   {CERT_CATEGORIES.map((cat) => {
                     const active = selectedCategory === cat.id;
                     const count = categoryCounts[cat.id] || 0;
@@ -748,7 +731,7 @@ export function GenerateCerts() {
                 </div>
 
                 {/* Sub-kategori Warna Cula (khusus untuk Sijil Kenaikan Tali Pinggang) */}
-                {(selectedCategory === 'kenaikan_tali_pinggang' || selectedCategory === 'semua') && (
+                {selectedCategory === 'kenaikan_tali_pinggang' && (
                   <div className="flex items-center gap-1.5 overflow-x-auto py-1 pl-1 scrollbar-none border-t border-slate-100">
                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1">
                       {lang === 'eng' ? 'Belt Cula:' : 'Cula Tali Pinggang:'}
@@ -805,7 +788,7 @@ export function GenerateCerts() {
                 {/* Responsive Grid of Visual Template Cards */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5 sm:gap-3 p-3 bg-slate-50/70 rounded-xl border border-slate-200">
                   {/* Button Option: Semua Peringkat (Hanya untuk Sijil Kenaikan Tali Pinggang yang berperingkat) */}
-                  {(selectedCategory === 'kenaikan_tali_pinggang' || selectedCategory === 'semua') && (
+                  {selectedCategory === 'kenaikan_tali_pinggang' && (
                     <button
                       type="button"
                       onClick={() => handleSelectLevelChange('')}
