@@ -8,6 +8,8 @@ import bcrypt from 'bcryptjs';
 const tmp=fs.mkdtempSync(path.join(os.tmpdir(),'prosijil-test-'));
 process.env.DATA_DIR=tmp;
 process.env.NODE_ENV='test';
+process.env.TURSO_DATABASE_URL='';
+process.env.TURSO_AUTH_TOKEN='';
 process.env.JWT_SECRET='prosijil_test_secret_minimum_32_chars_long';
 const {db}=await import('../src/db.js');
 const {default:app}=await import('../src/app.js');

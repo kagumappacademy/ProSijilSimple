@@ -7,13 +7,17 @@ import fs from 'node:fs';
 
 dotenv.config({ path: path.join(projectRoot, '.env') });
 
-export const TURSO_DATABASE_URL = process.env.TURSO_DATABASE_URL || '';
-export const TURSO_AUTH_TOKEN = process.env.TURSO_AUTH_TOKEN || '';
+export const TURSO_DATABASE_URL = process.env.NODE_ENV === 'test' ? '' : (process.env.TURSO_DATABASE_URL || '');
+export const TURSO_AUTH_TOKEN = process.env.NODE_ENV === 'test' ? '' : (process.env.TURSO_AUTH_TOKEN || '');
 
 /**
  * Checks if Turso database environment variables are set.
+ * Sentiasa kembalikan false semasa mod ujian ('test') untuk mengelakkan pencemaran data ujian ke Cloud.
  */
 export function isTursoConfigured() {
+  if (process.env.NODE_ENV === 'test') {
+    return false;
+  }
   return Boolean(TURSO_DATABASE_URL && TURSO_DATABASE_URL.trim().length > 0);
 }
 
