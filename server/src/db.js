@@ -51,9 +51,20 @@ CREATE TABLE IF NOT EXISTS template_sijil (
 CREATE TABLE IF NOT EXISTS settings (
  key TEXT PRIMARY KEY, value TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS admin_activity (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,
+ type TEXT NOT NULL,
+ action TEXT NOT NULL,
+ title TEXT NOT NULL,
+ detail TEXT,
+ target_url TEXT,
+ created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 CREATE INDEX IF NOT EXISTS idx_pesilat_nama ON pesilat(nama_penuh);
 CREATE INDEX IF NOT EXISTS idx_sijil_pesilat ON sijil(pesilat_id);
 CREATE INDEX IF NOT EXISTS idx_template_peringkat ON template_sijil(nama_template, peringkat);
+CREATE INDEX IF NOT EXISTS idx_activity_created ON admin_activity(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_activity_id ON admin_activity(id DESC);
 `);
 
 // Migrasi lajur tambahan jika jadual telah wujud sebelum ini
@@ -90,6 +101,75 @@ export function uniqueId() {
  do { id = makeId(); } while (db.prepare('SELECT 1 FROM pesilat WHERE no_kp_atau_id = ?').get(id));
  return id;
 }
+
+export function logActivity(type, action, title, detail = '', target_url = '') {
+  try {
+    db.prepare(`
+      INSERT INTO admin_activity (type, action, title, detail, target_url, created_at)
+      VALUES (?, ?, ?, ?, ?, datetime('now'))
+    `).run(type, action, title, detail || '', target_url || '');
+
+    // Hadkan kepada 200 rekod terkini untuk kebersihan dan prestasi SQLite
+    db.prepare(`
+      DELETE FROM admin_activity
+      WHERE id NOT IN (
+        SELECT id FROM admin_activity ORDER BY id DESC LIMIT 200
+      )
+    `).run();
+  } catch (err) {
+    console.warn('[Activity Log Warning]', err.message);
+  }
+}
+
+export function ensureSeedActivities() {
+  try {
+    const row = db.prepare('SELECT COUNT(*) as count FROM admin_activity').get();
+    if (row && row.count > 0) return;
+
+    // Masukkan aktiviti awal berdasarkan rekod yang sudah wujud dalam sistem
+    const certs = db.prepare(`
+      SELECT s.nama_sijil, p.nama_penuh, s.created_at
+      FROM sijil s
+      LEFT JOIN pesilat p ON p.id = s.pesilat_id
+      ORDER BY s.id DESC LIMIT 3
+    `).all();
+    for (const c of certs) {
+      db.prepare(`
+        INSERT INTO admin_activity (type, action, title, detail, target_url, created_at)
+        VALUES ('certificate', 'create', 'Sijil Dikeluarkan', ?, '/admin/sijil', ?)
+      `).run(`${c.nama_sijil} (${c.nama_penuh || 'Pesilat'})`, c.created_at || new Date().toISOString());
+    }
+
+    const students = db.prepare(`
+      SELECT nama_penuh, cawangan, created_at
+      FROM pesilat
+      ORDER BY id DESC LIMIT 2
+    `).all();
+    for (const s of students) {
+      db.prepare(`
+        INSERT INTO admin_activity (type, action, title, detail, target_url, created_at)
+        VALUES ('student', 'create', 'Pendaftaran Pesilat', ?, '/admin/pesilat', ?)
+      `).run(`${s.nama_penuh} • ${s.cawangan || 'Akademi'}`, s.created_at || new Date().toISOString());
+    }
+
+    const templates = db.prepare(`
+      SELECT nama_template, peringkat, created_at
+      FROM template_sijil
+      ORDER BY id DESC LIMIT 2
+    `).all();
+    for (const t of templates) {
+      db.prepare(`
+        INSERT INTO admin_activity (type, action, title, detail, target_url, created_at)
+        VALUES ('template', 'create', 'Templat Dimuat Naik', ?, '/admin/templates', ?)
+      `).run(`${t.nama_template} (${t.peringkat})`, t.created_at || new Date().toISOString());
+    }
+  } catch (err) {
+    console.warn('[Activity Seed Warning]', err.message);
+  }
+}
+
+// Inisialisasi rekod aktiviti awal jika pangkalan data belum mempunyai sebarang aktiviti
+ensureSeedActivities();
 
 export async function syncWithTursoIfAvailable() {
   try {

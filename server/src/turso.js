@@ -80,9 +80,19 @@ export const TURSO_SCHEMA_STATEMENTS = [
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
   )`,
+  `CREATE TABLE IF NOT EXISTS admin_activity (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    type TEXT NOT NULL,
+    action TEXT NOT NULL,
+    title TEXT NOT NULL,
+    detail TEXT,
+    target_url TEXT,
+    created_at TEXT NOT NULL DEFAULT (datetime('now'))
+  )`,
   `CREATE INDEX IF NOT EXISTS idx_pesilat_nama ON pesilat(nama_penuh)`,
   `CREATE INDEX IF NOT EXISTS idx_sijil_pesilat ON sijil(pesilat_id)`,
-  `CREATE INDEX IF NOT EXISTS idx_template_peringkat ON template_sijil(nama_template, peringkat)`
+  `CREATE INDEX IF NOT EXISTS idx_template_peringkat ON template_sijil(nama_template, peringkat)`,
+  `CREATE INDEX IF NOT EXISTS idx_activity_created ON admin_activity(created_at DESC)`
 ];
 
 /**
