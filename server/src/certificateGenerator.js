@@ -1,51 +1,39 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import fontkit from '@pdf-lib/fontkit';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const fontPath = path.join(__dirname, 'Lora-VariableFont.ttf');
 
-const fontFileMap = {
-  Lora: path.join(__dirname, 'Lora-VariableFont.ttf'),
-  Cinzel: path.join(__dirname, 'Cinzel-VariableFont.ttf'),
-  Montserrat: path.join(__dirname, 'Montserrat-VariableFont.ttf'),
-};
-
-const cachedFontBuffers = {};
-function getFontBytes(family = 'Lora') {
-  if (cachedFontBuffers[family]) return cachedFontBuffers[family];
-  const targetPath = fontFileMap[family] || fontFileMap.Lora;
-  if (fs.existsSync(targetPath)) {
-    cachedFontBuffers[family] = fs.readFileSync(targetPath);
-    return cachedFontBuffers[family];
+let cachedFontBytes = null;
+function getFontBytes() {
+  if (!cachedFontBytes) {
+    if (fs.existsSync(fontPath)) {
+      cachedFontBytes = fs.readFileSync(fontPath);
+    } else {
+      throw new Error('Fail fon Lora tidak ditemui di ' + fontPath);
+    }
   }
-  if (fs.existsSync(fontFileMap.Lora)) {
-    cachedFontBuffers.Lora = fs.readFileSync(fontFileMap.Lora);
-    return cachedFontBuffers.Lora;
-  }
-  throw new Error('Fail fon tidak ditemui: ' + targetPath);
+  return cachedFontBytes;
 }
 
 /**
- * Jana fail sijil daripada templat PDF.
- * Menyokong saiz font, warna font, jenis font, kedudukan X & Y (drag & drop),
- * serta pilihan format nama (sebaris, dua baris, atau auto).
+ * Jana fail sijil daripada templat PDF 2 muka surat.
+ * Muka surat 1 diubah nama pesilat menggunakan fon Lora saiz 20 warna #c1362d.
+ * Muka surat 2 dan seterusnya dikekalkan sepenuhnya.
  */
 export async function generateCertificatePdf({
   templatePath,
   templateBytes = null,
   studentName,
   outputPath = null,
+  layoutConfig = null,
   fontSize = 20,
   colorHex = '#c1362d',
-  fontFamily = 'Lora',
-  posXRatio = null,
-  posYRatio = null,
-  leftRatio = null,
-  topRatio = null,
-  nameLayout = 'auto', // 'auto', 'sebaris', 'dua_baris'
-  maxBoxWidth = 380
+  centerXRatio = 0.5235,
+  maxBoxWidth = 352
 }) {
   const bytes = templateBytes || (templatePath && fs.existsSync(templatePath) ? fs.readFileSync(templatePath) : null);
   if (!bytes) {
@@ -55,17 +43,31 @@ export async function generateCertificatePdf({
   const pdfDoc = await PDFDocument.load(bytes);
   pdfDoc.registerFontkit(fontkit);
 
-  // 1. Pilih & semat fon (Embed Font)
-  let activeFont;
-  const fFam = String(fontFamily || 'Lora').trim();
-  if (fFam === 'Times-Roman' || fFam === 'Times') {
-    activeFont = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
-  } else if (fFam === 'Helvetica') {
-    activeFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-  } else {
-    // Custom fontkit fonts: Lora, Cinzel, Montserrat
-    const fontBytes = getFontBytes(fFam);
-    activeFont = await pdfDoc.embedFont(fontBytes);
+  // Parse layout configuration if provided
+  let cfg = {};
+  if (typeof layoutConfig === 'string') {
+    try { cfg = JSON.parse(layoutConfig); } catch (_) {}
+  } else if (layoutConfig && typeof layoutConfig === 'object') {
+    cfg = layoutConfig;
+  }
+
+  const finalFontSize = Number(cfg.fontSize || fontSize) || 20;
+  const finalColorHex = cfg.colorHex || colorHex || '#c1362d';
+  const finalFontFamily = cfg.fontFamily || 'Lora';
+  const nameLayout = cfg.nameLayout || 'auto'; // 'auto', 'single', 'double'
+  const xRatio = cfg.xPercent !== undefined ? (Number(cfg.xPercent) / 100) : centerXRatio;
+  const yRatio = cfg.yPercent !== undefined ? (1 - (Number(cfg.yPercent) / 100)) : 0.5718;
+
+  const fontBytes = getFontBytes();
+  const loraFont = await pdfDoc.embedFont(fontBytes);
+
+  let selectedFont = loraFont;
+  if (finalFontFamily === 'Helvetica' || finalFontFamily === 'Sans') {
+    selectedFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  } else if (finalFontFamily === 'Times Roman' || finalFontFamily === 'Serif') {
+    selectedFont = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
+  } else if (finalFontFamily === 'Courier') {
+    selectedFont = await pdfDoc.embedFont(StandardFonts.CourierBold);
   }
 
   const pageCount = pdfDoc.getPageCount();
@@ -77,51 +79,36 @@ export async function generateCertificatePdf({
   const width = page1.getWidth();
   const height = page1.getHeight();
 
-  // 2. Parse Warna Hex
+  // Parse color
   let r = 193 / 255, g = 54 / 255, b = 45 / 255;
-  if (/^#[0-9a-fA-F]{6}$/.test(colorHex)) {
-    r = parseInt(colorHex.slice(1, 3), 16) / 255;
-    g = parseInt(colorHex.slice(3, 5), 16) / 255;
-    b = parseInt(colorHex.slice(5, 7), 16) / 255;
+  if (/^#[0-9a-fA-F]{6}$/.test(finalColorHex)) {
+    r = parseInt(finalColorHex.slice(1, 3), 16) / 255;
+    g = parseInt(finalColorHex.slice(3, 5), 16) / 255;
+    b = parseInt(finalColorHex.slice(5, 7), 16) / 255;
   }
 
-  let finalFontSize = Number(fontSize) || 20;
   const displayName = String(studentName || '').trim().toUpperCase();
   if (displayName) {
     pdfDoc.setTitle(displayName);
   }
 
-  // 3. Pengendalian Format Nama (Sebaris vs Dua Baris vs Auto)
+  // Pisahkan nama mengikut pilihan layout (auto, single, atau double)
   const words = displayName.split(/\s+/).filter(Boolean);
   const singleLine = words.join(' ');
-  const singleLineWidth = activeFont.widthOfTextAtSize(singleLine, finalFontSize);
+  const singleLineWidth = selectedFont.widthOfTextAtSize(singleLine, finalFontSize);
 
   let lines = [];
-  const layoutMode = String(nameLayout || 'auto').toLowerCase();
-
-  if (layoutMode === 'sebaris') {
-    // Paksa nama dalam 1 baris
+  if (nameLayout === 'single') {
     lines = [singleLine];
-    // Jika melebihi lebar maksimum, skala saiz font secara automatik
-    if (singleLineWidth > maxBoxWidth && maxBoxWidth > 0) {
-      const scaleFactor = maxBoxWidth / singleLineWidth;
-      finalFontSize = Math.max(11, Math.floor(finalFontSize * scaleFactor));
-    }
-  } else if (layoutMode === 'dua_baris') {
-    // Paksa nama dalam 2 baris
-    if (words.length <= 1) {
-      lines = [singleLine];
+  } else if (nameLayout === 'double') {
+    if (words.length > 1) {
+      const mid = Math.ceil(words.length / 2);
+      lines = [words.slice(0, mid).join(' '), words.slice(mid).join(' ')];
     } else {
-      let splitIdx = words.findIndex((w, idx) => idx > 0 && /^(bin|binti|bt|b\.|a\/l|a\/p)$/i.test(w));
-      if (splitIdx === -1) {
-        splitIdx = Math.ceil(words.length / 2);
-      }
-      const l1 = words.slice(0, splitIdx).join(' ');
-      const l2 = words.slice(splitIdx).join(' ');
-      lines = [l1, l2].filter(Boolean);
+      lines = [displayName];
     }
   } else {
-    // 'auto' - Pisahkan jika melebihi had lebar
+    // 'auto' mode
     if (singleLineWidth <= maxBoxWidth) {
       lines = [singleLine];
     } else {
@@ -129,7 +116,7 @@ export async function generateCertificatePdf({
       let l2 = [];
       for (const w of words) {
         const candidate = [...l1, w].join(' ');
-        if (l2.length === 0 && activeFont.widthOfTextAtSize(candidate, finalFontSize) <= maxBoxWidth) {
+        if (l2.length === 0 && selectedFont.widthOfTextAtSize(candidate, finalFontSize) <= maxBoxWidth) {
           l1.push(w);
         } else {
           l2.push(w);
@@ -144,66 +131,46 @@ export async function generateCertificatePdf({
     }
   }
 
-  // 4. Pengiraan Koordinat Posisi X & Y
-  // leftRatio / posXRatio: 0.0 hingga 1.0 dari sisi kiri (default 0.5 = tengah)
-  const effectiveLeft = leftRatio !== null && leftRatio !== undefined
-    ? Number(leftRatio)
-    : (posXRatio !== null && posXRatio !== undefined ? Number(posXRatio) : 0.5);
-  const centerX = width * (effectiveLeft > 0 ? effectiveLeft : 0.5);
-
-  // topRatio / posYRatio: 0.0 hingga 1.0 dari sisi atas
-  let pdfCenterY;
-  const effectiveTop = topRatio !== null && topRatio !== undefined
-    ? Number(topRatio)
-    : (posYRatio !== null && posYRatio !== undefined ? Number(posYRatio) : null);
-
-  if (effectiveTop !== null && !isNaN(effectiveTop) && effectiveTop > 0 && effectiveTop <= 1) {
-    if (effectiveTop >= 0.55 && effectiveTop <= 0.65 && topRatio === null) {
-      // Nisbah dari bawah (legacy PDF bottom offset 0.5718)
-      pdfCenterY = (height * effectiveTop) + 18;
-    } else {
-      // Nisbah dari atas (web UI coordinate: 0.0 atas, 1.0 bawah)
-      pdfCenterY = height * (1 - effectiveTop);
-    }
-  } else {
-    // Lalai: ~40.7% dari atas (bersamaan posisi rasmi)
-    pdfCenterY = height * 0.593;
-  }
+  const centerX = width * xRatio;
+  const lineY = height * yRatio;
 
   const drawnCoordinates = [];
   if (lines.length === 1) {
-    const textWidth = activeFont.widthOfTextAtSize(lines[0], finalFontSize);
-    const x = Math.max(10, centerX - (textWidth / 2));
-    const y = pdfCenterY - (finalFontSize * 0.35);
+    // 1 Baris: diletakkan di atas garisan dengan jarak yang kemas
+    const textWidth = selectedFont.widthOfTextAtSize(lines[0], finalFontSize);
+    const x = Math.max(15, centerX - (textWidth / 2));
+    const y = lineY + 14;
     page1.drawText(lines[0], {
       x,
       y,
       size: finalFontSize,
-      font: activeFont,
+      font: selectedFont,
       color: rgb(r, g, b)
     });
     drawnCoordinates.push({ line: lines[0], x, y });
   } else {
+    // 2 Baris: kedua-duanya tersusun kemas di atas garisan
     const lineSpacing = Math.round(finalFontSize * 1.25);
-    const topLineY = pdfCenterY + (lineSpacing * 0.5) - (finalFontSize * 0.35);
-    const bottomLineY = pdfCenterY - (lineSpacing * 0.5) - (finalFontSize * 0.35);
+    const bottomLineY = lineY + 10;
+    const topLineY = bottomLineY + lineSpacing;
 
     const yPositions = [topLineY, bottomLineY];
     for (let i = 0; i < lines.length; i++) {
-      const textWidth = activeFont.widthOfTextAtSize(lines[i], finalFontSize);
-      const x = Math.max(10, centerX - (textWidth / 2));
+      const textWidth = selectedFont.widthOfTextAtSize(lines[i], finalFontSize);
+      const x = Math.max(15, centerX - (textWidth / 2));
       const y = yPositions[i] ?? (bottomLineY - (i - 1) * lineSpacing);
       page1.drawText(lines[i], {
         x,
         y,
         size: finalFontSize,
-        font: activeFont,
+        font: selectedFont,
         color: rgb(r, g, b)
       });
       drawnCoordinates.push({ line: lines[i], x, y });
     }
   }
 
+  // Simpan fail siap yang menggabungkan Page 1 (diubah) dan Page 2 (asal)
   const resultBytes = await pdfDoc.save();
 
   if (outputPath) {

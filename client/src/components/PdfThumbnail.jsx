@@ -81,7 +81,7 @@ export function PdfThumbnail({
   const [attempt, setAttempt] = useState(0);
 
   // Check localStorage if no thumbnail prop provided
-  const cacheKey = templateId || (url ? encodeURIComponent(url) : null);
+  const cacheKey = templateId ? `tpl_${templateId}` : (url ? encodeURIComponent(url) : null);
   useEffect(() => {
     if (!thumbnail && cacheKey && typeof window !== 'undefined') {
       try {
@@ -93,15 +93,22 @@ export function PdfThumbnail({
     }
   }, [thumbnail, cacheKey]);
 
-  // Compute effective image thumbnail
+  // Compute effective image thumbnail (Direct base64 or server-rendered JPEG thumbnail)
   const effectiveThumb = useMemo(() => {
+    if (imgFailed) return null;
     const t = thumbnail || localThumb;
-    if (!t || imgFailed) return null;
-    if (t.startsWith('data:image/') || t.startsWith('http://') || t.startsWith('https://')) {
-      return t;
+    if (t) {
+      if (t.startsWith('data:image/') || t.startsWith('http://') || t.startsWith('https://')) {
+        return t;
+      }
+      return `data:image/jpeg;base64,${t}`;
     }
-    return `data:image/jpeg;base64,${t}`;
-  }, [thumbnail, localThumb, imgFailed]);
+    // Jika tiada base64 dalam props, gunakan endpoint imej thumbnail pelayan secara langsung (0ms render)
+    if (templateId) {
+      return `/api/admin/templates/${templateId}/thumbnail`;
+    }
+    return null;
+  }, [thumbnail, localThumb, templateId, imgFailed]);
 
   // If effective thumbnail exists, no need to download or render PDF!
   useEffect(() => {

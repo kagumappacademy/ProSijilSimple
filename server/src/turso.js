@@ -3,6 +3,7 @@ import { db } from './db.js';
 import { projectRoot } from './config.js';
 import dotenv from 'dotenv';
 import path from 'node:path';
+import fs from 'node:fs';
 
 dotenv.config({ path: path.join(projectRoot, '.env') });
 
@@ -72,6 +73,7 @@ export const TURSO_SCHEMA_STATEMENTS = [
     kategori TEXT DEFAULT 'kenaikan_tali_pinggang',
     page_count INTEGER DEFAULT 1,
     thumbnail_base64 TEXT,
+    layout_config TEXT,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   )`,
   `CREATE TABLE IF NOT EXISTS settings (
@@ -214,10 +216,10 @@ export async function pushLocalToTurso() {
   stats.sijil = localSijil.length;
 
   // 5. Template Sijil
-  const localTemplates = db.prepare('SELECT id, nama_template, peringkat, keterangan, file_path, file_name, file_size, file_base64, kategori, page_count, thumbnail_base64, text_config, created_at FROM template_sijil').all();
+  const localTemplates = db.prepare('SELECT id, nama_template, peringkat, keterangan, file_path, file_name, file_size, file_base64, kategori, page_count, thumbnail_base64, layout_config, created_at FROM template_sijil').all();
   const tplStmts = localTemplates.map((row) => ({
-    sql: 'INSERT OR REPLACE INTO template_sijil (id, nama_template, peringkat, keterangan, file_path, file_name, file_size, file_base64, kategori, page_count, thumbnail_base64, text_config, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-    args: [row.id, row.nama_template, row.peringkat, row.keterangan || null, row.file_path, row.file_name, row.file_size || 0, row.file_base64 || null, row.kategori || 'kenaikan_tali_pinggang', row.page_count || 1, row.thumbnail_base64 || null, row.text_config || null, row.created_at],
+    sql: 'INSERT OR REPLACE INTO template_sijil (id, nama_template, peringkat, keterangan, file_path, file_name, file_size, file_base64, kategori, page_count, thumbnail_base64, layout_config, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    args: [row.id, row.nama_template, row.peringkat, row.keterangan || null, row.file_path, row.file_name, row.file_size || 0, row.file_base64 || null, row.kategori || 'kenaikan_tali_pinggang', row.page_count || 1, row.thumbnail_base64 || null, row.layout_config || null, row.created_at],
   }));
   await batchExecute(turso, tplStmts);
   stats.template_sijil = localTemplates.length;
@@ -268,24 +270,56 @@ export async function pullTursoToLocal() {
       stats.pesilat++;
     }
 
-    // 4. Sijil
-    const remoteSijil = await turso.execute('SELECT id, pesilat_id, nama_sijil, tarikh_isu, jenis, file_path, file_type, public_token, file_base64, kategori, created_at FROM sijil');
-    const sijilStmt = db.prepare('INSERT OR REPLACE INTO sijil (id, pesilat_id, nama_sijil, tarikh_isu, jenis, file_path, file_type, public_token, file_base64, kategori, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+    // 4. Sijil (ringan: tanpa memuat turun file_base64 pukal)
+    const remoteSijil = await turso.execute('SELECT id, pesilat_id, nama_sijil, tarikh_isu, jenis, file_path, file_type, public_token, kategori, created_at FROM sijil');
+    const sijilStmt = db.prepare(`
+      INSERT INTO sijil (id, pesilat_id, nama_sijil, tarikh_isu, jenis, file_path, file_type, public_token, kategori, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        pesilat_id=excluded.pesilat_id,
+        nama_sijil=excluded.nama_sijil,
+        tarikh_isu=excluded.tarikh_isu,
+        jenis=excluded.jenis,
+        file_path=excluded.file_path,
+        file_type=excluded.file_type,
+        public_token=excluded.public_token,
+        kategori=excluded.kategori,
+        created_at=excluded.created_at
+    `);
     for (const row of remoteSijil.rows) {
-      sijilStmt.run(row.id, row.pesilat_id, row.nama_sijil, row.tarikh_isu, row.jenis, row.file_path, row.file_type, row.public_token, row.file_base64, row.kategori || 'kenaikan_tali_pinggang', row.created_at);
+      sijilStmt.run(row.id, row.pesilat_id, row.nama_sijil, row.tarikh_isu, row.jenis, row.file_path, row.file_type, row.public_token, row.kategori || 'kenaikan_tali_pinggang', row.created_at);
       stats.sijil++;
     }
 
-    // 5. Template Sijil
+    // 5. Template Sijil (ringan: muat turun metadata + thumbnail_base64 tanpa file_base64 pukal 50MB)
     let remoteTemplates;
     try {
-      remoteTemplates = await turso.execute('SELECT id, nama_template, peringkat, keterangan, file_path, file_name, file_size, file_base64, kategori, page_count, thumbnail_base64, text_config, created_at FROM template_sijil');
+      remoteTemplates = await turso.execute('SELECT id, nama_template, peringkat, keterangan, file_path, file_name, file_size, kategori, page_count, thumbnail_base64, layout_config, created_at FROM template_sijil');
     } catch (_) {
-      remoteTemplates = await turso.execute('SELECT id, nama_template, peringkat, keterangan, file_path, file_name, file_size, file_base64, kategori, page_count, thumbnail_base64, created_at FROM template_sijil');
+      try {
+        remoteTemplates = await turso.execute('SELECT id, nama_template, peringkat, keterangan, file_path, file_name, file_size, kategori, page_count, thumbnail_base64, created_at FROM template_sijil');
+      } catch (_2) {
+        remoteTemplates = await turso.execute('SELECT id, nama_template, peringkat, keterangan, file_path, file_name, file_size, kategori, page_count, created_at FROM template_sijil');
+      }
     }
-    const tplStmt = db.prepare('INSERT OR REPLACE INTO template_sijil (id, nama_template, peringkat, keterangan, file_path, file_name, file_size, file_base64, kategori, page_count, thumbnail_base64, text_config, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+    const tplStmt = db.prepare(`
+      INSERT INTO template_sijil (id, nama_template, peringkat, keterangan, file_path, file_name, file_size, kategori, page_count, thumbnail_base64, layout_config, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        nama_template=excluded.nama_template,
+        peringkat=excluded.peringkat,
+        keterangan=excluded.keterangan,
+        file_path=excluded.file_path,
+        file_name=excluded.file_name,
+        file_size=excluded.file_size,
+        kategori=excluded.kategori,
+        page_count=excluded.page_count,
+        thumbnail_base64=COALESCE(excluded.thumbnail_base64, template_sijil.thumbnail_base64),
+        layout_config=COALESCE(excluded.layout_config, template_sijil.layout_config),
+        created_at=excluded.created_at
+    `);
     for (const row of remoteTemplates.rows) {
-      tplStmt.run(row.id, row.nama_template, row.peringkat, row.keterangan, row.file_path, row.file_name, row.file_size, row.file_base64, row.kategori || 'kenaikan_tali_pinggang', row.page_count ?? 1, row.thumbnail_base64 || null, row.text_config || null, row.created_at);
+      tplStmt.run(row.id, row.nama_template, row.peringkat, row.keterangan, row.file_path, row.file_name, row.file_size, row.kategori || 'kenaikan_tali_pinggang', row.page_count ?? 1, row.thumbnail_base64 || null, row.layout_config || null, row.created_at);
       stats.template_sijil++;
     }
 
@@ -299,21 +333,72 @@ export async function pullTursoToLocal() {
 }
 
 /**
- * Pulls only template_sijil from Turso cloud database and saves into local SQLite.
+ * Pulls only template_sijil from Turso cloud database and saves into local SQLite (tanpa file_base64 pukal).
  */
 export async function pullTemplatesFromTurso() {
   if (!isTursoConfigured()) return 0;
   const turso = getTursoClient();
   let remoteTemplates;
   try {
-    remoteTemplates = await turso.execute('SELECT id, nama_template, peringkat, keterangan, file_path, file_name, file_size, file_base64, kategori, page_count, thumbnail_base64, text_config, created_at FROM template_sijil');
+    remoteTemplates = await turso.execute('SELECT id, nama_template, peringkat, keterangan, file_path, file_name, file_size, kategori, page_count, thumbnail_base64, layout_config, created_at FROM template_sijil');
   } catch (_) {
-    remoteTemplates = await turso.execute('SELECT id, nama_template, peringkat, keterangan, file_path, file_name, file_size, file_base64, kategori, page_count, thumbnail_base64, created_at FROM template_sijil');
+    try {
+      remoteTemplates = await turso.execute('SELECT id, nama_template, peringkat, keterangan, file_path, file_name, file_size, kategori, page_count, thumbnail_base64, created_at FROM template_sijil');
+    } catch (_2) {
+      remoteTemplates = await turso.execute('SELECT id, nama_template, peringkat, keterangan, file_path, file_name, file_size, kategori, page_count, created_at FROM template_sijil');
+    }
   }
-  const tplStmt = db.prepare('INSERT OR REPLACE INTO template_sijil (id, nama_template, peringkat, keterangan, file_path, file_name, file_size, file_base64, kategori, page_count, thumbnail_base64, text_config, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)');
+  const tplStmt = db.prepare(`
+    INSERT INTO template_sijil (id, nama_template, peringkat, keterangan, file_path, file_name, file_size, kategori, page_count, thumbnail_base64, layout_config, created_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
+      nama_template=excluded.nama_template,
+      peringkat=excluded.peringkat,
+      keterangan=excluded.keterangan,
+      file_path=excluded.file_path,
+      file_name=excluded.file_name,
+      file_size=excluded.file_size,
+      kategori=excluded.kategori,
+      page_count=excluded.page_count,
+      thumbnail_base64=COALESCE(excluded.thumbnail_base64, template_sijil.thumbnail_base64),
+      layout_config=COALESCE(excluded.layout_config, template_sijil.layout_config),
+      created_at=excluded.created_at
+  `);
   for (const row of remoteTemplates.rows) {
-    tplStmt.run(row.id, row.nama_template, row.peringkat, row.keterangan, row.file_path, row.file_name, row.file_size, row.file_base64, row.kategori || 'kenaikan_tali_pinggang', row.page_count ?? 1, row.thumbnail_base64 || null, row.text_config || null, row.created_at);
+    tplStmt.run(row.id, row.nama_template, row.peringkat, row.keterangan, row.file_path, row.file_name, row.file_size, row.kategori || 'kenaikan_tali_pinggang', row.page_count ?? 1, row.thumbnail_base64 || null, row.layout_config || null, row.created_at);
   }
   return remoteTemplates.rows.length;
+}
+
+/**
+ * Memastikan fail PDF templat (file_base64) sedia ada dalam SQLite tempatan.
+ * Jika tiada secara tempatan, muat turun atas permintaan daripada Turso Cloud bagi templat ini sahaja.
+ */
+export async function ensureTemplateFileBase64(templateId) {
+  const row = db.prepare('SELECT file_base64, file_path FROM template_sijil WHERE id=?').get(templateId);
+  if (row?.file_base64) return row.file_base64;
+  if (row?.file_path && fs.existsSync(row.file_path)) {
+    try {
+      const b64 = fs.readFileSync(row.file_path).toString('base64');
+      db.prepare('UPDATE template_sijil SET file_base64=? WHERE id=?').run(b64, templateId);
+      return b64;
+    } catch (_) {}
+  }
+  if (!isTursoConfigured()) return null;
+  try {
+    const turso = getTursoClient();
+    const res = await turso.execute({
+      sql: 'SELECT file_base64 FROM template_sijil WHERE id=?',
+      args: [templateId]
+    });
+    const b64 = res.rows?.[0]?.file_base64;
+    if (b64) {
+      db.prepare('UPDATE template_sijil SET file_base64=? WHERE id=?').run(b64, templateId);
+      return b64;
+    }
+  } catch (err) {
+    console.warn(`[Turso] Gagal memuat turun file_base64 templat ${templateId}:`, err.message);
+  }
+  return null;
 }
 
