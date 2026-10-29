@@ -245,14 +245,16 @@ function DraggableCertificateTextPositioner({
           }}
           className={`absolute pointer-events-none transition-transform duration-75 px-3 py-1 rounded-md max-w-[85%] text-center ${
             isDragging
-              ? 'bg-white/95 ring-2 ring-red-500 shadow-xl scale-105'
-              : 'bg-white/80 backdrop-blur-[2px] ring-1 ring-slate-400/50 shadow-md hover:ring-red-400'
+              ? 'bg-transparent border border-dashed border-red-500 ring-2 ring-red-400/40 scale-105'
+              : 'bg-transparent border border-dashed border-red-500/60'
           }`}
         >
           {/* Subtle Drag Handle Icon above */}
-          <div className="flex items-center justify-center gap-1 mb-0.5 text-[9px] font-bold text-slate-500">
-            <Move size={10} className="text-red-600" />
-            <span className="uppercase tracking-wider text-[8px]">Tarik Untuk Ubah Posisi</span>
+          <div className="flex items-center justify-center gap-1 mb-1">
+            <span className="inline-flex items-center gap-1 rounded-full bg-slate-900/70 backdrop-blur-xs text-white px-2 py-0.5 text-[8.5px] font-bold uppercase tracking-wider shadow-xs">
+              <Move size={9} className="text-white" />
+              <span>Tarik Untuk Ubah Posisi</span>
+            </span>
           </div>
 
           {/* Rendered Text */}
