@@ -807,6 +807,8 @@ export function GenerateCerts() {
                         <div className="relative aspect-[1/1.34] w-full overflow-hidden rounded-lg border border-slate-200/90 bg-slate-50">
                           <PdfThumbnail
                             url={previewUrl}
+                            thumbnail={template.thumbnail_base64}
+                            templateId={template.id}
                             title={template.nama_template}
                             scale={0.65}
                             className="h-full w-full pointer-events-none"

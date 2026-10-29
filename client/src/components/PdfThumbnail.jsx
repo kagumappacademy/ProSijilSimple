@@ -1,43 +1,97 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import * as pdfjsLib from 'pdfjs-dist';
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.js?url';
-import { RotateCw, FileText, Sparkles } from 'lucide-react';
+import { RotateCw, FileText, Image as ImageIcon } from 'lucide-react';
 
 if (typeof window !== 'undefined') {
   pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
 }
 
-// In-memory buffer cache to avoid re-fetching the same template repeatedly on mobile
+// In-memory buffer cache & in-flight deduplication
 const pdfBufferCache = new Map();
+const inflightPdfFetches = new Map();
 
-export function PdfThumbnail({ url, className = '', title = 'Sijil', scale = 0.7, pageNum = 1 }) {
+async function getPdfBuffer(url) {
+  if (pdfBufferCache.has(url)) return pdfBufferCache.get(url);
+  if (inflightPdfFetches.has(url)) return inflightPdfFetches.get(url);
+
+  const fetchPromise = (async () => {
+    const response = await fetch(url, { credentials: 'same-origin' });
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    const buf = await response.arrayBuffer();
+    if (buf && buf.byteLength > 0) {
+      pdfBufferCache.set(url, buf);
+    }
+    return buf;
+  })().finally(() => {
+    inflightPdfFetches.delete(url);
+  });
+
+  inflightPdfFetches.set(url, fetchPromise);
+  return fetchPromise;
+}
+
+export function PdfThumbnail({
+  url,
+  thumbnail = null,
+  templateId = null,
+  className = '',
+  title = 'Sijil',
+  scale = 0.7,
+  pageNum = 1,
+}) {
   const canvasRef = useRef(null);
-  const [loading, setLoading] = useState(true);
+  const [imgFailed, setImgFailed] = useState(false);
+  const [localThumb, setLocalThumb] = useState(null);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
 
+  // Check localStorage if no thumbnail prop provided
+  const cacheKey = templateId || (url ? encodeURIComponent(url) : null);
   useEffect(() => {
+    if (!thumbnail && cacheKey && typeof window !== 'undefined') {
+      try {
+        const cached = localStorage.getItem('pdf_thumb_' + cacheKey);
+        if (cached && cached.startsWith('data:image/')) {
+          setLocalThumb(cached);
+        }
+      } catch (_) {}
+    }
+  }, [thumbnail, cacheKey]);
+
+  // Compute effective image thumbnail
+  const effectiveThumb = useMemo(() => {
+    const t = thumbnail || localThumb;
+    if (!t || imgFailed) return null;
+    if (t.startsWith('data:image/') || t.startsWith('http://') || t.startsWith('https://')) {
+      return t;
+    }
+    return `data:image/jpeg;base64,${t}`;
+  }, [thumbnail, localThumb, imgFailed]);
+
+  // If effective thumbnail exists, no need to download or render PDF!
+  useEffect(() => {
+    if (effectiveThumb) {
+      setLoading(false);
+      setError(false);
+      return;
+    }
+
+    if (!url) {
+      setError(true);
+      return;
+    }
+
     let active = true;
     let renderTask = null;
-    const abortCtrl = new AbortController();
 
     async function renderPage() {
       setLoading(true);
       setError(false);
-      try {
-        let arrayBuffer = pdfBufferCache.get(url);
-        if (!arrayBuffer) {
-          const response = await fetch(url, {
-            credentials: 'same-origin',
-            signal: abortCtrl.signal,
-          });
-          if (!response.ok) throw new Error('HTTP ' + response.status);
-          arrayBuffer = await response.arrayBuffer();
-          if (arrayBuffer && arrayBuffer.byteLength > 0) {
-            pdfBufferCache.set(url, arrayBuffer);
-          }
-        }
 
+      try {
+        const arrayBuffer = await getPdfBuffer(url);
         if (!active) return;
 
         const loadingTask = pdfjsLib.getDocument({
@@ -71,18 +125,33 @@ export function PdfThumbnail({ url, className = '', title = 'Sijil', scale = 0.7
         });
 
         await renderTask.promise;
+
         if (active) {
           setLoading(false);
           setError(false);
+
+          // Save generated thumbnail to localStorage & server for future zero-second loading
+          try {
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+            if (cacheKey) {
+              try { localStorage.setItem('pdf_thumb_' + cacheKey, dataUrl); } catch (_) {}
+            }
+            if (templateId && pageNum === 1) {
+              fetch(`/api/admin/templates/${templateId}/thumbnail`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ thumbnail: dataUrl }),
+              }).catch(() => {});
+            }
+          } catch (_) {}
         }
       } catch (err) {
         if (err.name !== 'AbortError' && active) {
           console.warn('PDF thumbnail load error:', err);
-          // If first attempt failed on mobile network or canvas race, auto-retry once after 800ms
           if (attempt < 2) {
             const timer = setTimeout(() => {
               if (active) setAttempt((a) => a + 1);
-            }, 800);
+            }, 600);
             return () => clearTimeout(timer);
           } else {
             setError(true);
@@ -96,45 +165,44 @@ export function PdfThumbnail({ url, className = '', title = 'Sijil', scale = 0.7
 
     return () => {
       active = false;
-      abortCtrl.abort();
       if (renderTask) {
-        try {
-          renderTask.cancel();
-        } catch (_) {}
+        try { renderTask.cancel(); } catch (_) {}
       }
     };
-  }, [url, scale, pageNum, attempt]);
+  }, [url, effectiveThumb, scale, pageNum, attempt, cacheKey, templateId]);
 
   return (
-    <div className={`relative overflow-hidden bg-slate-50 flex items-center justify-center ${className}`}>
-      {loading && (
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-slate-50/90 backdrop-blur-[2px] p-2 text-center select-none">
-          <div className="relative flex items-center justify-center">
-            <div className="h-6 w-6 rounded-full border-2 border-slate-200 border-t-red-600 animate-spin" />
-            <div className="absolute h-2 w-2 rounded-full bg-red-600/30" />
-          </div>
-          <span className="mt-2 text-[9px] font-bold text-slate-500 tracking-tight">Memuatkan...</span>
-        </div>
-      )}
-
-      {error ? (
-        <div className="flex h-full w-full flex-col items-center justify-center p-2 text-center bg-gradient-to-b from-red-50/30 to-slate-50">
-          <div className="rounded-xl border border-red-100 bg-white p-2.5 shadow-2xs w-full max-w-[130px] flex flex-col items-center">
-            <div className="h-7 w-7 rounded-lg bg-red-50 text-red-700 grid place-items-center mb-1">
-              <FileText size={14} />
+    <div className={`relative overflow-hidden bg-slate-50 flex items-center justify-center select-none ${className}`}>
+      {/* 1. Fast path: Direct lightweight image thumbnail (0ms load) */}
+      {effectiveThumb ? (
+        <img
+          src={effectiveThumb}
+          alt={title}
+          loading="lazy"
+          onError={() => setImgFailed(true)}
+          className="h-full w-full object-contain pointer-events-none select-none transition-opacity duration-200"
+        />
+      ) : error ? (
+        /* 2. Fallback if PDF fails to render */
+        <div className="flex h-full w-full flex-col items-center justify-center p-2 text-center bg-gradient-to-b from-slate-100/60 to-slate-50">
+          <div className="rounded-xl border border-slate-200/90 bg-white/95 p-2 shadow-2xs w-full max-w-[130px] flex flex-col items-center">
+            <div className="h-6 w-6 rounded-lg bg-red-50 text-red-700 grid place-items-center mb-1">
+              <FileText size={13} />
             </div>
-            <div className="text-[9.5px] font-extrabold text-slate-900 truncate w-full" title={title}>
+            <div className="text-[9px] font-extrabold text-slate-800 truncate w-full" title={title}>
               {title}
             </div>
-            <span className="mt-0.5 text-[8.5px] font-semibold text-slate-400">PDF Rasmi</span>
+            <span className="mt-0.5 text-[8px] font-semibold text-slate-400">PDF Rasmi</span>
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                pdfBufferCache.delete(url);
+                if (url) pdfBufferCache.delete(url);
+                setImgFailed(false);
+                setError(false);
                 setAttempt(0);
               }}
-              className="mt-2 inline-flex items-center gap-1 rounded-md bg-red-50 px-2 py-0.5 text-[8.5px] font-bold text-red-700 hover:bg-red-100 transition border border-red-200/60 active:scale-95"
+              className="mt-1.5 inline-flex items-center gap-1 rounded-md bg-slate-100 px-2 py-0.5 text-[8.5px] font-bold text-slate-700 hover:bg-red-50 hover:text-red-700 transition border border-slate-200 active:scale-95 cursor-pointer"
             >
               <RotateCw size={9} />
               <span>Muat Semula</span>
@@ -142,7 +210,16 @@ export function PdfThumbnail({ url, className = '', title = 'Sijil', scale = 0.7
           </div>
         </div>
       ) : (
-        <canvas ref={canvasRef} className="h-full w-full object-contain pointer-events-none" />
+        /* 3. Canvas rendering for fresh PDFs */
+        <>
+          {loading && (
+            <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-slate-50/80 backdrop-blur-[1px] p-2 text-center select-none">
+              <div className="h-5 w-5 rounded-full border-2 border-slate-200 border-t-red-600 animate-spin" />
+              <span className="mt-1.5 text-[8.5px] font-bold text-slate-400 tracking-tight">Memuatkan...</span>
+            </div>
+          )}
+          <canvas ref={canvasRef} className="h-full w-full object-contain pointer-events-none" />
+        </>
       )}
     </div>
   );

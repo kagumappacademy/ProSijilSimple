@@ -571,6 +571,8 @@ export function LargeTemplatePreviewModal({ open, onClose, template, onTestGener
             <PdfThumbnail
               url={previewUrl}
               title={template.nama_template}
+              thumbnail={page === 1 ? template.thumbnail_base64 : null}
+              templateId={template.id}
               pageNum={page}
               scale={1.3}
               className="h-full w-full"
@@ -961,6 +963,8 @@ export function Templates() {
                             >
                               <PdfThumbnail
                                 url={previewUrl}
+                                thumbnail={item.thumbnail_base64}
+                                templateId={item.id}
                                 title={item.nama_template}
                                 scale={0.65}
                                 className="h-full w-full pointer-events-none"
@@ -1063,7 +1067,14 @@ export function Templates() {
                         className="h-20 w-15 shrink-0 rounded-xl overflow-hidden border border-slate-200 bg-slate-50 shadow-2xs cursor-pointer hover:border-red-500 transition relative group/thumb"
                         title="Klik untuk besarkan pratonton"
                       >
-                        <PdfThumbnail url={previewUrl} title={item.nama_template} scale={0.7} className="h-full w-full" />
+                        <PdfThumbnail
+                          url={previewUrl}
+                          thumbnail={item.thumbnail_base64}
+                          templateId={item.id}
+                          title={item.nama_template}
+                          scale={0.7}
+                          className="h-full w-full"
+                        />
                         <div className="absolute inset-0 bg-slate-950/30 opacity-0 group-hover/thumb:opacity-100 flex items-center justify-center transition">
                           <Maximize2 size={12} className="text-white" />
                         </div>
@@ -1153,7 +1164,14 @@ export function Templates() {
                             className="h-16 w-12 rounded-lg overflow-hidden border border-slate-200 bg-slate-50 shadow-2xs cursor-pointer hover:border-red-500 transition relative group/thumb"
                             title="Klik untuk besarkan pratonton"
                           >
-                            <PdfThumbnail url={previewUrl} title={item.nama_template} scale={0.7} className="h-full w-full" />
+                            <PdfThumbnail
+                          url={previewUrl}
+                          thumbnail={item.thumbnail_base64}
+                          templateId={item.id}
+                          title={item.nama_template}
+                          scale={0.7}
+                          className="h-full w-full"
+                        />
                             <div className="absolute inset-0 bg-slate-950/30 opacity-0 group-hover/thumb:opacity-100 flex items-center justify-center transition">
                               <Maximize2 size={12} className="text-white" />
                             </div>

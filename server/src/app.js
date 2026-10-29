@@ -601,7 +601,7 @@ app.get('/api/admin/templates',requireAdmin,async (req,res)=>{
     }
    } catch(e) { console.warn('[Turso Templates Force Sync Warning]', e.message); }
   }
-  let query = 'SELECT id,nama_template,peringkat,keterangan,file_name,file_size,kategori,page_count,created_at FROM template_sijil';
+  let query = 'SELECT id,nama_template,peringkat,keterangan,file_name,file_size,kategori,page_count,thumbnail_base64,created_at FROM template_sijil';
   const conds = [];
   const params = [];
   if (category && category !== 'semua') {
@@ -719,6 +719,10 @@ app.post('/api/admin/templates',requireAdmin,uploadTemplate.fields([{ name: 'fil
   if (nama.length < 3) return fail(res, 'Nama templat perlu sekurang-kurangnya 3 aksara.');
   if (!peringkat) return fail(res, 'Sila pilih atau masukkan peringkat pesilat untuk templat ini.');
 
+  const thumbnail = typeof req.body?.thumbnail === 'string' && req.body.thumbnail.startsWith('data:image/')
+    ? req.body.thumbnail.trim()
+    : null;
+
   const file_base64 = finalBytes.toString('base64');
   const file_path = path.join(dataDir, 'templates', crypto.randomUUID() + '.pdf');
   try { fs.writeFileSync(file_path, finalBytes, { flag: 'wx' }); } catch (_) {}
@@ -731,8 +735,8 @@ app.post('/api/admin/templates',requireAdmin,uploadTemplate.fields([{ name: 'fil
     if (isTursoConfigured()) {
       const turso = getTursoClient();
       const tursoRes = await turso.execute({
-        sql: "INSERT INTO template_sijil (nama_template, peringkat, keterangan, file_path, file_name, file_size, file_base64, kategori, page_count, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now')) RETURNING id",
-        args: [nama, peringkat, keterangan || null, file_path, file_name, finalBytes.length, file_base64, kategori, actualPageCount]
+        sql: "INSERT INTO template_sijil (nama_template, peringkat, keterangan, file_path, file_name, file_size, file_base64, kategori, page_count, thumbnail_base64, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now')) RETURNING id",
+        args: [nama, peringkat, keterangan || null, file_path, file_name, finalBytes.length, file_base64, kategori, actualPageCount, thumbnail]
       });
       if (tursoRes.rows && tursoRes.rows[0]?.id) {
         newId = Number(tursoRes.rows[0].id);
@@ -748,11 +752,11 @@ app.post('/api/admin/templates',requireAdmin,uploadTemplate.fields([{ name: 'fil
 
   // 2. Simpan juga ke SQLite tempatan (cache)
   if (newId) {
-    db.prepare('INSERT OR REPLACE INTO template_sijil (id,nama_template,peringkat,keterangan,file_path,file_name,file_size,file_base64,kategori,page_count) VALUES (?,?,?,?,?,?,?,?,?,?)')
-      .run(newId, nama, peringkat, keterangan, file_path, file_name, finalBytes.length, file_base64, kategori, actualPageCount);
+    db.prepare('INSERT OR REPLACE INTO template_sijil (id,nama_template,peringkat,keterangan,file_path,file_name,file_size,file_base64,kategori,page_count,thumbnail_base64) VALUES (?,?,?,?,?,?,?,?,?,?,?)')
+      .run(newId, nama, peringkat, keterangan, file_path, file_name, finalBytes.length, file_base64, kategori, actualPageCount, thumbnail);
   } else {
-    const result = db.prepare('INSERT INTO template_sijil (nama_template,peringkat,keterangan,file_path,file_name,file_size,file_base64,kategori,page_count) VALUES (?,?,?,?,?,?,?,?,?)')
-      .run(nama, peringkat, keterangan, file_path, file_name, finalBytes.length, file_base64, kategori, actualPageCount);
+    const result = db.prepare('INSERT INTO template_sijil (nama_template,peringkat,keterangan,file_path,file_name,file_size,file_base64,kategori,page_count,thumbnail_base64) VALUES (?,?,?,?,?,?,?,?,?,?)')
+      .run(nama, peringkat, keterangan, file_path, file_name, finalBytes.length, file_base64, kategori, actualPageCount, thumbnail);
     newId = Number(result.lastInsertRowid);
   }
 
@@ -818,6 +822,29 @@ app.get('/api/admin/templates/:id/preview',requireAdmin,async (req,res)=>{
  return fail(res,'Fail templat tidak ditemui.',404);
 });
 
+app.post('/api/admin/templates/:id/thumbnail',requireAdmin,async (req,res,next)=>{
+ try {
+  const id=cleanId(req.params.id);if(!id)return fail(res,'ID tidak sah.');
+  const thumbnail=cleanStr(req.body?.thumbnail||req.body?.thumbnail_base64||'');
+  if(!thumbnail)return fail(res,'Thumbnail diperlukan.');
+
+  db.prepare('UPDATE template_sijil SET thumbnail_base64=? WHERE id=?').run(thumbnail,id);
+
+  try {
+   const { isTursoConfigured, getTursoClient } = await import('./turso.js');
+   if (isTursoConfigured()) {
+    const turso = getTursoClient();
+    await turso.execute({
+     sql: 'UPDATE template_sijil SET thumbnail_base64=? WHERE id=?',
+     args: [thumbnail, id]
+    });
+   }
+  } catch (e) { console.warn('[Turso Thumbnail Update Warning]', e.message); }
+
+  return res.json({success:true, id});
+ }catch(e){next(e);}
+});
+
 app.get('/api/admin/templates/groups',requireAdmin,async (req,res)=>{
  try {
   const force = req.query?.force_sync === '1';
@@ -829,13 +856,13 @@ app.get('/api/admin/templates/groups',requireAdmin,async (req,res)=>{
     }
    } catch(e) { console.warn('[Turso Groups Force Sync Warning]', e.message); }
   }
-  let rows=db.prepare('SELECT id,nama_template,peringkat,file_name,kategori,page_count FROM template_sijil ORDER BY id DESC, nama_template, peringkat').all();
+  let rows=db.prepare('SELECT id,nama_template,peringkat,file_name,kategori,page_count,thumbnail_base64 FROM template_sijil ORDER BY id DESC, nama_template, peringkat').all();
   if(!rows.length){
    try {
     const { isTursoConfigured, pullTemplatesFromTurso } = await import('./turso.js');
     if (isTursoConfigured()) {
      await pullTemplatesFromTurso();
-     rows=db.prepare('SELECT id,nama_template,peringkat,file_name,kategori,page_count FROM template_sijil ORDER BY id DESC, nama_template, peringkat').all();
+     rows=db.prepare('SELECT id,nama_template,peringkat,file_name,kategori,page_count,thumbnail_base64 FROM template_sijil ORDER BY id DESC, nama_template, peringkat').all();
     }
    } catch(e) { console.warn('[Turso Groups Warning]', e.message); }
   }
