@@ -16,6 +16,7 @@ import { Templates } from './pages/Templates';
 import { GenerateCerts } from './pages/GenerateCerts';
 import { ImportCSV } from './pages/Import';
 import { Settings } from './pages/Settings';
+import { RecentActivity } from './pages/RecentActivity';
 import './index.css';
 
 function App() {
@@ -55,6 +56,7 @@ function App() {
             <Route path="templates" element={<Templates />} />
             <Route path="jana-sijil" element={<GenerateCerts />} />
             <Route path="sijil" element={<Certificates />} />
+            <Route path="aktiviti" element={<RecentActivity />} />
             <Route path="import" element={<ImportCSV />} />
             <Route path="tetapan" element={<Settings />} />
           </Route>

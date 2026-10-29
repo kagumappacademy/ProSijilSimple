@@ -231,7 +231,7 @@ app.get('/api/admin/dashboard',requireAdmin,(_req,res)=>{
 
 app.get('/api/admin/recent-activity', requireAdmin, (req, res) => {
  try {
-  const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 6, 1), 50);
+  const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 200);
   const type = trim(req.query.type, 30);
   let query = 'SELECT id, type, action, title, detail, target_url, created_at FROM admin_activity';
   const params = [];
