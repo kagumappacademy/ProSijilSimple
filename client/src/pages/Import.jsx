@@ -57,7 +57,7 @@ export function ImportCSV() {
       <div className="grid gap-3.5 sm:gap-4 xl:grid-cols-[1.3fr_1fr]">
         <Panel className="p-4 sm:p-5">
           <div className="mb-3.5 flex items-center gap-3">
-            <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-red-50 text-red-700 border border-red-100">
+            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-800 border border-slate-200">
               <FileUp size={20} />
             </div>
             <div>
@@ -82,13 +82,13 @@ export function ImportCSV() {
               const f = e.dataTransfer.files?.[0];
               if (f) setFile(f);
             }}
-            className={`flex min-h-[160px] sm:min-h-[190px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-4 sm:p-6 text-center transition ${
+            className={`flex min-h-[160px] cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 p-4 sm:p-6 text-center transition-colors ${
               drag
                 ? 'border-red-600 bg-red-50'
                 : 'border-slate-200/80 bg-slate-50/50 hover:border-red-400 hover:bg-white'
             }`}
           >
-            <div className="grid h-12 w-12 place-items-center rounded-xl bg-white text-red-700 shadow-xs border border-slate-100">
+            <div className="grid h-10 w-10 place-items-center rounded-lg bg-white text-slate-700 shadow-2xs border border-slate-200">
               <UploadCloud size={24} />
             </div>
             <h3 className="mt-3 text-sm font-extrabold text-slate-950">

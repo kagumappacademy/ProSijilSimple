@@ -599,7 +599,7 @@ export function Templates() {
           </div>
 
           {/* TAB 1: Kategori Utama Jenis Sijil (Sijil Kenaikan Tali Pinggang, Pencapaian, Penghargaan, Penyertaan) */}
-          <div className="flex flex-wrap items-center gap-1.5 pt-0.5 border-b border-slate-100/80 pb-2.5">
+          <div className="flex flex-wrap items-center gap-1 bg-slate-100 p-1 rounded-lg w-fit mb-2">
             <button
               type="button"
               onClick={() => {
@@ -608,8 +608,8 @@ export function Templates() {
               }}
               className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition ${
                 filterCategory === 'semua'
-                  ? 'bg-red-700 text-white shadow-xs'
-                  : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                  ? 'bg-white text-slate-900 font-semibold shadow-xs'
+                  : 'text-slate-600 hover:text-slate-900 font-medium'
               }`}
             >
               <span>Semua Jenis Sijil</span>
@@ -761,7 +761,7 @@ export function Templates() {
                       return (
                         <div
                           key={item.id}
-                          className={`group relative flex flex-col justify-between rounded-xl border bg-white p-2.5 shadow-2xs transition-all hover:shadow-md hover:-translate-y-0.5 ${meta.border}`}
+                          className={`group relative flex flex-col justify-between rounded-lg border border-slate-200 bg-white p-2.5 shadow-2xs transition-colors hover:border-slate-400 ${meta.border}`}
                         >
                           <div>
                             {/* Live Certificate Visual Preview */}
@@ -820,7 +820,7 @@ export function Templates() {
                             <button
                               type="button"
                               onClick={() => setTestTarget(item)}
-                              className="flex-1 rounded-lg bg-emerald-50 px-2 py-1.5 text-[10.5px] font-bold text-emerald-700 hover:bg-emerald-100 transition inline-flex items-center justify-center gap-1 active:scale-95"
+                              className="flex-1 rounded-md bg-slate-100 px-2 py-1.5 text-[11px] font-semibold text-slate-800 hover:bg-slate-200 transition-colors inline-flex items-center justify-center gap-1"
                               title="Uji janaan nama pada templat"
                             >
                               <Play size={10} />

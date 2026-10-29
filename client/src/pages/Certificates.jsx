@@ -805,7 +805,7 @@ export function Certificates() {
               return (
                 <div key={cawanganName} className="space-y-4 pt-2 first:pt-0">
                   {/* Cawangan Group Header */}
-                  <div className="flex flex-wrap items-center justify-between gap-2.5 bg-slate-50/90 p-3 sm:p-3.5 rounded-2xl border border-slate-200/70 shadow-2xs">
+                  <div className="flex flex-wrap items-center justify-between gap-2.5 bg-slate-50 p-3 rounded-lg border border-slate-200 shadow-2xs">
                     <div className="flex items-center gap-2.5">
                       <div className="grid h-8 w-8 place-items-center rounded-xl bg-red-700 text-white font-black text-xs shadow-xs">
                         <MapPin size={15} />
@@ -831,7 +831,7 @@ export function Certificates() {
                       return (
                         <div
                           key={levelName}
-                          className="rounded-2xl border border-slate-200/80 bg-white p-3.5 sm:p-4 shadow-2xs space-y-3"
+                          className="rounded-lg border border-slate-200 bg-white p-3.5 shadow-2xs space-y-3"
                         >
                           {/* Rank Header with quick Select All for group */}
                           <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2.5">

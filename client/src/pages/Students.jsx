@@ -76,17 +76,17 @@ function ImportStudentsModal({ open, onClose, onSaved }) {
             const f = e.dataTransfer.files?.[0];
             if (f) setFile(f);
           }}
-          className={`flex min-h-[160px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed p-6 text-center transition ${
-            drag ? 'border-red-600 bg-red-50' : 'border-slate-200 bg-slate-50/70 hover:border-red-500 hover:bg-red-50/40'
+          className={`flex min-h-[160px] cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed p-6 text-center transition-colors ${
+            drag ? 'border-slate-900 bg-slate-100' : 'border-slate-300 bg-slate-50/60 hover:bg-slate-50 hover:border-slate-400'
           }`}
         >
-          <UploadCloud size={32} className="text-red-700 mb-2"/>
-          <div className="text-sm font-bold text-slate-950">
+          <UploadCloud size={28} className="text-slate-400 mb-2"/>
+          <div className="text-sm font-semibold text-slate-900">
             {file ? file.name : 'Seret fail CSV ke sini atau klik untuk pilih'}
           </div>
-          <p className="mt-1 text-xs text-slate-400">Format .csv (UTF-8), saiz maksimum 10MB</p>
+          <p className="mt-1 text-xs text-slate-500">Format .csv (UTF-8), saiz maksimum 10MB</p>
           {file && (
-            <span className="mt-2 text-xs font-bold text-red-800 bg-red-50 px-3 py-1 rounded-full">
+            <span className="mt-2 text-xs font-semibold text-slate-800 bg-slate-200 px-3 py-1 rounded-md">
               {(file.size / 1024).toFixed(1)} KB • Fail Dipilih
             </span>
           )}
@@ -216,16 +216,16 @@ function ExportStudentsModal({ open, onClose, branches = [], levels = [], curren
         </p>
 
         {/* Pilihan Cawangan & Peringkat */}
-        <div className="space-y-3 rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3.5 sm:p-4">
+        <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3.5 sm:p-4">
           <div>
-            <label className="mb-1.5 block text-xs font-bold text-slate-700 flex items-center gap-1.5">
-              <MapPin size={13} className="text-red-700" />
+            <label className="mb-1.5 block text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+              <MapPin size={13} className="text-slate-500" />
               <span>{lang === 'eng' ? 'Select Branch' : 'Pilih Cawangan'}</span>
             </label>
             <select
               value={selectedBranch}
               onChange={(e) => setSelectedBranch(e.target.value)}
-              className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-slate-900 outline-none focus:border-red-600 focus:ring-4 focus:ring-red-100"
+              className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-xs sm:text-sm font-medium text-slate-900 outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900"
             >
               <option value="">{lang === 'eng' ? 'All Branches (Semua Cawangan)' : 'Semua Cawangan'}</option>
               {branches.map((b) => (
@@ -237,14 +237,14 @@ function ExportStudentsModal({ open, onClose, branches = [], levels = [], curren
           </div>
 
           <div>
-            <label className="mb-1.5 block text-xs font-bold text-slate-700 flex items-center gap-1.5">
-              <Award size={13} className="text-red-700" />
+            <label className="mb-1.5 block text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+              <Award size={13} className="text-slate-500" />
               <span>{lang === 'eng' ? 'Select Rank / Level' : 'Pilih Peringkat / Bengkung'}</span>
             </label>
             <select
               value={selectedLevel}
               onChange={(e) => setSelectedLevel(e.target.value)}
-              className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs sm:text-sm font-semibold text-slate-900 outline-none focus:border-red-600 focus:ring-4 focus:ring-red-100"
+              className="w-full rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-xs sm:text-sm font-medium text-slate-900 outline-none focus:border-slate-900 focus:ring-1 focus:ring-slate-900"
             >
               <option value="">{lang === 'eng' ? 'All Levels (Semua Peringkat)' : 'Semua Peringkat'}</option>
               {levels.map((l) => (
@@ -257,15 +257,15 @@ function ExportStudentsModal({ open, onClose, branches = [], levels = [], curren
         </div>
 
         {/* Ringkasan Rekod Sepadan */}
-        <div className="rounded-xl border border-red-100 bg-red-50/70 p-3 text-xs space-y-1.5">
-          <div className="flex items-center justify-between font-bold text-slate-900">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs space-y-1.5">
+          <div className="flex items-center justify-between font-semibold text-slate-900">
             <span>{lang === 'eng' ? 'Matching Records:' : 'Jumlah Rekod Sepadan:'}</span>
-            <span className="font-mono text-sm text-red-700 font-extrabold">
+            <span className="font-mono text-sm text-red-700 font-bold">
               {loadingCount ? 'Mengira...' : count !== null ? `${count} pesilat` : '—'}
             </span>
           </div>
-          <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-600 pt-1 border-t border-red-200/50">
-            <span className="font-semibold text-slate-500">{lang === 'eng' ? 'Criteria:' : 'Kriteria:'}</span>
+          <div className="flex flex-wrap items-center gap-1.5 text-[11px] text-slate-600 pt-1 border-t border-slate-200">
+            <span className="font-medium text-slate-500">{lang === 'eng' ? 'Criteria:' : 'Kriteria:'}</span>
             <Chip color="slate">{selectedBranch || (lang === 'eng' ? 'All Branches' : 'Semua Cawangan')}</Chip>
             <span>•</span>
             <Chip color="gold">{selectedLevel || (lang === 'eng' ? 'All Levels' : 'Semua Peringkat')}</Chip>
@@ -568,15 +568,15 @@ function StudentDetailsModal({ open, onClose, student, onEdit, onSaved }) {
     <>
       <Modal open={open} onClose={onClose} title="Butiran & Sijil Pesilat" wide>
         <div className="space-y-6">
-          <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-red-50 p-4 border border-red-100">
+          <div className="flex flex-wrap items-center justify-between gap-4 rounded-xl bg-slate-50 p-4 border border-slate-200">
             <div className="flex items-center gap-3.5 min-w-0">
-              <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-red-700 text-sm font-extrabold text-white">
+              <div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-slate-900 text-sm font-bold text-white">
                 {student.nama_penuh.split(' ').slice(0, 2).map(x => x[0]).join('').toUpperCase()}
               </div>
               <div className="min-w-0">
-                <h3 className="text-base font-extrabold text-slate-950 truncate">{student.nama_penuh}</h3>
+                <h3 className="text-base font-bold text-slate-950 truncate">{student.nama_penuh}</h3>
                 <div className="mt-0.5 flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                  <span className="font-mono font-bold text-slate-600">{student.no_kp_atau_id}</span>
+                  <span className="font-mono font-medium text-slate-600">{student.no_kp_atau_id}</span>
                   <span>•</span>
                   <span>{student.cawangan}</span>
                 </div>
@@ -625,25 +625,25 @@ function StudentDetailsModal({ open, onClose, student, onEdit, onSaved }) {
                 </p>
               </div>
             ) : (
-              <div className="space-y-2.5 max-h-72 overflow-y-auto pr-1">
+              <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
                 {sortedCerts.map(c => {
                   const cat = getCertCategory(c);
                   const catMeta = getCategoryMeta(cat);
                   return (
                     <div
                       key={c.id}
-                      className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200/90 bg-[#FCFDFB] p-3.5 transition hover:border-red-600 hover:bg-red-50/30"
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3.5 transition hover:border-slate-300 hover:shadow-2xs"
                     >
                       <div className="flex items-center gap-3 min-w-0">
-                        <div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-red-50 text-red-700">
-                          <FileText size={19}/>
+                        <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-slate-100 text-slate-700 border border-slate-200">
+                          <FileText size={16}/>
                         </div>
                         <div className="min-w-0">
-                          <div className="font-bold text-slate-950 text-sm truncate" title={c.nama_sijil}>
+                          <div className="font-semibold text-slate-900 text-sm truncate" title={c.nama_sijil}>
                             {c.nama_sijil}
                           </div>
-                          <div className="flex items-center gap-2 text-[11px] text-slate-500 mt-1 flex-wrap">
-                            <span className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9.5px] font-bold border ${catMeta.badge}`}>
+                          <div className="flex items-center gap-2 text-[11px] text-slate-500 mt-0.5 flex-wrap">
+                            <span className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-semibold border ${catMeta.badge}`}>
                               <span>{catMeta.emoji}</span>
                               <span>{catMeta.shortLabel}</span>
                             </span>
@@ -659,13 +659,13 @@ function StudentDetailsModal({ open, onClose, student, onEdit, onSaved }) {
                         </div>
                       </div>
 
-                    <div className="flex items-center gap-1.5 shrink-0">
+                    <div className="flex items-center gap-1 shrink-0">
                       <a
                         href={`/api/public/certificates/${c.public_token}/download?preview=1`}
                         target="_blank"
                         rel="noopener noreferrer"
                         title="Lihat sijil PDF"
-                        className="rounded-lg bg-slate-100 p-2 text-slate-600 transition hover:bg-red-50 hover:text-red-800"
+                        className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition"
                       >
                         <Eye size={15}/>
                       </a>
@@ -673,7 +673,7 @@ function StudentDetailsModal({ open, onClose, student, onEdit, onSaved }) {
                         href={`/api/public/certificates/${c.public_token}/download`}
                         download={`${student.nama_penuh}.pdf`}
                         title="Muat turun sijil"
-                        className="rounded-lg bg-emerald-50 p-2 text-emerald-700 transition hover:bg-emerald-100"
+                        className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition"
                       >
                         <Download size={15}/>
                       </a>
@@ -681,7 +681,7 @@ function StudentDetailsModal({ open, onClose, student, onEdit, onSaved }) {
                         type="button"
                         onClick={() => setEditingCert(c)}
                         title="Edit nama atau tarikh sijil ini"
-                        className="rounded-lg bg-blue-50 p-2 text-blue-600 transition hover:bg-blue-100"
+                        className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition"
                       >
                         <Edit3 size={15}/>
                       </button>
@@ -689,7 +689,7 @@ function StudentDetailsModal({ open, onClose, student, onEdit, onSaved }) {
                         type="button"
                         onClick={() => setDeletingCert(c)}
                         title="Buang / Padam sijil ini"
-                        className="rounded-lg bg-rose-50 p-2 text-rose-600 transition hover:bg-rose-100"
+                        className="rounded-lg p-1.5 text-slate-500 hover:bg-red-50 hover:text-red-700 transition"
                       >
                         <Trash2 size={15}/>
                       </button>
@@ -834,19 +834,20 @@ export function Students(){
         title={t('studentsTitle')}
         desc={t('studentsDesc')}
         actions={
-          <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-            <button
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
               type="button"
+              variant="secondary"
               onClick={() => setExportOpen(true)}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-slate-100/90 hover:bg-slate-200/90 px-3.5 py-2 text-xs font-bold text-slate-800 transition-all shadow-2xs active:scale-[0.97] cursor-pointer"
+              className="!px-3 !py-2 text-xs"
               title="Eksport senarai pesilat mengikut cawangan, peringkat atau semua rekod"
             >
-              <Download size={14} className="text-red-700"/>
+              <Download size={14} />
               <span>Export CSV</span>
               {(branch || level) && (
-                <span className="h-2 w-2 rounded-full bg-red-600 animate-pulse" title="Tapisan cawangan/peringkat aktif" />
+                <span className="h-1.5 w-1.5 rounded-full bg-red-700" title="Tapisan cawangan/peringkat aktif" />
               )}
-            </button>
+            </Button>
             <Button variant="secondary" onClick={()=>setImportOpen(true)} className="!px-3 !py-2 text-xs">
               <FileUp size={14}/> {t('btnImportCSV')}
             </Button>
@@ -859,11 +860,11 @@ export function Students(){
 
       <Panel className="flex flex-col">
         {/* Filter bar */}
-        <div className="flex flex-col gap-2.5 border-b border-slate-100 p-3 sm:px-4 sm:py-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="flex flex-col gap-3 border-b border-slate-200/80 p-3 sm:px-4 sm:py-3.5 lg:flex-row lg:items-center lg:justify-between">
           <div className="flex items-center gap-2">
-            <GraduationCap className="text-red-700 shrink-0" size={20}/>
-            <div className="text-xs sm:text-sm font-extrabold text-slate-950">{lang === 'eng' ? 'Students List' : 'Senarai Pelajar'}</div>
-            <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[10px] sm:text-xs font-extrabold text-emerald-800">
+            <GraduationCap className="text-slate-700 shrink-0" size={18}/>
+            <div className="text-xs sm:text-sm font-bold text-slate-900">{lang === 'eng' ? 'Students List' : 'Senarai Pelajar'}</div>
+            <span className="inline-flex items-center rounded-md border border-slate-200 bg-slate-100 px-2 py-0.5 text-[11px] font-semibold text-slate-700">
               {data?.total||0} {lang === 'eng' ? 'students' : 'orang'}
             </span>
           </div>
@@ -872,7 +873,7 @@ export function Students(){
             <SearchField value={q} onChange={v=>{setQ(v);setPage(1);}} placeholder={t('searchPlaceholder')}/>
             <select
               aria-label="Tapis cawangan"
-              className="rounded-xl border border-slate-200/80 bg-slate-50/70 hover:bg-white focus:bg-white px-3 py-2 text-xs text-slate-800 outline-none transition-all focus:border-red-600/80 focus:ring-4 focus:ring-red-500/10 shadow-2xs"
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-800 outline-none transition focus:border-slate-900 focus:ring-1 focus:ring-slate-900 shadow-2xs"
               value={branch}
               onChange={e=>{setBranch(e.target.value);setPage(1);}}
             >
@@ -881,7 +882,7 @@ export function Students(){
             </select>
             <select
               aria-label="Tapis peringkat"
-              className="rounded-xl border border-slate-200/80 bg-slate-50/70 hover:bg-white focus:bg-white px-3 py-2 text-xs text-slate-800 outline-none transition-all focus:border-red-600/80 focus:ring-4 focus:ring-red-500/10 shadow-2xs"
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-800 outline-none transition focus:border-slate-900 focus:ring-1 focus:ring-slate-900 shadow-2xs"
               value={level}
               onChange={e=>{setLevel(e.target.value);setPage(1);}}
             >
@@ -899,16 +900,16 @@ export function Students(){
             {/* Mobile Card View (< md) */}
             <div className="block md:hidden divide-y divide-slate-100 max-h-[calc(100vh-230px)] overflow-y-auto">
               {data.rows.map((r, i) => (
-                <div key={r.id} className="p-3.5 space-y-2.5 hover:bg-slate-50/70 transition">
+                <div key={r.id} className="p-3.5 space-y-2.5 hover:bg-slate-50/80 transition-colors">
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex items-center gap-2.5 min-w-0 flex-1">
-                      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-red-50 text-xs font-black text-red-700 border border-red-100 shadow-2xs">
+                      <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-slate-100 text-xs font-bold text-slate-700 border border-slate-200">
                         {r.nama_penuh.split(' ').slice(0, 2).map((x) => x[0]).join('').toUpperCase()}
                       </div>
                       <div className="min-w-0 flex-1">
                         <button
                           onClick={() => setViewTarget(r)}
-                          className="font-bold text-slate-950 text-xs sm:text-sm hover:underline text-left block truncate w-full"
+                          className="font-semibold text-slate-900 text-xs sm:text-sm hover:text-red-700 hover:underline text-left block truncate w-full"
                           title={r.nama_penuh}
                         >
                           {r.nama_penuh}
@@ -934,34 +935,34 @@ export function Students(){
                     </span>
                   </div>
 
-                  <div className="flex items-center justify-between pt-1 border-t border-slate-100">
+                  <div className="flex items-center justify-between pt-2 border-t border-slate-100">
                     <button
                       type="button"
                       onClick={() => setViewTarget(r)}
-                      className="inline-flex items-center gap-1 text-xs font-bold text-red-700 bg-red-50 hover:bg-red-100 px-2.5 py-1 rounded-lg transition"
+                      className="inline-flex items-center gap-1 text-xs font-semibold text-slate-800 bg-slate-100 hover:bg-slate-200 px-2.5 py-1 rounded-md transition"
                     >
-                      <Award size={13} />
+                      <Award size={13} className="text-red-700" />
                       <span>{r.sijil_count} {t('thCerts').toLowerCase()}</span>
                     </button>
 
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => setViewTarget(r)}
-                        className="p-1.5 rounded-lg bg-blue-50 text-blue-600 hover:bg-blue-100 transition"
+                        className="p-1.5 rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition"
                         title={t('btnViewCerts')}
                       >
                         <Eye size={15} />
                       </button>
                       <button
                         onClick={() => openEdit(r)}
-                        className="p-1.5 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 transition"
+                        className="p-1.5 rounded-md text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition"
                         title={t('btnEdit')}
                       >
                         <Edit3 size={15} />
                       </button>
                       <button
                         onClick={() => setDeleteTarget(r)}
-                        className="p-1.5 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 transition"
+                        className="p-1.5 rounded-md text-slate-500 hover:bg-red-50 hover:text-red-700 transition"
                         title={t('btnDelete')}
                       >
                         <Trash2 size={15} />
@@ -975,33 +976,33 @@ export function Students(){
             {/* Desktop Table View (>= md) */}
             <div className="hidden md:block overflow-x-auto max-h-[calc(100vh-230px)] overflow-y-auto">
               <table className="w-full min-w-[800px] border-collapse text-left text-xs sm:text-sm">
-                <thead className="sticky top-0 z-10 bg-slate-50/90 backdrop-blur-sm text-[10px] font-black uppercase tracking-[.14em] text-slate-400 border-b border-slate-100 shadow-2xs">
+                <thead className="sticky top-0 z-10 bg-slate-50/95 backdrop-blur-xs text-[11px] font-bold uppercase tracking-wider text-slate-500 border-b border-slate-200">
                   <tr>
-                    <th className="w-12 px-3.5 py-2.5 text-center">{t('thNo')}</th>
-                    <th className="px-3.5 py-2.5">{t('thName')}</th>
-                    <th className="px-3.5 py-2.5">{t('thId')}</th>
-                    <th className="px-3.5 py-2.5">{t('thBranch')}</th>
-                    <th className="px-3.5 py-2.5">{t('thLevel')}</th>
-                    <th className="px-3.5 py-2.5">{t('thDateReg')}</th>
-                    <th className="px-3.5 py-2.5">{t('thCerts')}</th>
-                    <th className="px-3.5 py-2.5 text-right">{t('thActions')}</th>
+                    <th className="w-12 px-3.5 py-3 text-center">{t('thNo')}</th>
+                    <th className="px-3.5 py-3">{t('thName')}</th>
+                    <th className="px-3.5 py-3">{t('thId')}</th>
+                    <th className="px-3.5 py-3">{t('thBranch')}</th>
+                    <th className="px-3.5 py-3">{t('thLevel')}</th>
+                    <th className="px-3.5 py-3">{t('thDateReg')}</th>
+                    <th className="px-3.5 py-3">{t('thCerts')}</th>
+                    <th className="px-3.5 py-3 text-right">{t('thActions')}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {data.rows.map((r,i)=>(
                     <tr key={r.id} className="transition-colors hover:bg-slate-50/80">
-                      <td className="px-3.5 py-2.5 text-center text-xs font-bold text-slate-400 w-12">
+                      <td className="px-3.5 py-3 text-center text-xs font-semibold text-slate-400 w-12">
                         {(page-1)*20+i+1}
                       </td>
-                      <td className="max-w-[220px] px-3.5 py-2.5">
+                      <td className="max-w-[220px] px-3.5 py-3">
                         <div className="flex items-center gap-2.5">
-                          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-red-50 text-[11px] font-extrabold text-red-700">
+                          <div className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-100 text-[11px] font-bold text-slate-700 border border-slate-200">
                             {r.nama_penuh.split(' ').slice(0,2).map(x=>x[0]).join('').toUpperCase()}
                           </div>
                           <div className="min-w-0">
                             <button
                               onClick={()=>setViewTarget(r)}
-                              className="truncate font-bold text-slate-950 hover:underline text-left block max-w-full text-xs sm:text-sm"
+                              className="truncate font-semibold text-slate-900 hover:text-red-700 hover:underline text-left block max-w-full text-xs sm:text-sm"
                               title={r.nama_penuh}
                             >
                               {r.nama_penuh}
@@ -1009,39 +1010,39 @@ export function Students(){
                           </div>
                         </div>
                       </td>
-                      <td className="px-3.5 py-2.5 text-xs font-mono text-slate-600 whitespace-nowrap">
+                      <td className="px-3.5 py-3 text-xs font-mono text-slate-600 whitespace-nowrap">
                         {r.no_kp_atau_id}
                       </td>
-                      <td className="px-3.5 py-2.5 text-xs text-slate-600 whitespace-nowrap">
+                      <td className="px-3.5 py-3 text-xs text-slate-600 whitespace-nowrap">
                         {r.cawangan}
                       </td>
-                      <td className="px-3.5 py-2.5 whitespace-nowrap">
+                      <td className="px-3.5 py-3 whitespace-nowrap">
                         <Chip color="gold">{r.peringkat}</Chip>
                       </td>
-                      <td className="px-3.5 py-2.5 text-xs text-slate-600 whitespace-nowrap">
+                      <td className="px-3.5 py-3 text-xs text-slate-600 whitespace-nowrap">
                         <div className="inline-flex items-center gap-1 rounded-md bg-slate-50 px-2 py-0.5 text-slate-700 border border-slate-200">
-                          <CalendarDays size={11} className="text-red-600"/>
+                          <CalendarDays size={11} className="text-slate-500"/>
                           <span>{fmtDate(r.tarikh_daftar)}</span>
                         </div>
                       </td>
-                      <td className="px-3.5 py-2.5 whitespace-nowrap">
+                      <td className="px-3.5 py-3 whitespace-nowrap">
                         <button
                           type="button"
                           onClick={()=>setViewTarget(r)}
                           title={lang === 'eng' ? 'View and manage student certificates' : 'Lihat dan urus sijil pelajar ini'}
-                          className="inline-flex items-center gap-1 rounded-md bg-red-50 px-2 py-0.5 text-xs font-bold text-red-800 transition hover:bg-red-50 hover:text-slate-900"
+                          className="inline-flex items-center gap-1 rounded-md bg-slate-100 hover:bg-slate-200 px-2 py-0.5 text-xs font-bold text-slate-800 transition"
                         >
                           <Award size={13} className="text-red-700"/>
                           <span>{r.sijil_count} {t('thCerts').toLowerCase()}</span>
                         </button>
                       </td>
-                      <td className="px-3.5 py-2.5 text-right whitespace-nowrap">
+                      <td className="px-3.5 py-3 text-right whitespace-nowrap">
                         <div className="inline-flex items-center gap-1">
                           <button
                             onClick={()=>setViewTarget(r)}
                             title={t('btnViewCerts')}
                             aria-label={t('btnViewCerts')}
-                            className="rounded-lg bg-blue-50 p-1.5 text-blue-600 transition hover:bg-blue-100"
+                            className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition"
                           >
                             <Eye size={14}/>
                           </button>
@@ -1049,7 +1050,7 @@ export function Students(){
                             onClick={()=>openEdit(r)}
                             title={t('btnEdit')}
                             aria-label={t('btnEdit')}
-                            className="rounded-lg bg-slate-100 p-1.5 text-slate-600 transition hover:bg-red-50 hover:text-red-800"
+                            className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900 transition"
                           >
                             <Edit3 size={14}/>
                           </button>
@@ -1057,7 +1058,7 @@ export function Students(){
                             onClick={()=>setDeleteTarget(r)}
                             title={t('btnDelete')}
                             aria-label={t('btnDelete')}
-                            className="rounded-lg bg-rose-50 p-1.5 text-rose-600 transition hover:bg-rose-100"
+                            className="rounded-lg p-1.5 text-slate-500 hover:bg-red-50 hover:text-red-700 transition"
                           >
                             <Trash2 size={14}/>
                           </button>

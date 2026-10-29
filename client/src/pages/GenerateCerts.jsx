@@ -402,62 +402,46 @@ export function GenerateCerts() {
       />
 
       {/* ======================================================== */}
-      {/* GUIDED PROGRESS BAR (TOP STEP-BY-STEP WIZARD)            */}
+      {/* STEP PROGRESS TRACKER (Enterprise Minimalist Stepper)    */}
       {/* ======================================================== */}
-      <div className="mb-5 rounded-3xl border border-slate-200/70 bg-white/95 backdrop-blur-sm p-4 sm:p-5 shadow-[0_2px_12px_-2px_rgba(0,0,0,0.03)]">
+      <div className="mb-5 rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
         <div className="relative">
-          {/* Animated Connecting Track Line */}
-          <div className="absolute top-4 left-8 right-8 -translate-y-1/2 h-1 bg-slate-100 rounded-full z-0 hidden sm:block">
+          {/* Subtle Connecting Track Line */}
+          <div className="absolute top-3.5 left-10 right-10 -translate-y-1/2 h-0.5 bg-slate-200 z-0 hidden sm:block">
             <div
-              className="h-full bg-gradient-to-r from-red-600 via-red-700 to-emerald-600 rounded-full transition-all duration-500 ease-out"
+              className="h-full bg-slate-900 transition-all duration-300 ease-out"
               style={{
                 width: currentStep === 1 ? '16%' : currentStep === 2 ? '50%' : '100%',
               }}
             />
           </div>
 
-          {/* Stepper Interactive Nodes */}
-          <div className="relative z-10 grid grid-cols-3 gap-1.5 sm:gap-4">
+          {/* Stepper Nodes */}
+          <div className="relative z-10 grid grid-cols-3 gap-2 sm:gap-4">
             {/* Step 1 Node */}
             <button
               type="button"
               onClick={() => goToStep(1)}
-              className={`group flex flex-col sm:items-center text-left sm:text-center transition cursor-pointer p-1.5 sm:p-2 rounded-xl ${
-                currentStep === 1 ? 'bg-red-50/60 sm:bg-transparent' : 'hover:bg-slate-50'
-              }`}
+              className="flex items-center sm:justify-center gap-2.5 text-left sm:text-center transition-colors cursor-pointer p-1 rounded-lg"
             >
-              <div className="flex items-center gap-2 sm:flex-col sm:gap-1.5">
-                <div
-                  className={`grid h-7 w-7 sm:h-9 sm:w-9 place-items-center rounded-full text-xs font-black transition-all shrink-0 ${
-                    currentStep > 1
-                      ? 'bg-emerald-600 text-white shadow-xs'
-                      : currentStep === 1
-                      ? 'bg-red-700 text-white ring-4 ring-red-100 shadow-sm scale-105'
-                      : 'bg-white border-2 border-slate-300 text-slate-500'
-                  }`}
-                >
-                  {currentStep > 1 ? <Check size={15} strokeWidth={3} /> : '1'}
+              <div
+                className={`grid h-7 w-7 place-items-center rounded-full text-xs font-bold shrink-0 transition-colors ${
+                  currentStep > 1
+                    ? 'bg-slate-900 text-white'
+                    : currentStep === 1
+                    ? 'bg-slate-900 text-white ring-2 ring-slate-900/20'
+                    : 'bg-white border border-slate-300 text-slate-400'
+                }`}
+              >
+                {currentStep > 1 ? <Check size={14} strokeWidth={3} /> : '1'}
+              </div>
+              <div className="min-w-0">
+                <div className={`text-xs font-semibold truncate ${currentStep === 1 ? 'text-slate-900 font-bold' : 'text-slate-600'}`}>
+                  <span className="sm:hidden">1. Templat</span>
+                  <span className="hidden sm:inline">1. {t('step1Short')}</span>
                 </div>
-                <div className="min-w-0">
-                  <div
-                    className={`text-[11px] sm:text-xs font-extrabold truncate ${
-                      currentStep === 1
-                        ? 'text-red-700'
-                        : currentStep > 1
-                        ? 'text-emerald-700'
-                        : 'text-slate-600'
-                    }`}
-                  >
-                    <span className="sm:hidden">1. {lang === 'eng' ? 'Template' : 'Templat'}</span>
-                    <span className="hidden sm:inline">1. {t('step1Short')}</span>
-                  </div>
-                  <div className="text-[9.5px] sm:text-[10px] text-slate-400 truncate">
-                    {currentStep > 1 ? (
-                      <span className="font-semibold text-emerald-600">✓ Selesai</span>
-                    ) : (
-                      selectedTemplateName || 'Pilih templat'
-                    )}
-                  </div>
+                <div className="text-[10px] text-slate-400 truncate">
+                  {currentStep > 1 ? 'Selesai' : selectedTemplateName || 'Pilih templat'}
                 </div>
               </div>
             </button>
@@ -473,42 +457,26 @@ export function GenerateCerts() {
                 }
                 goToStep(2);
               }}
-              className={`group flex flex-col sm:items-center text-left sm:text-center transition cursor-pointer p-1.5 sm:p-2 rounded-xl ${
-                currentStep === 2 ? 'bg-red-50/60 sm:bg-transparent' : 'hover:bg-slate-50'
-              }`}
+              className="flex items-center sm:justify-center gap-2.5 text-left sm:text-center transition-colors cursor-pointer p-1 rounded-lg"
             >
-              <div className="flex items-center gap-2 sm:flex-col sm:gap-1.5">
-                <div
-                  className={`grid h-7 w-7 sm:h-9 sm:w-9 place-items-center rounded-full text-xs font-black transition-all shrink-0 ${
-                    currentStep > 2
-                      ? 'bg-emerald-600 text-white shadow-xs'
-                      : currentStep === 2
-                      ? 'bg-red-700 text-white ring-4 ring-red-100 shadow-sm scale-105'
-                      : 'bg-white border-2 border-slate-300 text-slate-500'
-                  }`}
-                >
-                  {currentStep > 2 ? <Check size={15} strokeWidth={3} /> : '2'}
+              <div
+                className={`grid h-7 w-7 place-items-center rounded-full text-xs font-bold shrink-0 transition-colors ${
+                  currentStep > 2
+                    ? 'bg-slate-900 text-white'
+                    : currentStep === 2
+                    ? 'bg-slate-900 text-white ring-2 ring-slate-900/20'
+                    : 'bg-white border border-slate-300 text-slate-400'
+                }`}
+              >
+                {currentStep > 2 ? <Check size={14} strokeWidth={3} /> : '2'}
+              </div>
+              <div className="min-w-0">
+                <div className={`text-xs font-semibold truncate ${currentStep === 2 ? 'text-slate-900 font-bold' : 'text-slate-600'}`}>
+                  <span className="sm:hidden">2. Pesilat</span>
+                  <span className="hidden sm:inline">2. {t('step2Short')}</span>
                 </div>
-                <div className="min-w-0">
-                  <div
-                    className={`text-[11px] sm:text-xs font-extrabold truncate ${
-                      currentStep === 2
-                        ? 'text-red-700'
-                        : currentStep > 2
-                        ? 'text-emerald-700'
-                        : 'text-slate-600'
-                    }`}
-                  >
-                    <span className="sm:hidden">2. {lang === 'eng' ? 'Students' : 'Pesilat'}</span>
-                    <span className="hidden sm:inline">2. {t('step2Short')}</span>
-                  </div>
-                  <div className="text-[9.5px] sm:text-[10px] text-slate-400 truncate">
-                    {currentStep > 2 ? (
-                      <span className="font-semibold text-emerald-600">✓ {selectedStudentsList.length} dipilih</span>
-                    ) : (
-                      `${selectedStudentsList.length} dipilih`
-                    )}
-                  </div>
+                <div className="text-[10px] text-slate-400 truncate">
+                  {`${selectedStudentsList.length} dipilih`}
                 </div>
               </div>
             </button>
@@ -524,51 +492,31 @@ export function GenerateCerts() {
                 }
                 if (selectedStudentsList.length === 0) {
                   return toast.error(
-                    lang === 'eng'
-                      ? 'Please select at least one student.'
-                      : 'Sila pilih sekurang-kurangnya seorang pesilat.'
+                    lang === 'eng' ? 'Please select at least one student.' : 'Sila pilih sekurang-kurangnya seorang pesilat.'
                   );
                 }
                 goToStep(3);
               }}
-              className={`group flex flex-col sm:items-center text-left sm:text-center transition cursor-pointer p-1.5 sm:p-2 rounded-xl ${
-                currentStep === 3 ? 'bg-red-50/60 sm:bg-transparent' : 'hover:bg-slate-50'
-              }`}
+              className="flex items-center sm:justify-center gap-2.5 text-left sm:text-center transition-colors cursor-pointer p-1 rounded-lg"
             >
-              <div className="flex items-center gap-2 sm:flex-col sm:gap-1.5">
-                <div
-                  className={`grid h-7 w-7 sm:h-9 sm:w-9 place-items-center rounded-full text-xs font-black transition-all shrink-0 ${
-                    result
-                      ? 'bg-emerald-600 text-white shadow-xs'
-                      : currentStep === 3
-                      ? 'bg-red-700 text-white ring-4 ring-red-100 shadow-sm scale-105'
-                      : 'bg-white border-2 border-slate-300 text-slate-500'
-                  }`}
-                >
-                  {result ? <Check size={15} strokeWidth={3} /> : '3'}
+              <div
+                className={`grid h-7 w-7 place-items-center rounded-full text-xs font-bold shrink-0 transition-colors ${
+                  result
+                    ? 'bg-slate-900 text-white'
+                    : currentStep === 3
+                    ? 'bg-slate-900 text-white ring-2 ring-slate-900/20'
+                    : 'bg-white border border-slate-300 text-slate-400'
+                }`}
+              >
+                {result ? <Check size={14} strokeWidth={3} /> : '3'}
+              </div>
+              <div className="min-w-0">
+                <div className={`text-xs font-semibold truncate ${currentStep === 3 ? 'text-slate-900 font-bold' : 'text-slate-600'}`}>
+                  <span className="sm:hidden">3. Janaan</span>
+                  <span className="hidden sm:inline">3. {t('step3Short')}</span>
                 </div>
-                <div className="min-w-0">
-                  <div
-                    className={`text-[11px] sm:text-xs font-extrabold truncate ${
-                      currentStep === 3
-                        ? 'text-red-700'
-                        : result
-                        ? 'text-emerald-700'
-                        : 'text-slate-600'
-                    }`}
-                  >
-                    <span className="sm:hidden">3. {lang === 'eng' ? 'Generate' : 'Janaan'}</span>
-                    <span className="hidden sm:inline">3. {t('step3Short')}</span>
-                  </div>
-                  <div className="text-[9.5px] sm:text-[10px] text-slate-400 truncate">
-                    {result ? (
-                      <span className="font-semibold text-emerald-600">✓ Selesai ({result.successCount})</span>
-                    ) : currentStep === 3 ? (
-                      'Pengesahan akhir'
-                    ) : (
-                      'Jana sijil'
-                    )}
-                  </div>
+                <div className="text-[10px] text-slate-400 truncate">
+                  {result ? `Selesai (${result.successCount})` : currentStep === 3 ? 'Pengesahan akhir' : 'Jana sijil'}
                 </div>
               </div>
             </button>
@@ -584,7 +532,7 @@ export function GenerateCerts() {
           <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-3.5">
             <div className="flex items-center gap-2.5">
               <div className="grid h-8 w-8 place-items-center rounded-xl bg-red-50 text-red-700 shrink-0">
-                <Sparkles size={17} />
+                <Layers size={17} />
               </div>
               <div>
                 <h2 className="text-xs sm:text-sm font-extrabold text-slate-950">
@@ -799,7 +747,7 @@ export function GenerateCerts() {
                 </div>
 
                 {/* Responsive Grid of Visual Template Cards */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5 sm:gap-3 p-3 sm:p-4 bg-slate-50/50 rounded-3xl border border-slate-200/60">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5 sm:gap-3 p-3 bg-slate-50/70 rounded-xl border border-slate-200">
                   {/* Button Option: Semua Peringkat */}
                   <button
                     type="button"
@@ -971,7 +919,7 @@ export function GenerateCerts() {
       {currentStep === 2 && (
         <Panel className="flex flex-col mb-4 animate-in fade-in duration-200">
           {/* Top Context Reminder Banner */}
-          <div className="m-3 sm:m-4 mb-0 rounded-2xl border border-red-100 bg-red-50/60 p-3.5 sm:p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+          <div className="m-3 sm:m-4 mb-0 rounded-xl border border-slate-200 bg-slate-50 p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
             <div className="flex items-center gap-2.5 min-w-0">
               <div className="grid h-8 w-8 place-items-center rounded-lg bg-red-700 text-white shrink-0">
                 <Layers size={16} />
@@ -1383,7 +1331,7 @@ export function GenerateCerts() {
               {/* 3 Overview Information Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-5">
                 {/* Card 1: Templat */}
-                <div className="rounded-2xl border border-slate-200/90 bg-white p-3.5 shadow-2xs">
+                <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
                   <div className="flex items-center gap-1.5 text-slate-400 text-[11px] font-bold uppercase tracking-wider mb-1">
                     <Layers size={13} className="text-red-700" />
                     <span>Templat Sijil</span>
@@ -1402,7 +1350,7 @@ export function GenerateCerts() {
                 </div>
 
                 {/* Card 2: Jumlah Pesilat */}
-                <div className="rounded-2xl border border-slate-200/90 bg-white p-3.5 shadow-2xs">
+                <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
                   <div className="flex items-center gap-1.5 text-slate-400 text-[11px] font-bold uppercase tracking-wider mb-1">
                     <Users size={13} className="text-red-700" />
                     <span>Pesilat Terpilih</span>
@@ -1538,7 +1486,7 @@ export function GenerateCerts() {
                   disabled={idsToGenerate.length === 0 || templateNames.length === 0}
                   className="!px-6 !py-2.5 text-xs sm:text-sm font-extrabold shadow-lg order-1 sm:order-2 justify-center cursor-pointer bg-red-700 hover:bg-red-800"
                 >
-                  <Sparkles size={16} />{' '}
+                  <FileCheck size={16} />{' '}
                   {generating
                     ? t('btnGenerating')
                     : `${t('btnGenerateNow')} (${idsToGenerate.length})`}

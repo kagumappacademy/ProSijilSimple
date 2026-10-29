@@ -31,34 +31,21 @@ export function Login({ onLogin }) {
   }
 
   return (
-    <div className="relative min-h-screen flex flex-col items-center justify-center p-4 sm:p-6 md:p-8 bg-[#FBFBFD] overflow-hidden selection:bg-red-500 selection:text-white">
-      {/* Ambient Visual Background Elements - Makes the page feel rich, aesthetic & not empty */}
-      <div className="dot-grid absolute inset-0 opacity-20 pointer-events-none" />
-      
-      {/* Soft blurred ambient glow orbs with theme red */}
-      <div className="pointer-events-none absolute -top-32 -left-32 h-[500px] w-[500px] rounded-full bg-red-600/10 blur-[130px]" />
-      <div className="pointer-events-none absolute -bottom-32 -right-32 h-[520px] w-[520px] rounded-full bg-rose-500/10 blur-[130px]" />
-      <div className="pointer-events-none absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[650px] w-[650px] rounded-full bg-red-500/5 blur-[120px]" />
-
-      {/* Decorative concentric rings - Apple keynote / aesthetic minimalist geometry */}
-      <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[720px] w-[720px] rounded-full border border-red-500/10" />
-      <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[960px] w-[960px] rounded-full border border-red-500/5" />
-      <div className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-[1200px] w-[1200px] rounded-full border border-red-500/3" />
-
-      {/* KOTAK BESAR YANG TRANSPARENT (Large Frosted Glass Card) */}
+    <div className="relative min-h-screen flex flex-col items-center justify-center p-4 sm:p-6 bg-slate-50 selection:bg-red-600 selection:text-white">
+      {/* Centered minimalist login container */}
       <motion.div
-        initial={{ opacity: 0, y: 20, scale: 0.98 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
-        transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
-        className="relative z-10 w-full max-w-[500px] sm:max-w-[520px] rounded-3xl border border-white/80 bg-white/75 p-6 sm:p-9 md:p-10 backdrop-blur-2xl shadow-[0_25px_65px_-12px_rgba(185,28,28,0.12),0_0_0_1px_rgba(255,255,255,0.9)_inset,0_10px_25px_-5px_rgba(0,0,0,0.04)] transition-all"
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.25, ease: 'easeOut' }}
+        className="w-full max-w-[440px] rounded-2xl border border-slate-200/90 bg-white p-6 sm:p-8 shadow-xs"
       >
         {/* Top Action Row inside the card */}
-        <div className="mb-5 flex items-center justify-between gap-3 border-b border-slate-200/60 pb-4">
+        <div className="mb-6 flex items-center justify-between gap-3 border-b border-slate-100 pb-4">
           <Link
             to="/"
-            className="group inline-flex items-center gap-1.5 rounded-full border border-slate-200/80 bg-white/60 px-3 py-1.5 text-xs font-bold text-slate-600 transition hover:border-red-200 hover:bg-red-50/80 hover:text-red-700 shadow-2xs backdrop-blur-sm"
+            className="group inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
           >
-            <ArrowLeft size={13} className="text-slate-400 group-hover:text-red-700 transition" />
+            <ArrowLeft size={13} className="text-slate-400 group-hover:text-slate-900 transition" />
             <span>{t('authBackHome')}</span>
           </Link>
 
@@ -69,23 +56,23 @@ export function Login({ onLogin }) {
         </div>
 
         {/* Brand Header */}
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-2.5">
+        <div className="mb-6 flex items-center justify-between gap-2.5">
           <Logo />
-          <span className="inline-flex items-center gap-1.5 rounded-full border border-red-200/90 bg-red-50/80 px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider text-red-700 shadow-2xs">
-            <ShieldCheck size={12} className="text-red-700" />
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-700">
+            <ShieldCheck size={12} className="text-slate-500" />
             {t('authPortalEyebrow')}
           </span>
         </div>
 
         {/* Welcome Section */}
         <div className="mb-6">
-          <div className="text-[11px] font-extrabold uppercase tracking-[0.2em] text-red-700">
+          <div className="text-[10px] font-bold uppercase tracking-wider text-red-700">
             {t('authWelcomeEyebrow')}
           </div>
-          <h2 className="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-950">
+          <h2 className="mt-1 text-2xl font-black tracking-tight text-slate-950">
             {t('authLoginTitle')}
           </h2>
-          <p className="mt-1.5 text-xs leading-relaxed text-slate-500">
+          <p className="mt-1 text-xs text-slate-500 leading-relaxed">
             {t('authLoginDesc')}
           </p>
         </div>
@@ -113,7 +100,7 @@ export function Login({ onLogin }) {
             <button
               type="button"
               onClick={() => setShow(!show)}
-              className="absolute bottom-2.5 right-3.5 text-slate-400 hover:text-red-700 transition p-1"
+              className="absolute bottom-2.5 right-3.5 text-slate-400 hover:text-slate-700 transition p-1"
               aria-label={lang === 'eng' ? 'Toggle password visibility' : 'Tunjuk atau sembunyi kata laluan'}
             >
               {show ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -123,15 +110,15 @@ export function Login({ onLogin }) {
           <Button
             type="submit"
             loading={busy}
-            className="mt-2 w-full !py-3 text-xs sm:text-sm font-extrabold shadow-md hover:shadow-lg transition-all"
+            className="mt-2 w-full !py-2.5 text-xs sm:text-sm font-bold shadow-xs hover:bg-red-800 transition"
           >
             {t('authSignInBtn')} <ArrowRight size={15} />
           </Button>
         </form>
 
         {/* Security Notice Box */}
-        <div className="mt-5 flex items-start gap-2.5 rounded-2xl border border-red-100 bg-red-50/70 p-3.5 text-xs leading-5 text-red-900 shadow-2xs">
-          <Lock className="mt-0.5 shrink-0 text-red-700" size={15} />
+        <div className="mt-6 flex items-start gap-2.5 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs leading-5 text-slate-600">
+          <Lock className="mt-0.5 shrink-0 text-slate-400" size={14} />
           <span>
             {lang === 'eng'
               ? 'Restricted to authorized academy personnel only. Sessions automatically terminate after 8 hours.'
@@ -141,7 +128,7 @@ export function Login({ onLogin }) {
       </motion.div>
 
       {/* Subtle Footer Subtitle underneath card */}
-      <div className="relative z-10 mt-5 text-center text-xs font-semibold text-slate-500">
+      <div className="mt-6 text-center text-xs text-slate-400 font-medium">
         {t('authSystemSubtitle')}
       </div>
     </div>

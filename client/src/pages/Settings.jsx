@@ -38,7 +38,7 @@ export function Settings() {
       <div className="max-w-xl mx-auto space-y-4">
         <Panel className="p-5 sm:p-6">
           <div className="mb-4 flex items-center gap-3">
-            <div className="grid h-10 w-10 place-items-center rounded-xl bg-red-50 text-red-700 border border-red-100">
+            <div className="grid h-9 w-9 place-items-center rounded-lg bg-slate-100 text-slate-800 border border-slate-200">
               <KeyRound size={20} />
             </div>
             <div>
@@ -86,11 +86,11 @@ export function Settings() {
           </form>
         </Panel>
 
-        <div className="flex gap-3 rounded-3xl border border-amber-200/60 bg-amber-50/60 p-5 shadow-2xs">
-          <ShieldCheck className="shrink-0 text-amber-700 mt-0.5" size={20} />
+        <div className="flex gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 text-slate-600">
+          <ShieldCheck className="shrink-0 text-slate-700 mt-0.5" size={18} />
           <div>
-            <div className="text-xs font-extrabold text-amber-900">{t('securityNoticeTitle')}</div>
-            <p className="mt-1 text-xs leading-5 text-amber-900/80">
+            <div className="text-xs font-bold text-slate-900">{t('securityNoticeTitle')}</div>
+            <p className="mt-1 text-xs leading-5 text-slate-600">
               {t('securityNoticeDesc')}
             </p>
           </div>
