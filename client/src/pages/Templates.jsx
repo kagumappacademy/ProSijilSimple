@@ -251,8 +251,8 @@ function DraggableCertificateTextPositioner({
         >
           {/* Subtle Drag Handle Icon above */}
           <div className="flex items-center justify-center gap-1 mb-1">
-            <span className="inline-flex items-center gap-1 rounded-full bg-slate-900/70 backdrop-blur-xs text-white px-2 py-0.5 text-[8.5px] font-bold uppercase tracking-wider shadow-xs">
-              <Move size={9} className="text-white" />
+            <span className="inline-flex items-center gap-1 bg-transparent text-slate-700/80 px-1 py-0.5 text-[8.5px] font-bold uppercase tracking-wider select-none">
+              <Move size={9} className="text-red-600" />
               <span>Tarik Untuk Ubah Posisi</span>
             </span>
           </div>
