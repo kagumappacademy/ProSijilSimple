@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Layers,
   Plus,
@@ -18,11 +18,26 @@ import {
   Award,
   Sparkles,
   RefreshCw,
+  Move,
+  Sliders,
+  Type,
+  Palette,
+  Check,
+  ChevronLeft,
+  ChevronRight,
+  ArrowUp,
+  ArrowDown,
+  ArrowLeft,
+  ArrowRight,
+  RotateCcw,
+  Loader2,
+  HelpCircle,
+  Settings2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api, fmtDate } from '../lib/api';
 import { PageIntro, Panel, Button, Input, Modal, Confirm, Loading, Empty, Chip } from '../components/UI';
-import { PdfThumbnail } from '../components/PdfThumbnail';
+import { PdfThumbnail, renderPdfBlobToDataUrl, renderPdfUrlToDataUrl } from '../components/PdfThumbnail';
 import { useLang } from '../lib/i18n';
 import { useSync } from '../lib/syncContext';
 import {
@@ -63,19 +78,303 @@ const PENYERTAAN_PRESETS = [
   'Semua Peringkat',
 ];
 
+const FONT_OPTIONS = [
+  { id: 'Lora', name: 'Lora', style: "'Lora', serif", desc: 'Serif Elegan & Rasmi (Lalai)', sample: 'Aa' },
+  { id: 'Cinzel', name: 'Cinzel', style: "'Cinzel', serif", desc: 'Serif Diraja Tradisional', sample: 'Aa' },
+  { id: 'Montserrat', name: 'Montserrat', style: "'Montserrat', sans-serif", desc: 'Sans-Serif Moden & Jelas', sample: 'Aa' },
+  { id: 'Times-Roman', name: 'Times-Roman', style: "'Times New Roman', Times, serif", desc: 'Serif Klasik Standard', sample: 'Aa' },
+  { id: 'Helvetica', name: 'Helvetica', style: 'Helvetica, Arial, sans-serif', desc: 'Sans-Serif Bersih & Kemas', sample: 'Aa' },
+];
+
+const COLOR_SWATCHES = [
+  { hex: '#c1362d', name: 'Merah Rasmi' },
+  { hex: '#d4af37', name: 'Emas Diraja' },
+  { hex: '#111827', name: 'Hitam Pekat' },
+  { hex: '#1e3a8a', name: 'Biru Diraja' },
+  { hex: '#065f46', name: 'Hijau Zamrud' },
+  { hex: '#831843', name: 'Merah Marun' },
+];
+
+const SAMPLE_NAMES = [
+  { label: 'Sederhana', name: 'MUHAMMAD ADAM BIN ABDULLAH' },
+  { label: 'Pendek', name: 'ALI BIN ABU' },
+  { label: 'Panjang', name: "SITI NUR AISYAH BINTI DATO' MOHAMMAD KHAIRUL ANUAR" },
+];
+
+/**
+ * Komponen Visual Drag & Drop untuk Mengatur Posisi dan Gaya Teks Nama pada Sijil.
+ * Menyokong Drag dengan Tetikus (Mouse) & Sentuhan Skrin (Touch di Telefon Pintar).
+ */
+function DraggableCertificateTextPositioner({
+  imageSrc,
+  leftRatio = 0.5,
+  topRatio = 0.407,
+  onChangePos,
+  fontSize = 20,
+  fontFamily = 'Lora',
+  colorHex = '#c1362d',
+  nameLayout = 'auto',
+  sampleName = 'MUHAMMAD ADAM BIN ABDULLAH',
+}) {
+  const containerRef = useRef(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [containerWidth, setContainerWidth] = useState(500);
+
+  useEffect(() => {
+    if (!containerRef.current) return;
+    const updateWidth = () => {
+      if (containerRef.current) {
+        setContainerWidth(containerRef.current.clientWidth || 500);
+      }
+    };
+    updateWidth();
+    window.addEventListener('resize', updateWidth);
+    return () => window.removeEventListener('resize', updateWidth);
+  }, []);
+
+  const handlePointerMove = useCallback(
+    (clientX, clientY) => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      if (!rect.width || !rect.height) return;
+      const x = Math.min(Math.max(0.06, (clientX - rect.left) / rect.width), 0.94);
+      const y = Math.min(Math.max(0.06, (clientY - rect.top) / rect.height), 0.94);
+      onChangePos(Number(x.toFixed(4)), Number(y.toFixed(4)));
+    },
+    [onChangePos]
+  );
+
+  const handleMouseDown = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+    handlePointerMove(e.clientX, e.clientY);
+
+    const onMouseMove = (moveEvt) => {
+      handlePointerMove(moveEvt.clientX, moveEvt.clientY);
+    };
+    const onMouseUp = () => {
+      setIsDragging(false);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+    };
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  };
+
+  const handleTouchStart = (e) => {
+    if (!e.touches?.[0]) return;
+    setIsDragging(true);
+    handlePointerMove(e.touches[0].clientX, e.touches[0].clientY);
+
+    const onTouchMove = (moveEvt) => {
+      if (!moveEvt.touches?.[0]) return;
+      if (moveEvt.cancelable) moveEvt.preventDefault();
+      handlePointerMove(moveEvt.touches[0].clientX, moveEvt.touches[0].clientY);
+    };
+    const onTouchEnd = () => {
+      setIsDragging(false);
+      window.removeEventListener('touchmove', onTouchMove);
+      window.removeEventListener('touchend', onTouchEnd);
+    };
+    window.addEventListener('touchmove', onTouchMove, { passive: false });
+    window.addEventListener('touchend', onTouchEnd);
+  };
+
+  const displayLines = useMemo(() => {
+    const raw = String(sampleName || '').trim().toUpperCase();
+    if (!raw) return ['[NAMA PESILAT]'];
+    const words = raw.split(/\s+/).filter(Boolean);
+    if (nameLayout === 'sebaris') {
+      return [raw];
+    }
+    if (nameLayout === 'dua_baris') {
+      if (words.length <= 1) return [raw];
+      let splitIdx = words.findIndex((w, idx) => idx > 0 && /^(bin|binti|bt|b\.|a\/l|a\/p)$/i.test(w));
+      if (splitIdx === -1) splitIdx = Math.ceil(words.length / 2);
+      return [words.slice(0, splitIdx).join(' '), words.slice(splitIdx).join(' ')].filter(Boolean);
+    }
+    if (words.length > 4 || raw.length > 28) {
+      let splitIdx = words.findIndex((w, idx) => idx > 0 && /^(bin|binti|bt|b\.|a\/l|a\/p)$/i.test(w));
+      if (splitIdx === -1) splitIdx = Math.ceil(words.length / 2);
+      return [words.slice(0, splitIdx).join(' '), words.slice(splitIdx).join(' ')].filter(Boolean);
+    }
+    return [raw];
+  }, [sampleName, nameLayout]);
+
+  const fontScaleFactor = (containerWidth || 500) / 595;
+  const previewFontSizePx = Math.max(10, Math.round(fontSize * fontScaleFactor));
+
+  const fontCss = useMemo(() => {
+    const opt = FONT_OPTIONS.find((f) => f.id === fontFamily);
+    return opt?.style || "'Lora', serif";
+  }, [fontFamily]);
+
+  const nudge = (dx, dy) => {
+    const newX = Math.min(Math.max(0.05, leftRatio + dx), 0.95);
+    const newY = Math.min(Math.max(0.05, topRatio + dy), 0.95);
+    onChangePos(Number(newX.toFixed(4)), Number(newY.toFixed(4)));
+  };
+
+  return (
+    <div className="space-y-2 select-none">
+      {/* Board Visual Sijil */}
+      <div
+        ref={containerRef}
+        onClick={(e) => handlePointerMove(e.clientX, e.clientY)}
+        className={`relative w-full aspect-[1/1.414] max-h-[500px] sm:max-h-[560px] bg-slate-900/5 rounded-2xl border-2 overflow-hidden shadow-inner flex items-center justify-center cursor-crosshair transition-all ${
+          isDragging ? 'border-red-500 ring-4 ring-red-100' : 'border-slate-300 hover:border-slate-400'
+        }`}
+      >
+        {imageSrc ? (
+          <img
+            src={imageSrc}
+            alt="Pratonton Sijil"
+            className="w-full h-full object-contain pointer-events-none select-none"
+            draggable={false}
+          />
+        ) : (
+          <div className="flex flex-col items-center justify-center text-slate-400 p-6 text-center">
+            <Loader2 size={24} className="animate-spin mb-2 text-slate-500" />
+            <span className="text-xs font-semibold">Memuatkan pratonton sijil...</span>
+          </div>
+        )}
+
+        {/* Kotak Nama Boleh Ditarik (Draggable Target Box) */}
+        <div
+          onMouseDown={handleMouseDown}
+          onTouchStart={handleTouchStart}
+          style={{
+            left: `${(leftRatio * 100).toFixed(2)}%`,
+            top: `${(topRatio * 100).toFixed(2)}%`,
+            transform: 'translate(-50%, -50%)',
+          }}
+          className={`absolute cursor-grab active:cursor-grabbing px-3 py-1.5 rounded-lg border-2 border-dashed transition-all ${
+            isDragging
+              ? 'border-red-600 bg-red-50/80 shadow-xl scale-102 ring-2 ring-red-400/50'
+              : 'border-blue-600/90 bg-white/75 hover:bg-white/95 hover:border-blue-700 shadow-md'
+          }`}
+        >
+          {/* Label Panduan Seret */}
+          <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 flex items-center gap-1 bg-slate-950 text-white text-[8.5px] font-bold px-2 py-0.5 rounded-full shadow pointer-events-none whitespace-nowrap">
+            <Move size={8.5} />
+            <span>SERET SAYA</span>
+          </div>
+
+          {/* Paparan Nama Ikut Fon & Warna Semasa */}
+          <div
+            style={{
+              fontFamily: fontCss,
+              fontSize: `${previewFontSizePx}px`,
+              color: colorHex,
+              lineHeight: 1.25,
+            }}
+            className="text-center font-bold whitespace-nowrap tracking-wide drop-shadow-2xs"
+          >
+            {displayLines.map((line, idx) => (
+              <div key={idx}>{line}</div>
+            ))}
+          </div>
+
+          {/* Titik Penjajaran Tengah */}
+          <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 h-2.5 w-2.5 rounded-full bg-red-600 border-2 border-white shadow-xs pointer-events-none" />
+        </div>
+      </div>
+
+      {/* Bar Kawalan Koordinat & Penalaan Mikro */}
+      <div className="flex flex-wrap items-center justify-between gap-2 p-2 bg-slate-100/80 rounded-xl border border-slate-200 text-xs">
+        <div className="flex items-center gap-1.5">
+          <span className="text-[10.5px] font-bold text-slate-700">Posisi:</span>
+          <span className="font-mono text-[10.5px] font-extrabold text-red-700 bg-white px-2 py-0.5 rounded-md border border-slate-200 shadow-2xs">
+            X: {(leftRatio * 100).toFixed(1)}% • Y: {(topRatio * 100).toFixed(1)}%
+          </span>
+        </div>
+
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            onClick={() => nudge(0, -0.005)}
+            title="Naik 0.5%"
+            className="h-7 w-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-slate-50 active:scale-95 transition cursor-pointer"
+          >
+            <ArrowUp size={12} />
+          </button>
+          <button
+            type="button"
+            onClick={() => nudge(0, 0.005)}
+            title="Turun 0.5%"
+            className="h-7 w-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-slate-50 active:scale-95 transition cursor-pointer"
+          >
+            <ArrowDown size={12} />
+          </button>
+          <button
+            type="button"
+            onClick={() => nudge(-0.005, 0)}
+            title="Kiri 0.5%"
+            className="h-7 w-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-slate-50 active:scale-95 transition cursor-pointer"
+          >
+            <ArrowLeft size={12} />
+          </button>
+          <button
+            type="button"
+            onClick={() => nudge(0.005, 0)}
+            title="Kanan 0.5%"
+            className="h-7 w-7 rounded-lg bg-white border border-slate-200 flex items-center justify-center text-slate-700 hover:bg-slate-50 active:scale-95 transition cursor-pointer"
+          >
+            <ArrowRight size={12} />
+          </button>
+          <button
+            type="button"
+            onClick={() => onChangePos(0.5, topRatio)}
+            title="Tengah Mendatar (50%)"
+            className="px-2 h-7 rounded-lg bg-white border border-slate-200 text-[10px] font-bold text-slate-700 hover:bg-slate-50 active:scale-95 transition cursor-pointer"
+          >
+            Tengah X
+          </button>
+          <button
+            type="button"
+            onClick={() => onChangePos(0.5, 0.407)}
+            title="Posisi Asal Rasmi"
+            className="px-2 h-7 rounded-lg bg-white border border-slate-200 text-[10px] font-bold text-slate-700 hover:bg-slate-50 active:scale-95 transition cursor-pointer flex items-center gap-1"
+          >
+            <RotateCcw size={10} />
+            <span>Lalai</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Modal Muat Naik Templat Sijil dengan Wizard Step-by-Step & Progress Bar:
+ * Langkah 1: Muat Naik Fail PDF & Maklumat Asas
+ * Langkah 2: Posisi Visual Drag & Drop, Saiz, Warna, Fon & Format Baris Nama
+ * Langkah 3: Pengesahan & Simpan ke Cloud
+ */
 function UploadTemplateModal({ open, onClose, onSaved }) {
+  const [step, setStep] = useState(1); // 1, 2, 3
   const [file, setFile] = useState(null);
   const [filePage1, setFilePage1] = useState(null);
   const [filePage2, setFilePage2] = useState(null);
   const [pageCount, setPageCount] = useState(1); // 1 or 2
-  const [uploadMode2P, setUploadMode2P] = useState('single'); // 'single' (1 file with 2 pages) or 'split' (2 separate files)
+  const [uploadMode2P, setUploadMode2P] = useState('single'); // 'single' or 'split'
   const [kategori, setKategori] = useState('kenaikan_tali_pinggang');
   const [nama, setNama] = useState('Sijil Ujian Kenaikan Tali Pinggang (Penggal 1/2026)');
   const [peringkat, setPeringkat] = useState('Ujian Awan Putih Cula Merah 1');
   const [keterangan, setKeterangan] = useState('');
   const [busy, setBusy] = useState(false);
 
-  // Sync default name & rank suggestions when category changes
+  // Tetapan Gaya & Posisi Teks (Langkah 2)
+  const [previewImage, setPreviewImage] = useState(null);
+  const [generatingPreview, setGeneratingPreview] = useState(false);
+  const [leftRatio, setLeftRatio] = useState(0.5);
+  const [topRatio, setTopRatio] = useState(0.407);
+  const [fontSize, setFontSize] = useState(20);
+  const [colorHex, setColorHex] = useState('#c1362d');
+  const [fontFamily, setFontFamily] = useState('Lora');
+  const [nameLayout, setNameLayout] = useState('auto'); // 'auto', 'sebaris', 'dua_baris'
+  const [sampleName, setSampleName] = useState('MUHAMMAD ADAM BIN ABDULLAH');
+
   const handleCategoryChange = (newCat) => {
     setKategori(newCat);
     if (newCat === 'kenaikan_tali_pinggang') {
@@ -95,6 +394,7 @@ function UploadTemplateModal({ open, onClose, onSaved }) {
 
   useEffect(() => {
     if (!open) {
+      setStep(1);
       setFile(null);
       setFilePage1(null);
       setFilePage2(null);
@@ -104,17 +404,23 @@ function UploadTemplateModal({ open, onClose, onSaved }) {
       setNama('Sijil Ujian Kenaikan Tali Pinggang (Penggal 1/2026)');
       setPeringkat('Ujian Awan Putih Cula Merah 1');
       setKeterangan('');
+      setPreviewImage(null);
+      setLeftRatio(0.5);
+      setTopRatio(0.407);
+      setFontSize(20);
+      setColorHex('#c1362d');
+      setFontFamily('Lora');
+      setNameLayout('auto');
+      setSampleName('MUHAMMAD ADAM BIN ABDULLAH');
     }
   }, [open]);
 
-  async function submit(e) {
-    e.preventDefault();
+  // Validasi & Bergerak ke Langkah 2 (Generate Page 1 Preview Image)
+  const handleNextToStep2 = async () => {
     if (pageCount === 1) {
       if (!file) return toast.error('Sila pilih fail PDF templat 1 muka surat.');
       if (!file.name.toLowerCase().endsWith('.pdf')) return toast.error('Fail mestilah format .pdf.');
-      if (file.size > 4.2 * 1024 * 1024) {
-        return toast.error('Saiz fail melebihi had maksima 4.2MB.');
-      }
+      if (file.size > 4.5 * 1024 * 1024) return toast.error('Saiz fail melebihi had maksima 4.5MB.');
     } else {
       if (uploadMode2P === 'split') {
         if (!filePage1) return toast.error('Sila pilih fail PDF untuk Halaman 1 (Muka Hadapan).');
@@ -122,19 +428,32 @@ function UploadTemplateModal({ open, onClose, onSaved }) {
         if (!filePage1.name.toLowerCase().endsWith('.pdf') || !filePage2.name.toLowerCase().endsWith('.pdf')) {
           return toast.error('Kedua-dua fail mestilah dalam format .pdf.');
         }
-        if (filePage1.size + filePage2.size > 8 * 1024 * 1024) {
-          return toast.error('Jumlah saiz fail melebihi had maksima.');
-        }
       } else {
         if (!file) return toast.error('Sila pilih fail PDF templat 2 muka surat.');
         if (!file.name.toLowerCase().endsWith('.pdf')) return toast.error('Fail mestilah format .pdf.');
-        if (file.size > 4.2 * 1024 * 1024) {
-          return toast.error('Saiz fail melebihi had maksima 4.2MB.');
-        }
       }
     }
 
     if (nama.trim().length < 3) return toast.error('Sila masukkan nama templat sijil.');
+    if (!peringkat.trim()) return toast.error('Sila pilih atau masukkan peringkat pesilat.');
+
+    const targetFile = pageCount === 2 && uploadMode2P === 'split' ? filePage1 : file;
+    setGeneratingPreview(true);
+    try {
+      const dataUrl = await renderPdfBlobToDataUrl(targetFile, 1);
+      setPreviewImage(dataUrl);
+      setStep(2);
+    } catch (err) {
+      console.error(err);
+      toast.error('Gagal memproses pratonton PDF: ' + (err.message || 'Ralat fail'));
+    } finally {
+      setGeneratingPreview(false);
+    }
+  };
+
+  // Simpan & Hantar ke Server
+  async function submit(e) {
+    if (e) e.preventDefault();
 
     const form = new FormData();
     form.append('page_count', String(pageCount));
@@ -149,18 +468,34 @@ function UploadTemplateModal({ open, onClose, onSaved }) {
     form.append('peringkat', peringkat.trim());
     form.append('keterangan', keterangan.trim());
 
+    if (previewImage) {
+      form.append('thumbnail', previewImage);
+    }
+
+    const textConfigObj = {
+      fontSize,
+      colorHex,
+      fontFamily,
+      leftRatio,
+      topRatio,
+      posXRatio: leftRatio,
+      posYRatio: topRatio,
+      nameLayout,
+    };
+    form.append('text_config', JSON.stringify(textConfigObj));
+
     setBusy(true);
     try {
       await api('/admin/templates', { method: 'POST', body: form });
       toast.success(
         pageCount === 2
-          ? 'Templat sijil 2 muka surat berjaya dimuat naik!'
-          : 'Templat sijil 1 muka surat berjaya dimuat naik!'
+          ? 'Templat sijil 2 muka surat berjaya dimuat naik dengan posisi & gaya nama tersuai!'
+          : 'Templat sijil 1 muka surat berjaya dimuat naik dengan posisi & gaya nama tersuai!'
       );
       onSaved();
       onClose();
     } catch (err) {
-      toast.error(err.message);
+      toast.error(err.message || 'Gagal memuat naik templat');
     } finally {
       setBusy(false);
     }
@@ -173,108 +508,155 @@ function UploadTemplateModal({ open, onClose, onSaved }) {
     return BELT_RANKS_PRESETS;
   }, [kategori]);
 
+  const catMeta = getCategoryMeta(kategori);
+
   return (
-    <Modal open={open} onClose={onClose} title="Muat Naik Templat Sijil (PDF)" wide>
-      <form onSubmit={submit} className="space-y-4">
-        {/* PILIHAN 1 PAGE ATAU 2 PAGE */}
-        <div>
-          <label className="mb-1.5 block text-xs font-bold text-slate-700">Pilihan Format Halaman Sijil *</label>
-          <div className="grid grid-cols-2 gap-2.5">
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Muat Naik & Konfigurasi Templat Sijil (PDF)"
+      wide
+    >
+      <div className="space-y-4">
+        {/* STEPPER PROGRESS BAR MINIMALIST AESTHETIC */}
+        <div className="rounded-2xl bg-slate-50 border border-slate-200/90 p-3 sm:p-4">
+          <div className="flex items-center justify-between text-xs font-extrabold text-slate-800 mb-2">
+            <span className="flex items-center gap-1.5">
+              <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-slate-900 text-white text-[10px]">
+                {step}
+              </span>
+              <span>
+                {step === 1 && 'Langkah 1 daripada 3: Muat Naik Fail & Maklumat Asas'}
+                {step === 2 && 'Langkah 2 daripada 3: Tetapan Posisi & Gaya Nama (Drag & Drop)'}
+                {step === 3 && 'Langkah 3 daripada 3: Pengesahan & Simpan'}
+              </span>
+            </span>
+            <span className="text-slate-400 font-mono text-[11px]">
+              {step === 1 ? '33%' : step === 2 ? '66%' : '100%'}
+            </span>
+          </div>
+
+          {/* Progress track */}
+          <div className="relative h-2 w-full rounded-full bg-slate-200 overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-red-600 to-rose-500 rounded-full transition-all duration-300 ease-out"
+              style={{ width: step === 1 ? '33.33%' : step === 2 ? '66.66%' : '100%' }}
+            />
+          </div>
+
+          {/* 3 Steps Pills */}
+          <div className="mt-2.5 grid grid-cols-3 gap-2 text-center text-[10.5px]">
             <button
               type="button"
-              onClick={() => setPageCount(1)}
-              className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                pageCount === 1
-                  ? 'border-slate-900 bg-slate-900 text-white shadow-xs'
-                  : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+              onClick={() => step > 1 && setStep(1)}
+              className={`p-1.5 rounded-lg font-bold transition flex items-center justify-center gap-1 ${
+                step === 1
+                  ? 'bg-slate-900 text-white shadow-2xs'
+                  : step > 1
+                  ? 'bg-white text-emerald-700 border border-emerald-200 cursor-pointer'
+                  : 'text-slate-400'
               }`}
             >
-              <div className="flex items-center justify-between">
-                <span className="text-xs sm:text-sm font-bold">1 Muka Surat (1 Page)</span>
-                <FileText size={16} className={pageCount === 1 ? 'text-white' : 'text-slate-400'} />
-              </div>
-              <p className={`text-[11px] mt-1 ${pageCount === 1 ? 'text-slate-300' : 'text-slate-500'}`}>
-                Sijil sehelai (muka hadapan sahaja dengan ruangan nama)
-              </p>
+              {step > 1 ? <CheckCircle2 size={12} /> : <span>1.</span>}
+              <span className="truncate">Fail & Info</span>
             </button>
 
             <button
               type="button"
-              onClick={() => setPageCount(2)}
-              className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                pageCount === 2
-                  ? 'border-slate-900 bg-slate-900 text-white shadow-xs'
-                  : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+              disabled={step < 2}
+              onClick={() => step === 3 && setStep(2)}
+              className={`p-1.5 rounded-lg font-bold transition flex items-center justify-center gap-1 ${
+                step === 2
+                  ? 'bg-slate-900 text-white shadow-2xs'
+                  : step > 2
+                  ? 'bg-white text-emerald-700 border border-emerald-200 cursor-pointer'
+                  : 'text-slate-400 opacity-60'
               }`}
             >
-              <div className="flex items-center justify-between">
-                <span className="text-xs sm:text-sm font-bold">2 Muka Surat (2 Pages)</span>
-                <Layers size={16} className={pageCount === 2 ? 'text-white' : 'text-slate-400'} />
-              </div>
-              <p className={`text-[11px] mt-1 ${pageCount === 2 ? 'text-slate-300' : 'text-slate-500'}`}>
-                Sijil dua helai (Depan dengan nama & Belakang sukatan/silabus)
-              </p>
+              {step > 2 ? <CheckCircle2 size={12} /> : <span>2.</span>}
+              <span className="truncate">Posisi & Fon</span>
+            </button>
+
+            <button
+              type="button"
+              disabled={step < 3}
+              className={`p-1.5 rounded-lg font-bold transition flex items-center justify-center gap-1 ${
+                step === 3 ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-400 opacity-60'
+              }`}
+            >
+              <span>3.</span>
+              <span className="truncate">Pengesahan</span>
             </button>
           </div>
         </div>
 
-        {/* ZON MUAT NAIK MENGIKUT PILIHAN 1 ATAU 2 PAGE */}
-        {pageCount === 1 ? (
-          <div>
-            <label className="mb-1.5 block text-xs font-semibold text-slate-700">Fail Templat PDF (1 Muka Surat) *</label>
-            <label className="flex min-h-[105px] cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50/70 p-4 text-center transition hover:border-slate-500 hover:bg-slate-50">
-              <UploadCloud size={24} className="text-slate-600 mb-1" />
-              <div className="text-xs sm:text-sm font-bold text-slate-900 truncate max-w-full">
-                {file ? file.name : 'Pilih fail PDF templat 1 muka surat'}
-              </div>
-              <p className="mt-0.5 text-[11px] text-slate-500">PDF standard (maksima 4.2MB). Mengandungi garisan ruangan nama pesilat.</p>
-              {file && (
-                <span className="mt-1.5 text-[11px] font-semibold text-slate-800 bg-slate-200 px-2.5 py-0.5 rounded-md">
-                  {(file.size / 1024).toFixed(1)} KB • Sedia dimuat naik
-                </span>
-              )}
-              <input
-                type="file"
-                accept=".pdf,application/pdf"
-                className="sr-only"
-                onChange={(e) => setFile(e.target.files?.[0] || null)}
-              />
-            </label>
-          </div>
-        ) : (
-          <div className="space-y-2.5">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <label className="block text-xs font-semibold text-slate-700">Kaedah Muat Naik 2 Muka Surat *</label>
-              <div className="inline-flex rounded-lg bg-slate-100 p-0.5 text-xs font-semibold">
+        {/* ===================== LANGKAH 1 ===================== */}
+        {step === 1 && (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleNextToStep2();
+            }}
+            className="space-y-4"
+          >
+            {/* Format Halaman */}
+            <div>
+              <label className="mb-1.5 block text-xs font-bold text-slate-700">
+                Pilihan Format Halaman Sijil *
+              </label>
+              <div className="grid grid-cols-2 gap-2.5">
                 <button
                   type="button"
-                  onClick={() => setUploadMode2P('single')}
-                  className={`px-2.5 py-1 rounded-md transition cursor-pointer ${
-                    uploadMode2P === 'single' ? 'bg-white text-slate-900 shadow-2xs font-bold' : 'text-slate-600 hover:text-slate-900'
+                  onClick={() => setPageCount(1)}
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                    pageCount === 1
+                      ? 'border-slate-950 bg-slate-950 text-white shadow-xs'
+                      : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
                   }`}
                 >
-                  1 Fail PDF (2 Halaman)
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs sm:text-sm font-bold">1 Muka Surat (1 Page)</span>
+                    <FileText size={16} className={pageCount === 1 ? 'text-white' : 'text-slate-400'} />
+                  </div>
+                  <p className={`text-[11px] mt-1 ${pageCount === 1 ? 'text-slate-300' : 'text-slate-500'}`}>
+                    Sijil sehelai (muka hadapan sahaja dengan ruangan nama)
+                  </p>
                 </button>
+
                 <button
                   type="button"
-                  onClick={() => setUploadMode2P('split')}
-                  className={`px-2.5 py-1 rounded-md transition cursor-pointer ${
-                    uploadMode2P === 'split' ? 'bg-white text-slate-900 shadow-2xs font-bold' : 'text-slate-600 hover:text-slate-900'
+                  onClick={() => setPageCount(2)}
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                    pageCount === 2
+                      ? 'border-slate-950 bg-slate-950 text-white shadow-xs'
+                      : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
                   }`}
                 >
-                  2 Fail Berasingan (Depan & Belakang)
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs sm:text-sm font-bold">2 Muka Surat (2 Pages)</span>
+                    <Layers size={16} className={pageCount === 2 ? 'text-white' : 'text-slate-400'} />
+                  </div>
+                  <p className={`text-[11px] mt-1 ${pageCount === 2 ? 'text-slate-300' : 'text-slate-500'}`}>
+                    Sijil dua helai (Depan ruangan nama & Belakang silabus)
+                  </p>
                 </button>
               </div>
             </div>
 
-            {uploadMode2P === 'single' ? (
+            {/* Muat Naik Fail PDF */}
+            {pageCount === 1 ? (
               <div>
+                <label className="mb-1.5 block text-xs font-semibold text-slate-700">
+                  Fail Templat PDF (1 Muka Surat) *
+                </label>
                 <label className="flex min-h-[105px] cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50/70 p-4 text-center transition hover:border-slate-500 hover:bg-slate-50">
                   <UploadCloud size={24} className="text-slate-600 mb-1" />
                   <div className="text-xs sm:text-sm font-bold text-slate-900 truncate max-w-full">
-                    {file ? file.name : 'Pilih fail PDF lengkap (mengandungi muka 1 & muka 2)'}
+                    {file ? file.name : 'Pilih fail PDF templat 1 muka surat'}
                   </div>
-                  <p className="mt-0.5 text-[11px] text-slate-500">Fail PDF tunggal yang mengandungi kedua-dua muka surat depan dan belakang.</p>
+                  <p className="mt-0.5 text-[11px] text-slate-500">
+                    PDF standard (maksima 4.5MB). Mengandungi garisan ruangan nama pesilat.
+                  </p>
                   {file && (
                     <span className="mt-1.5 text-[11px] font-semibold text-slate-800 bg-slate-200 px-2.5 py-0.5 rounded-md">
                       {(file.size / 1024).toFixed(1)} KB • Sedia dimuat naik
@@ -289,145 +671,827 @@ function UploadTemplateModal({ open, onClose, onSaved }) {
                 </label>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                {/* File Page 1 */}
-                <div>
-                  <label className="mb-1 block text-[11px] font-semibold text-slate-700">📄 Halaman 1 (Muka Hadapan) *</label>
-                  <label className="flex min-h-[95px] cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50/70 p-3 text-center transition hover:border-slate-500 hover:bg-slate-50">
-                    <UploadCloud size={20} className="text-slate-600 mb-1" />
-                    <div className="text-xs font-bold text-slate-900 truncate max-w-full">
-                      {filePage1 ? filePage1.name : 'Pilih fail Halaman 1'}
-                    </div>
-                    <p className="text-[10px] text-slate-400 mt-0.5">Muka hadapan sijil (ada ruangan nama)</p>
-                    {filePage1 && (
-                      <span className="mt-1 text-[10px] font-semibold text-slate-800 bg-slate-200 px-2 py-0.5 rounded">
-                        {(filePage1.size / 1024).toFixed(1)} KB
-                      </span>
-                    )}
-                    <input
-                      type="file"
-                      accept=".pdf,application/pdf"
-                      className="sr-only"
-                      onChange={(e) => setFilePage1(e.target.files?.[0] || null)}
-                    />
+              <div className="space-y-2.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <label className="block text-xs font-semibold text-slate-700">
+                    Kaedah Muat Naik 2 Muka Surat *
                   </label>
+                  <div className="inline-flex rounded-lg bg-slate-100 p-0.5 text-xs font-semibold">
+                    <button
+                      type="button"
+                      onClick={() => setUploadMode2P('single')}
+                      className={`px-2.5 py-1 rounded-md transition cursor-pointer ${
+                        uploadMode2P === 'single'
+                          ? 'bg-white text-slate-900 shadow-2xs font-bold'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      1 Fail PDF (2 Halaman)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setUploadMode2P('split')}
+                      className={`px-2.5 py-1 rounded-md transition cursor-pointer ${
+                        uploadMode2P === 'split'
+                          ? 'bg-white text-slate-900 shadow-2xs font-bold'
+                          : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      2 Fail Berasingan (Depan & Belakang)
+                    </button>
+                  </div>
                 </div>
 
-                {/* File Page 2 */}
-                <div>
-                  <label className="mb-1 block text-[11px] font-semibold text-slate-700">📄 Halaman 2 (Muka Belakang) *</label>
-                  <label className="flex min-h-[95px] cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50/70 p-3 text-center transition hover:border-slate-500 hover:bg-slate-50">
-                    <UploadCloud size={20} className="text-slate-600 mb-1" />
-                    <div className="text-xs font-bold text-slate-900 truncate max-w-full">
-                      {filePage2 ? filePage2.name : 'Pilih fail Halaman 2'}
+                {uploadMode2P === 'single' ? (
+                  <div>
+                    <label className="flex min-h-[105px] cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50/70 p-4 text-center transition hover:border-slate-500 hover:bg-slate-50">
+                      <UploadCloud size={24} className="text-slate-600 mb-1" />
+                      <div className="text-xs sm:text-sm font-bold text-slate-900 truncate max-w-full">
+                        {file ? file.name : 'Pilih fail PDF lengkap (mengandungi muka 1 & muka 2)'}
+                      </div>
+                      <p className="mt-0.5 text-[11px] text-slate-500">
+                        Fail PDF tunggal yang mengandungi kedua-dua muka surat depan dan belakang.
+                      </p>
+                      {file && (
+                        <span className="mt-1.5 text-[11px] font-semibold text-slate-800 bg-slate-200 px-2.5 py-0.5 rounded-md">
+                          {(file.size / 1024).toFixed(1)} KB • Sedia dimuat naik
+                        </span>
+                      )}
+                      <input
+                        type="file"
+                        accept=".pdf,application/pdf"
+                        className="sr-only"
+                        onChange={(e) => setFile(e.target.files?.[0] || null)}
+                      />
+                    </label>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <div>
+                      <label className="mb-1 block text-[11px] font-semibold text-slate-700">
+                        📄 Halaman 1 (Muka Hadapan) *
+                      </label>
+                      <label className="flex min-h-[95px] cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50/70 p-3 text-center transition hover:border-slate-500 hover:bg-slate-50">
+                        <UploadCloud size={20} className="text-slate-600 mb-1" />
+                        <div className="text-xs font-bold text-slate-900 truncate max-w-full">
+                          {filePage1 ? filePage1.name : 'Pilih fail Halaman 1'}
+                        </div>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Muka hadapan sijil (ruangan nama)</p>
+                        {filePage1 && (
+                          <span className="mt-1 text-[10px] font-semibold text-slate-800 bg-slate-200 px-2 py-0.5 rounded">
+                            {(filePage1.size / 1024).toFixed(1)} KB
+                          </span>
+                        )}
+                        <input
+                          type="file"
+                          accept=".pdf,application/pdf"
+                          className="sr-only"
+                          onChange={(e) => setFilePage1(e.target.files?.[0] || null)}
+                        />
+                      </label>
                     </div>
-                    <p className="text-[10px] text-slate-400 mt-0.5">Silabus / maklumat belakang sijil</p>
-                    {filePage2 && (
-                      <span className="mt-1 text-[10px] font-semibold text-slate-800 bg-slate-200 px-2 py-0.5 rounded">
-                        {(filePage2.size / 1024).toFixed(1)} KB
-                      </span>
-                    )}
-                    <input
-                      type="file"
-                      accept=".pdf,application/pdf"
-                      className="sr-only"
-                      onChange={(e) => setFilePage2(e.target.files?.[0] || null)}
-                    />
-                  </label>
-                </div>
+
+                    <div>
+                      <label className="mb-1 block text-[11px] font-semibold text-slate-700">
+                        📄 Halaman 2 (Muka Belakang) *
+                      </label>
+                      <label className="flex min-h-[95px] cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50/70 p-3 text-center transition hover:border-slate-500 hover:bg-slate-50">
+                        <UploadCloud size={20} className="text-slate-600 mb-1" />
+                        <div className="text-xs font-bold text-slate-900 truncate max-w-full">
+                          {filePage2 ? filePage2.name : 'Pilih fail Halaman 2'}
+                        </div>
+                        <p className="text-[10px] text-slate-400 mt-0.5">Silabus / maklumat belakang sijil</p>
+                        {filePage2 && (
+                          <span className="mt-1 text-[10px] font-semibold text-slate-800 bg-slate-200 px-2 py-0.5 rounded">
+                            {(filePage2.size / 1024).toFixed(1)} KB
+                          </span>
+                        )}
+                        <input
+                          type="file"
+                          accept=".pdf,application/pdf"
+                          className="sr-only"
+                          onChange={(e) => setFilePage2(e.target.files?.[0] || null)}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
+
+            {/* Kategori Sijil */}
+            <div>
+              <label className="mb-1.5 block text-xs font-bold text-slate-700">Jenis / Kategori Sijil *</label>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                {CERT_CATEGORIES.map((cat) => (
+                  <button
+                    type="button"
+                    key={cat.id}
+                    onClick={() => handleCategoryChange(cat.id)}
+                    className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
+                      kategori === cat.id
+                        ? 'border-slate-950 bg-slate-950 text-white font-bold shadow-xs'
+                        : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+                    }`}
+                  >
+                    <span className="text-base sm:text-lg mb-0.5">{cat.emoji}</span>
+                    <span className="text-[11px] leading-tight font-bold">{cat.shortLabel}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <Input
+              label="Nama Templat Sijil *"
+              required
+              placeholder="Contoh: Sijil Ujian Kenaikan Tali Pinggang (Penggal 1/2026)"
+              value={nama}
+              onChange={(e) => setNama(e.target.value)}
+            />
+
+            <div>
+              <label className="mb-1.5 block text-xs font-bold text-slate-600">
+                {kategori === 'kenaikan_tali_pinggang'
+                  ? 'Padanan Peringkat / Warna Cula Pesilat *'
+                  : 'Peringkat / Kategori Penerima *'}
+              </label>
+              <div className="relative">
+                <input
+                  list="template-rank-presets"
+                  value={peringkat}
+                  onChange={(e) => setPeringkat(e.target.value)}
+                  placeholder="Pilih atau taip peringkat..."
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 outline-none focus:border-red-600 focus:ring-4 focus:ring-red-100"
+                  required
+                />
+                <datalist id="template-rank-presets">
+                  {currentPresets.map((lvl) => (
+                    <option key={lvl} value={lvl} />
+                  ))}
+                </datalist>
+              </div>
+            </div>
+
+            <Input
+              label="Keterangan / Catatan (Pilihan)"
+              placeholder="Contoh: Kejohanan Silat Daerah 2026 / Penggal Pertama"
+              value={keterangan}
+              onChange={(e) => setKeterangan(e.target.value)}
+            />
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+              <Button type="button" variant="secondary" onClick={onClose} className="text-xs">
+                Batal
+              </Button>
+              <Button type="submit" loading={generatingPreview} className="text-xs">
+                <span>Seterusnya: Tetapan Posisi & Gaya Nama</span>
+                <ChevronRight size={14} />
+              </Button>
+            </div>
+          </form>
+        )}
+
+        {/* ===================== LANGKAH 2 ===================== */}
+        {step === 2 && (
+          <div className="space-y-4">
+            {/* Arahan Ringkas */}
+            <div className="rounded-xl bg-red-50/70 border border-red-200/80 p-3 text-xs text-red-950 flex items-start gap-2">
+              <Sparkles size={16} className="text-red-700 shrink-0 mt-0.5" />
+              <div className="leading-relaxed">
+                <strong>Sesuaikan Posisi & Rupa Nama Pesilat:</strong> Seret kotak teks berlabel{' '}
+                <span className="font-bold underline">"SERET SAYA"</span> terus ke posisi garisan nama
+                pada sijil. Anda juga boleh memilih jenis fon, saiz, warna, serta mod sebaris atau dua baris di sebelah kanan.
+              </div>
+            </div>
+
+            {/* Dua Kolum: Kiri = Visual Board Drag & Drop, Kanan = Panel Tetapan Gaya */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+              {/* Kolum Kiri (Visual Board): 7 Kolum di skrin besar */}
+              <div className="lg:col-span-7">
+                <DraggableCertificateTextPositioner
+                  imageSrc={previewImage}
+                  leftRatio={leftRatio}
+                  topRatio={topRatio}
+                  onChangePos={(x, y) => {
+                    setLeftRatio(x);
+                    setTopRatio(y);
+                  }}
+                  fontSize={fontSize}
+                  fontFamily={fontFamily}
+                  colorHex={colorHex}
+                  nameLayout={nameLayout}
+                  sampleName={sampleName}
+                />
+              </div>
+
+              {/* Kolum Kanan (Kawalan Gaya Teks): 5 Kolum */}
+              <div className="lg:col-span-5 space-y-3.5 bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200">
+                {/* 1. Format Nama (Sebaris vs Dua Baris vs Auto) */}
+                <div>
+                  <label className="mb-1.5 block text-xs font-bold text-slate-800 flex items-center justify-between">
+                    <span>Susunan Baris Nama *</span>
+                    <span className="text-[10px] text-slate-400 font-normal">
+                      {nameLayout === 'auto' ? 'Pintar' : nameLayout === 'sebaris' ? '1 Baris' : '2 Baris'}
+                    </span>
+                  </label>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setNameLayout('auto')}
+                      className={`p-2 rounded-xl border text-center transition cursor-pointer ${
+                        nameLayout === 'auto'
+                          ? 'border-slate-900 bg-slate-900 text-white font-bold shadow-2xs'
+                          : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+                      }`}
+                    >
+                      <div className="text-xs font-bold">Pintar</div>
+                      <div className="text-[9px] opacity-75">Auto ikut saiz</div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setNameLayout('sebaris')}
+                      className={`p-2 rounded-xl border text-center transition cursor-pointer ${
+                        nameLayout === 'sebaris'
+                          ? 'border-slate-900 bg-slate-900 text-white font-bold shadow-2xs'
+                          : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+                      }`}
+                    >
+                      <div className="text-xs font-bold">Sebaris</div>
+                      <div className="text-[9px] opacity-75">1 Baris Sahaja</div>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setNameLayout('dua_baris')}
+                      className={`p-2 rounded-xl border text-center transition cursor-pointer ${
+                        nameLayout === 'dua_baris'
+                          ? 'border-slate-900 bg-slate-900 text-white font-bold shadow-2xs'
+                          : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+                      }`}
+                    >
+                      <div className="text-xs font-bold">Dua Baris</div>
+                      <div className="text-[9px] opacity-75">Pisah di Bin/Binti</div>
+                    </button>
+                  </div>
+                </div>
+
+                {/* 2. Pilihan Jenis Fon (Google Fonts Rasmi Sijil) */}
+                <div>
+                  <label className="mb-1.5 block text-xs font-bold text-slate-800">
+                    Pilihan Jenis Fon Sijil *
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-1.5 max-h-[160px] overflow-y-auto pr-1">
+                    {FONT_OPTIONS.map((f) => (
+                      <button
+                        type="button"
+                        key={f.id}
+                        onClick={() => setFontFamily(f.id)}
+                        className={`p-2 rounded-xl border text-left flex items-center justify-between transition cursor-pointer ${
+                          fontFamily === f.id
+                            ? 'border-red-600 bg-red-50/70 text-slate-950 font-bold ring-1 ring-red-300'
+                            : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+                        }`}
+                      >
+                        <div className="min-w-0">
+                          <div className="text-xs font-bold flex items-center gap-1.5">
+                            <span style={{ fontFamily: f.style }} className="text-sm font-bold text-red-700">
+                              {f.sample}
+                            </span>
+                            <span>{f.name}</span>
+                          </div>
+                          <div className="text-[10px] text-slate-400 truncate">{f.desc}</div>
+                        </div>
+                        {fontFamily === f.id && <Check size={14} className="text-red-700 shrink-0" />}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 3. Saiz Fon (Slider + Presets) */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="text-xs font-bold text-slate-800">Saiz Fon Sijil</label>
+                    <span className="font-mono text-xs font-extrabold text-red-700 bg-white px-2 py-0.5 rounded border border-slate-200 shadow-2xs">
+                      {fontSize} pt
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="14"
+                    max="36"
+                    step="1"
+                    value={fontSize}
+                    onChange={(e) => setFontSize(Number(e.target.value))}
+                    className="w-full accent-red-600 cursor-pointer h-2 bg-slate-200 rounded-lg"
+                  />
+                  <div className="flex items-center justify-between gap-1 mt-1.5">
+                    {[16, 18, 20, 24, 28].map((sz) => (
+                      <button
+                        type="button"
+                        key={sz}
+                        onClick={() => setFontSize(sz)}
+                        className={`flex-1 py-1 rounded-lg text-[10.5px] font-bold border transition cursor-pointer ${
+                          fontSize === sz
+                            ? 'bg-slate-900 text-white border-slate-900'
+                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                        }`}
+                      >
+                        {sz}pt
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* 4. Warna Teks (Palette Swatches + Native Hex Color Picker) */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-xs font-bold text-slate-800">Warna Tulisan Nama</label>
+                    <span className="font-mono text-xs font-bold text-slate-600">{colorHex.toUpperCase()}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    {COLOR_SWATCHES.map((sw) => (
+                      <button
+                        type="button"
+                        key={sw.hex}
+                        onClick={() => setColorHex(sw.hex)}
+                        title={sw.name}
+                        style={{ backgroundColor: sw.hex }}
+                        className={`h-7 w-7 rounded-full transition-transform cursor-pointer relative flex items-center justify-center ${
+                          colorHex.toLowerCase() === sw.hex.toLowerCase()
+                            ? 'scale-110 ring-3 ring-offset-2 ring-slate-900'
+                            : 'hover:scale-105 opacity-90'
+                        }`}
+                      >
+                        {colorHex.toLowerCase() === sw.hex.toLowerCase() && (
+                          <Check size={12} className="text-white drop-shadow" />
+                        )}
+                      </button>
+                    ))}
+
+                    {/* Native Color Picker */}
+                    <label
+                      title="Pilih Warna Tersuai (Custom HEX)"
+                      className="h-7 w-7 rounded-full border-2 border-dashed border-slate-300 flex items-center justify-center cursor-pointer hover:border-slate-500 bg-white relative overflow-hidden"
+                    >
+                      <Palette size={13} className="text-slate-600" />
+                      <input
+                        type="color"
+                        value={colorHex}
+                        onChange={(e) => setColorHex(e.target.value)}
+                        className="opacity-0 absolute inset-0 cursor-pointer h-full w-full"
+                      />
+                    </label>
+                  </div>
+                </div>
+
+                {/* 5. Uji Nama Contoh */}
+                <div>
+                  <label className="mb-1 block text-[11px] font-bold text-slate-600">
+                    Uji Panjang Nama pada Pratonton:
+                  </label>
+                  <div className="flex items-center gap-1">
+                    {SAMPLE_NAMES.map((s) => (
+                      <button
+                        type="button"
+                        key={s.label}
+                        onClick={() => setSampleName(s.name)}
+                        className={`flex-1 py-1 px-1.5 rounded-lg text-[10px] font-semibold border transition cursor-pointer truncate ${
+                          sampleName === s.name
+                            ? 'bg-red-50 text-red-700 border-red-300 font-bold'
+                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
+                        {s.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Butang Navigasi */}
+            <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+              <Button type="button" variant="secondary" onClick={() => setStep(1)} className="text-xs">
+                <ChevronLeft size={14} />
+                <span>Kembali ke Langkah 1</span>
+              </Button>
+              <Button type="button" onClick={() => setStep(3)} className="text-xs">
+                <span>Seterusnya: Semak & Sahkan</span>
+                <ChevronRight size={14} />
+              </Button>
+            </div>
           </div>
         )}
 
-        {/* Pilihan Jenis / Kategori Sijil */}
-        <div>
-          <label className="mb-1.5 block text-xs font-bold text-slate-700">Jenis / Kategori Sijil *</label>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {CERT_CATEGORIES.map((cat) => (
-              <button
+        {/* ===================== LANGKAH 3 ===================== */}
+        {step === 3 && (
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-xs space-y-4">
+              <h4 className="text-sm font-extrabold text-slate-900 border-b border-slate-100 pb-2 flex items-center gap-2">
+                <ShieldCheck size={18} className="text-emerald-600" />
+                <span>Ringkasan Konfigurasi Templat Sijil</span>
+              </h4>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* Maklumat Asas */}
+                <div className="space-y-2 text-xs">
+                  <div className="flex justify-between py-1 border-b border-slate-100">
+                    <span className="text-slate-500">Nama Templat:</span>
+                    <span className="font-bold text-slate-900 text-right">{nama}</span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-slate-100">
+                    <span className="text-slate-500">Kategori:</span>
+                    <span className="font-bold text-slate-900 flex items-center gap-1">
+                      <span>{catMeta.emoji}</span>
+                      <span>{catMeta.label}</span>
+                    </span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-slate-100">
+                    <span className="text-slate-500">Peringkat / Bengkung:</span>
+                    <span className="font-bold text-slate-900">{peringkat}</span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-slate-100">
+                    <span className="text-slate-500">Format Halaman:</span>
+                    <span className="font-bold text-slate-900">
+                      {pageCount === 2 ? '2 Muka Surat (Depan & Belakang)' : '1 Muka Surat (Penuh)'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Maklumat Gaya Teks */}
+                <div className="space-y-2 text-xs">
+                  <div className="flex justify-between py-1 border-b border-slate-100">
+                    <span className="text-slate-500">Jenis Fon & Saiz:</span>
+                    <span className="font-bold text-slate-900">
+                      {fontFamily} ({fontSize} pt)
+                    </span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-slate-100 items-center">
+                    <span className="text-slate-500">Warna Tulisan:</span>
+                    <span className="font-bold text-slate-900 flex items-center gap-1.5">
+                      <span
+                        className="inline-block h-3.5 w-3.5 rounded-full border border-slate-300"
+                        style={{ backgroundColor: colorHex }}
+                      />
+                      <span className="font-mono text-[11px]">{colorHex.toUpperCase()}</span>
+                    </span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-slate-100">
+                    <span className="text-slate-500">Posisi Sijil:</span>
+                    <span className="font-bold font-mono text-red-700">
+                      X: {(leftRatio * 100).toFixed(1)}% | Y: {(topRatio * 100).toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className="flex justify-between py-1 border-b border-slate-100">
+                    <span className="text-slate-500">Susunan Baris:</span>
+                    <span className="font-bold text-slate-900">
+                      {nameLayout === 'auto'
+                        ? 'Pintar (Auto)'
+                        : nameLayout === 'sebaris'
+                        ? 'Sebaris Sahaja'
+                        : 'Dua Baris'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Mini Preview Box */}
+              {previewImage && (
+                <div className="rounded-xl border border-slate-200 bg-slate-50/60 p-3 text-center">
+                  <div className="text-[11px] font-bold text-slate-600 mb-1.5">
+                    Hasil Pratonton Nama di Atas Templat:
+                  </div>
+                  <div className="relative mx-auto w-full max-w-[260px] aspect-[1/1.414] rounded-lg overflow-hidden border border-slate-300 bg-white shadow">
+                    <img
+                      src={previewImage}
+                      alt="Thumbnail"
+                      className="w-full h-full object-contain pointer-events-none"
+                    />
+                    <div
+                      style={{
+                        left: `${(leftRatio * 100).toFixed(1)}%`,
+                        top: `${(topRatio * 100).toFixed(1)}%`,
+                        transform: 'translate(-50%, -50%)',
+                        fontFamily: FONT_OPTIONS.find((f) => f.id === fontFamily)?.style || "'Lora', serif",
+                        color: colorHex,
+                        fontSize: `${Math.max(7, Math.round(fontSize * (260 / 595)))}px`,
+                        lineHeight: 1.2,
+                      }}
+                      className="absolute font-bold whitespace-nowrap text-center drop-shadow-2xs pointer-events-none"
+                    >
+                      {sampleName}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Butang Navigasi Akhir */}
+            <div className="flex items-center justify-between pt-2 border-t border-slate-100">
+              <Button type="button" variant="secondary" onClick={() => setStep(2)} className="text-xs">
+                <ChevronLeft size={14} />
+                <span>Kembali ke Ubah Suai Posisi</span>
+              </Button>
+              <Button
                 type="button"
-                key={cat.id}
-                onClick={() => handleCategoryChange(cat.id)}
-                className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
-                  kategori === cat.id
-                    ? 'border-slate-900 bg-slate-900 text-white font-bold shadow-xs'
-                    : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
-                }`}
+                loading={busy}
+                onClick={submit}
+                className="text-xs !bg-emerald-700 hover:!bg-emerald-800"
               >
-                <span className="text-base sm:text-lg mb-0.5">{cat.emoji}</span>
-                <span className="text-[11px] leading-tight font-bold">{cat.shortLabel}</span>
-              </button>
-            ))}
+                <UploadCloud size={15} />
+                <span>Simpan & Muat Naik Templat ({pageCount} Page)</span>
+              </Button>
+            </div>
+          </div>
+        )}
+      </div>
+    </Modal>
+  );
+}
+
+/**
+ * Modal untuk Mengubah Posisi & Gaya Fon bagi Templat yang Sedia Ada.
+ * Membolehkan admin mengubah kedudukan teks, saiz, warna, fon dan mod sebaris/dua baris
+ * tanpa perlu muat naik semula fail PDF.
+ */
+function TemplateConfigModal({ open, onClose, template, onSaved }) {
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [previewImage, setPreviewImage] = useState(null);
+
+  const [leftRatio, setLeftRatio] = useState(0.5);
+  const [topRatio, setTopRatio] = useState(0.407);
+  const [fontSize, setFontSize] = useState(20);
+  const [colorHex, setColorHex] = useState('#c1362d');
+  const [fontFamily, setFontFamily] = useState('Lora');
+  const [nameLayout, setNameLayout] = useState('auto');
+  const [sampleName, setSampleName] = useState('MUHAMMAD ADAM BIN ABDULLAH');
+
+  useEffect(() => {
+    if (!open || !template) return;
+
+    // Baca konfigurasi sedia ada jika ada
+    let cfg = {};
+    try {
+      if (template.text_config) {
+        cfg = typeof template.text_config === 'object' ? template.text_config : JSON.parse(template.text_config);
+      }
+    } catch (_) {}
+
+    setLeftRatio(cfg.leftRatio ?? cfg.posXRatio ?? 0.5);
+    setTopRatio(cfg.topRatio ?? cfg.posYRatio ?? 0.407);
+    setFontSize(cfg.fontSize ?? 20);
+    setColorHex(cfg.colorHex ?? '#c1362d');
+    setFontFamily(cfg.fontFamily ?? 'Lora');
+    setNameLayout(cfg.nameLayout ?? 'auto');
+
+    // Muat imej pratonton
+    if (template.thumbnail_base64 && template.thumbnail_base64.startsWith('data:image/')) {
+      setPreviewImage(template.thumbnail_base64);
+    } else {
+      setLoading(true);
+      renderPdfUrlToDataUrl(`/api/admin/templates/${template.id}/preview`, 1)
+        .then((url) => setPreviewImage(url))
+        .catch((err) => {
+          console.warn('Gagal render pratonton:', err);
+        })
+        .finally(() => setLoading(false));
+    }
+  }, [open, template]);
+
+  if (!open || !template) return null;
+
+  async function handleSave() {
+    setSaving(true);
+    try {
+      const textConfigObj = {
+        fontSize,
+        colorHex,
+        fontFamily,
+        leftRatio,
+        topRatio,
+        posXRatio: leftRatio,
+        posYRatio: topRatio,
+        nameLayout,
+      };
+
+      await api(`/admin/templates/${template.id}/config`, {
+        method: 'POST',
+        body: { text_config: JSON.stringify(textConfigObj) },
+      });
+
+      toast.success('Konfigurasi posisi & gaya nama templat berjaya dikemaskini!');
+      if (onSaved) onSaved();
+      onClose();
+    } catch (err) {
+      toast.error('Gagal mengemaskini konfigurasi: ' + err.message);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <Modal open={open} onClose={onClose} title="Ubah Posisi & Gaya Nama Sijil" wide>
+      <div className="space-y-4">
+        {/* Template Info Header */}
+        <div className="rounded-xl bg-slate-50 p-3 border border-slate-200 flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <div className="text-xs sm:text-sm font-extrabold text-slate-900">{template.nama_template}</div>
+            <div className="text-[11px] text-slate-500">Peringkat: {template.peringkat}</div>
+          </div>
+          <div className="flex items-center gap-1.5 font-mono text-xs font-bold text-red-700 bg-white px-2.5 py-1 rounded-lg border border-slate-200 shadow-2xs">
+            X: {(leftRatio * 100).toFixed(1)}% • Y: {(topRatio * 100).toFixed(1)}%
           </div>
         </div>
 
-        <Input
-          label="Nama Templat Sijil *"
-          required
-          placeholder="Contoh: Sijil Ujian Kenaikan Tali Pinggang (Penggal 1/2026)"
-          value={nama}
-          onChange={(e) => setNama(e.target.value)}
-        />
-
-        <div>
-          <label className="mb-1.5 block text-xs font-bold text-slate-600">
-            {kategori === 'kenaikan_tali_pinggang'
-              ? 'Padanan Peringkat / Warna Cula Pesilat *'
-              : 'Peringkat / Kategori Penerima *'}
-          </label>
-          <div className="relative">
-            <input
-              list="template-rank-presets"
-              value={peringkat}
-              onChange={(e) => setPeringkat(e.target.value)}
-              placeholder="Pilih atau taip peringkat..."
-              className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 outline-none focus:border-red-600 focus:ring-4 focus:ring-red-100"
-              required
-            />
-            <datalist id="template-rank-presets">
-              {currentPresets.map((lvl) => (
-                <option key={lvl} value={lvl} />
-              ))}
-            </datalist>
-          </div>
-          <p className="mt-1 text-[11px] text-slate-400">
-            {kategori === 'kenaikan_tali_pinggang'
-              ? 'Sistem memadankan templat ini mengikut warna cula dan peringkat bengkung pesilat.'
-              : 'Gunakan "Semua Peringkat" jika templat ini sesuai untuk mana-mana penerima.'}
-          </p>
-        </div>
-
-        <Input
-          label="Keterangan / Catatan (Pilihan)"
-          placeholder="Contoh: Kejohanan Silat Daerah 2026 / Penggal Pertama"
-          value={keterangan}
-          onChange={(e) => setKeterangan(e.target.value)}
-        />
-
-        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700 leading-relaxed">
-          <strong className="text-slate-900">Peraturan Janaan PDF:</strong>
-          <ul className="mt-1 list-disc list-inside space-y-0.5 text-slate-600 text-[11px]">
-            <li>
-              <strong>Halaman 1 (Hadapan):</strong> Nama pesilat dicetak di atas garisan nama dengan <strong>fon Lora</strong>, saiz <strong>20</strong>, warna merah <strong>#c1362d</strong>.
-            </li>
-            {pageCount === 2 && (
-              <li>
-                <strong>Halaman 2 (Belakang):</strong> Dikekalkan sepenuhnya tanpa sebarang perubahan nama.
-              </li>
+        {/* Visual Drag & Drop & Setting Controls */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-start">
+          <div className="lg:col-span-7">
+            {loading ? (
+              <div className="h-[420px] rounded-2xl border border-slate-200 bg-slate-50 flex flex-col items-center justify-center">
+                <Loader2 size={24} className="animate-spin text-slate-500 mb-2" />
+                <span className="text-xs font-semibold text-slate-600">Memuatkan templat PDF...</span>
+              </div>
+            ) : (
+              <DraggableCertificateTextPositioner
+                imageSrc={previewImage}
+                leftRatio={leftRatio}
+                topRatio={topRatio}
+                onChangePos={(x, y) => {
+                  setLeftRatio(x);
+                  setTopRatio(y);
+                }}
+                fontSize={fontSize}
+                fontFamily={fontFamily}
+                colorHex={colorHex}
+                nameLayout={nameLayout}
+                sampleName={sampleName}
+              />
             )}
-          </ul>
+          </div>
+
+          <div className="lg:col-span-5 space-y-3 bg-slate-50/80 p-3.5 rounded-2xl border border-slate-200">
+            {/* Format Nama */}
+            <div>
+              <label className="mb-1 block text-xs font-bold text-slate-800">Susunan Baris Nama</label>
+              <div className="grid grid-cols-3 gap-1.5">
+                <button
+                  type="button"
+                  onClick={() => setNameLayout('auto')}
+                  className={`p-2 rounded-xl border text-center transition cursor-pointer ${
+                    nameLayout === 'auto'
+                      ? 'border-slate-900 bg-slate-900 text-white font-bold shadow-2xs'
+                      : 'border-slate-200 bg-white text-slate-700'
+                  }`}
+                >
+                  <div className="text-xs font-bold">Pintar</div>
+                  <div className="text-[9px] opacity-75">Auto</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setNameLayout('sebaris')}
+                  className={`p-2 rounded-xl border text-center transition cursor-pointer ${
+                    nameLayout === 'sebaris'
+                      ? 'border-slate-900 bg-slate-900 text-white font-bold shadow-2xs'
+                      : 'border-slate-200 bg-white text-slate-700'
+                  }`}
+                >
+                  <div className="text-xs font-bold">Sebaris</div>
+                  <div className="text-[9px] opacity-75">1 Baris</div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setNameLayout('dua_baris')}
+                  className={`p-2 rounded-xl border text-center transition cursor-pointer ${
+                    nameLayout === 'dua_baris'
+                      ? 'border-slate-900 bg-slate-900 text-white font-bold shadow-2xs'
+                      : 'border-slate-200 bg-white text-slate-700'
+                  }`}
+                >
+                  <div className="text-xs font-bold">Dua Baris</div>
+                  <div className="text-[9px] opacity-75">2 Baris</div>
+                </button>
+              </div>
+            </div>
+
+            {/* Pilihan Fon */}
+            <div>
+              <label className="mb-1 block text-xs font-bold text-slate-800">Pilihan Jenis Fon</label>
+              <div className="space-y-1 max-h-[140px] overflow-y-auto pr-1">
+                {FONT_OPTIONS.map((f) => (
+                  <button
+                    type="button"
+                    key={f.id}
+                    onClick={() => setFontFamily(f.id)}
+                    className={`w-full p-2 rounded-xl border text-left flex items-center justify-between transition cursor-pointer ${
+                      fontFamily === f.id
+                        ? 'border-red-600 bg-red-50 text-slate-950 font-bold'
+                        : 'border-slate-200 bg-white text-slate-700'
+                    }`}
+                  >
+                    <div className="text-xs flex items-center gap-2">
+                      <span style={{ fontFamily: f.style }} className="text-sm font-bold text-red-700">
+                        {f.sample}
+                      </span>
+                      <span>{f.name}</span>
+                    </div>
+                    {fontFamily === f.id && <Check size={14} className="text-red-700 shrink-0" />}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Saiz Fon */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-bold text-slate-800">Saiz Fon</label>
+                <span className="font-mono text-xs font-bold text-red-700 bg-white px-2 py-0.5 rounded border border-slate-200">
+                  {fontSize} pt
+                </span>
+              </div>
+              <input
+                type="range"
+                min="14"
+                max="36"
+                step="1"
+                value={fontSize}
+                onChange={(e) => setFontSize(Number(e.target.value))}
+                className="w-full accent-red-600 cursor-pointer h-2 bg-slate-200 rounded-lg"
+              />
+            </div>
+
+            {/* Warna */}
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-xs font-bold text-slate-800">Warna Tulisan</label>
+                <span className="font-mono text-xs font-bold text-slate-600">{colorHex.toUpperCase()}</span>
+              </div>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {COLOR_SWATCHES.map((sw) => (
+                  <button
+                    type="button"
+                    key={sw.hex}
+                    onClick={() => setColorHex(sw.hex)}
+                    title={sw.name}
+                    style={{ backgroundColor: sw.hex }}
+                    className={`h-6 w-6 rounded-full transition cursor-pointer flex items-center justify-center ${
+                      colorHex.toLowerCase() === sw.hex.toLowerCase()
+                        ? 'ring-2 ring-offset-2 ring-slate-900 scale-110'
+                        : 'opacity-90'
+                    }`}
+                  >
+                    {colorHex.toLowerCase() === sw.hex.toLowerCase() && (
+                      <Check size={10} className="text-white drop-shadow" />
+                    )}
+                  </button>
+                ))}
+                <label className="h-6 w-6 rounded-full border border-dashed border-slate-300 flex items-center justify-center cursor-pointer bg-white relative">
+                  <Palette size={11} className="text-slate-600" />
+                  <input
+                    type="color"
+                    value={colorHex}
+                    onChange={(e) => setColorHex(e.target.value)}
+                    className="opacity-0 absolute inset-0 cursor-pointer h-full w-full"
+                  />
+                </label>
+              </div>
+            </div>
+
+            {/* Ujian Nama */}
+            <div>
+              <label className="mb-1 block text-[10.5px] font-bold text-slate-600">Uji Nama:</label>
+              <div className="flex items-center gap-1">
+                {SAMPLE_NAMES.map((s) => (
+                  <button
+                    type="button"
+                    key={s.label}
+                    onClick={() => setSampleName(s.name)}
+                    className={`flex-1 py-1 rounded-md text-[10px] border transition cursor-pointer truncate ${
+                      sampleName === s.name
+                        ? 'bg-red-50 text-red-700 border-red-300 font-bold'
+                        : 'bg-white text-slate-600 border-slate-200'
+                    }`}
+                  >
+                    {s.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div className="flex justify-end gap-2 pt-1 border-t border-slate-100">
+        {/* Modal Action Buttons */}
+        <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
           <Button type="button" variant="secondary" onClick={onClose} className="text-xs">
             Batal
           </Button>
-          <Button type="submit" loading={busy} className="text-xs">
-            <UploadCloud size={15} /> Muat Naik Templat ({pageCount} Page)
+          <Button type="button" loading={saving} onClick={handleSave} className="text-xs !bg-emerald-700 hover:!bg-emerald-800">
+            <Check size={14} />
+            <span>Simpan Perubahan Gaya & Posisi</span>
           </Button>
         </div>
-      </form>
+      </div>
     </Modal>
   );
 }
@@ -497,7 +1561,7 @@ function TestGenerateModal({ open, onClose, template }) {
   );
 }
 
-export function LargeTemplatePreviewModal({ open, onClose, template, onTestGenerate }) {
+export function LargeTemplatePreviewModal({ open, onClose, template, onTestGenerate, onEditConfig }) {
   const [page, setPage] = useState(1);
 
   useEffect(() => {
@@ -601,6 +1665,16 @@ export function LargeTemplatePreviewModal({ open, onClose, template, onTestGener
               type="button"
               onClick={() => {
                 onClose();
+                if (onEditConfig) onEditConfig(template);
+              }}
+              className="!px-3.5 !py-2 text-xs bg-slate-900 hover:bg-slate-800 text-white"
+            >
+              <Sliders size={14} /> Ubah Posisi & Fon
+            </Button>
+            <Button
+              type="button"
+              onClick={() => {
+                onClose();
                 if (onTestGenerate) onTestGenerate(template);
               }}
               className="!px-3.5 !py-2 text-xs bg-emerald-700 hover:bg-emerald-800"
@@ -624,6 +1698,7 @@ export function Templates() {
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [testTarget, setTestTarget] = useState(null);
   const [previewTarget, setPreviewTarget] = useState(null);
+  const [configTarget, setConfigTarget] = useState(null);
   const [deleting, setDeleting] = useState(false);
 
   // Sorting & Filtering State
@@ -659,12 +1734,12 @@ export function Templates() {
     loadTemplates(false);
     const timer = setInterval(() => {
       // Background silent auto-refresh every 15s (if modals closed)
-      if (!uploadOpen && !deleteTarget && !testTarget) {
+      if (!uploadOpen && !deleteTarget && !testTarget && !configTarget && !previewTarget) {
         loadTemplates(false);
       }
     }, 15000);
     return () => clearInterval(timer);
-  }, [loadTemplates, uploadOpen, deleteTarget, testTarget]);
+  }, [loadTemplates, uploadOpen, deleteTarget, testTarget, configTarget, previewTarget]);
 
   async function handleDelete() {
     if (!deleteTarget) return;
@@ -1053,18 +2128,27 @@ export function Templates() {
                             <button
                               type="button"
                               onClick={() => setTestTarget(item)}
-                              className="flex-1 rounded-md bg-slate-100 px-2 py-1.5 text-[11px] font-semibold text-slate-800 hover:bg-slate-200 transition-colors inline-flex items-center justify-center gap-1"
+                              className="flex-1 rounded-md bg-slate-100 px-2 py-1.5 text-[11px] font-semibold text-slate-800 hover:bg-slate-200 transition-colors inline-flex items-center justify-center gap-1 cursor-pointer"
                               title="Uji janaan nama pada templat"
                             >
                               <Play size={10} />
                               <span>Uji</span>
                             </button>
 
+                            <button
+                              type="button"
+                              onClick={() => setConfigTarget(item)}
+                              className="rounded-lg bg-slate-100 p-1.5 text-slate-700 hover:bg-slate-200 hover:text-slate-950 transition active:scale-95 shrink-0 cursor-pointer"
+                              title="Ubah posisi & gaya nama (fon, saiz, warna, drag & drop)"
+                            >
+                              <Sliders size={13} />
+                            </button>
+
                             <a
                               href={previewUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="rounded-lg bg-slate-100 p-1.5 text-slate-600 hover:bg-red-50 hover:text-red-700 transition active:scale-95 shrink-0"
+                              className="rounded-lg bg-slate-100 p-1.5 text-slate-600 hover:bg-red-50 hover:text-red-700 transition active:scale-95 shrink-0 cursor-pointer"
                               title="Buka fail PDF asal"
                             >
                               <Eye size={13} />
@@ -1073,7 +2157,7 @@ export function Templates() {
                             <button
                               type="button"
                               onClick={() => setDeleteTarget(item)}
-                              className="rounded-lg bg-rose-50 p-1.5 text-rose-600 hover:bg-rose-100 transition active:scale-95 shrink-0"
+                              className="rounded-lg bg-rose-50 p-1.5 text-rose-600 hover:bg-rose-100 transition active:scale-95 shrink-0 cursor-pointer"
                               title="Padam templat ini"
                             >
                               <Trash2 size={13} />
@@ -1140,6 +2224,14 @@ export function Templates() {
                           title="Besarkan pratonton sijil"
                         >
                           <Maximize2 size={12} /> Pratonton
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setConfigTarget(item)}
+                          className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-2 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-200 transition cursor-pointer"
+                          title="Ubah posisi & gaya nama"
+                        >
+                          <Sliders size={12} /> Posisi
                         </button>
                         <button
                           onClick={() => setTestTarget(item)}
@@ -1260,9 +2352,17 @@ export function Templates() {
                               <Eye size={14} />
                             </a>
                             <button
+                              type="button"
+                              onClick={() => setConfigTarget(item)}
+                              title="Ubah posisi & gaya nama"
+                              className="rounded-lg bg-slate-100 p-1.5 text-slate-700 transition hover:bg-slate-200 cursor-pointer"
+                            >
+                              <Sliders size={14} />
+                            </button>
+                            <button
                               onClick={() => setTestTarget(item)}
                               title="Uji janaan nama pada templat"
-                              className="rounded-lg bg-emerald-50 p-1.5 text-emerald-700 transition hover:bg-emerald-100"
+                              className="rounded-lg bg-emerald-50 p-1.5 text-emerald-700 transition hover:bg-emerald-100 cursor-pointer"
                             >
                               <Play size={14} />
                             </button>
@@ -1289,11 +2389,19 @@ export function Templates() {
 
       <TestGenerateModal open={!!testTarget} onClose={() => setTestTarget(null)} template={testTarget} />
 
+      <TemplateConfigModal
+        open={!!configTarget}
+        onClose={() => setConfigTarget(null)}
+        template={configTarget}
+        onSaved={loadTemplates}
+      />
+
       <LargeTemplatePreviewModal
         open={!!previewTarget}
         onClose={() => setPreviewTarget(null)}
         template={previewTarget}
         onTestGenerate={(t) => setTestTarget(t)}
+        onEditConfig={(t) => setConfigTarget(t)}
       />
 
       <Confirm

@@ -31,6 +31,39 @@ async function getPdfBuffer(url) {
   return fetchPromise;
 }
 
+export async function renderPdfBlobToDataUrl(blobOrArrayBuffer, pageNum = 1, scale = 1.3) {
+  try {
+    const data = blobOrArrayBuffer instanceof ArrayBuffer
+      ? new Uint8Array(blobOrArrayBuffer)
+      : new Uint8Array(await blobOrArrayBuffer.arrayBuffer());
+
+    const loadingTask = pdfjsLib.getDocument({
+      data,
+      cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
+      cMapPacked: true,
+    });
+    const pdf = await loadingTask.promise;
+    const targetPage = Math.min(Math.max(1, pageNum), pdf.numPages || 1);
+    const page = await pdf.getPage(targetPage);
+    const dpr = typeof window !== 'undefined' ? Math.min(window.devicePixelRatio || 1, 2) : 1;
+    const viewport = page.getViewport({ scale: (scale || 1.3) * dpr });
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const context = canvas.getContext('2d', { alpha: false });
+    await page.render({ canvasContext: context, viewport }).promise;
+    return canvas.toDataURL('image/jpeg', 0.88);
+  } catch (err) {
+    console.warn('renderPdfBlobToDataUrl error:', err);
+    throw err;
+  }
+}
+
+export async function renderPdfUrlToDataUrl(url, pageNum = 1, scale = 1.3) {
+  const buf = await getPdfBuffer(url);
+  return renderPdfBlobToDataUrl(buf, pageNum, scale);
+}
+
 export function PdfThumbnail({
   url,
   thumbnail = null,
