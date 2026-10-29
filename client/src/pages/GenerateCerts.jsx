@@ -288,6 +288,11 @@ export function GenerateCerts() {
 
   function getMatchingTemplate(student) {
     if (!rawTemplatesForName.length) return null;
+    const cat = getCertCategory(rawTemplatesForName[0]);
+    if (cat !== 'kenaikan_tali_pinggang') {
+      // Bagi sijil pencapaian, penghargaan dan penyertaan, tiada had peringkat; sesiapa pun boleh menerimanya
+      return rawTemplatesForName[0];
+    }
     const sNorm = norm(student.peringkat);
     const match = rawTemplatesForName.find(
       (t) =>
@@ -799,60 +804,70 @@ export function GenerateCerts() {
 
                 {/* Responsive Grid of Visual Template Cards */}
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-2.5 sm:gap-3 p-3 bg-slate-50/70 rounded-xl border border-slate-200">
-                  {/* Button Option: Semua Peringkat */}
-                  <button
-                    type="button"
-                    onClick={() => handleSelectLevelChange('')}
-                    className={`group relative flex flex-col justify-between rounded-xl border p-2.5 text-left transition-all ${
-                      !selectedLevel
-                        ? 'border-red-600 bg-red-50/80 ring-2 ring-forest-400/40 shadow-xs'
-                        : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
-                    }`}
-                  >
-                    <div className="aspect-[1/1.34] w-full rounded-lg border border-dashed border-red-300 bg-red-50/50 flex flex-col items-center justify-center p-2.5 text-center">
-                      <Sparkles size={22} className="text-red-700 mb-1" />
-                      <span className="text-xs font-extrabold text-slate-950 leading-tight">
-                        {t('allLevelsOption')}
-                      </span>
-                      <span className="mt-1 text-[9.5px] text-slate-500">
-                        {t('autoGenRankDesc')}
-                      </span>
-                    </div>
-                    <div className="mt-2 flex items-center justify-between">
-                      <span className="text-[10px] font-bold text-slate-900">
-                        {students.length} {t('studentsCountSuffix')}
-                      </span>
-                      {!selectedLevel && (
-                        <span className="text-[9px] font-extrabold text-red-700 bg-red-200/80 px-1.5 py-0.2 rounded-full">
-                          {t('activeBadge')}
+                  {/* Button Option: Semua Peringkat (Hanya untuk Sijil Kenaikan Tali Pinggang yang berperingkat) */}
+                  {(selectedCategory === 'kenaikan_tali_pinggang' || selectedCategory === 'semua') && (
+                    <button
+                      type="button"
+                      onClick={() => handleSelectLevelChange('')}
+                      className={`group relative flex flex-col justify-between rounded-xl border p-2.5 text-left transition-all ${
+                        !selectedLevel
+                          ? 'border-red-600 bg-red-50/80 ring-2 ring-forest-400/40 shadow-xs'
+                          : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50'
+                      }`}
+                    >
+                      <div className="aspect-[1/1.34] w-full rounded-lg border border-dashed border-red-300 bg-red-50/50 flex flex-col items-center justify-center p-2.5 text-center">
+                        <Sparkles size={22} className="text-red-700 mb-1" />
+                        <span className="text-xs font-extrabold text-slate-950 leading-tight">
+                          {t('allLevelsOption')}
                         </span>
-                      )}
-                    </div>
-                  </button>
+                        <span className="mt-1 text-[9.5px] text-slate-500">
+                          {t('autoGenRankDesc')}
+                        </span>
+                      </div>
+                      <div className="mt-2 flex items-center justify-between">
+                        <span className="text-[10px] font-bold text-slate-900">
+                          {students.length} {t('studentsCountSuffix')}
+                        </span>
+                        {!selectedLevel && (
+                          <span className="text-[9px] font-extrabold text-red-700 bg-red-200/80 px-1.5 py-0.2 rounded-full">
+                            {t('activeBadge')}
+                          </span>
+                        )}
+                      </div>
+                    </button>
+                  )}
 
                   {/* Individual Template Boxes with Live PDF Thumbnail */}
                   {currentTemplatesForName.map((template) => {
-                    const isSelected =
-                      selectedLevel &&
-                      (norm(selectedLevel) === norm(template.peringkat) ||
-                        selectedLevel === template.peringkat);
-                    const count = getStudentCountForLevel(template.peringkat);
-                    const previewUrl = `/api/admin/templates/${template.id}/preview`;
                     const cat = getCertCategory(template);
+                    const isBelt = cat === 'kenaikan_tali_pinggang';
+                    const isSelected = isBelt
+                      ? (selectedLevel &&
+                          (norm(selectedLevel) === norm(template.peringkat) ||
+                            selectedLevel === template.peringkat))
+                      : (selectedTemplateName === template.nama_template);
+                    const count = isBelt ? getStudentCountForLevel(template.peringkat) : students.length;
+                    const previewUrl = `/api/admin/templates/${template.id}/preview`;
                     const catMeta = getCategoryMeta(cat);
                     const rankMeta = getRankMeta(template.peringkat);
-                    const isBelt = cat === 'kenaikan_tali_pinggang';
 
                     return (
                       <div
                         key={template.id}
-                        onClick={() => handleSelectLevelChip(template.peringkat)}
+                        onClick={() => {
+                          if (isBelt) {
+                            handleSelectLevelChip(template.peringkat);
+                          } else {
+                            setSelectedLevel('');
+                            setSelectedIds(new Set(students.map((s) => s.id)));
+                          }
+                        }}
                         className={`group relative flex flex-col justify-between rounded-xl border p-2.5 text-left cursor-pointer transition-all hover:shadow-md hover:-translate-y-0.5 ${
                           isSelected
                             ? 'border-red-600 ring-2 ring-red-400/30 bg-red-50/30 shadow-xs'
                             : 'border-slate-200 bg-white hover:border-slate-300'
                         }`}
-                        title={`Klik untuk pilih templat: ${template.peringkat}`}
+                        title={isBelt ? `Klik untuk pilih templat: ${template.peringkat}` : `Klik untuk pilih templat: ${template.nama_template}`}
                       >
                         {/* Visual Certificate Preview rendered from outside */}
                         <div className="relative aspect-[1/1.34] w-full overflow-hidden rounded-lg border border-slate-200/90 bg-slate-50">
@@ -906,12 +921,12 @@ export function GenerateCerts() {
 
                         {/* Card Details */}
                         <div className="mt-2">
-                          <div className="flex items-center gap-1 text-[11px] font-extrabold text-slate-950 truncate" title={template.peringkat}>
+                          <div className="flex items-center gap-1 text-[11px] font-extrabold text-slate-950 truncate" title={isBelt ? template.peringkat : template.nama_template}>
                             <span className="text-[10px]">{catMeta.emoji}</span>
-                            <span className="truncate">{template.peringkat}</span>
+                            <span className="truncate">{isBelt ? template.peringkat : template.nama_template}</span>
                           </div>
                           <div className="flex items-center justify-between text-[10px] text-slate-500 mt-1">
-                            <span>{count} {t('studentsCountSuffix')}</span>
+                            <span>{isBelt ? `${count} ${t('studentsCountSuffix')}` : (lang === 'eng' ? 'All Students' : 'Semua Pesilat')}</span>
                             <button
                               type="button"
                               onClick={(e) => {
@@ -1237,7 +1252,7 @@ export function GenerateCerts() {
                           <td className="px-3.5 py-1.5 text-xs whitespace-nowrap">
                             {matchedTemplate ? (
                               <span className="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100 text-[10px]">
-                                <CheckCircle2 size={11} /> {t('statusTemplateReady')} ({matchedTemplate.peringkat.replace(/^ujian\s+/i, '')} • {Number(matchedTemplate.page_count) === 2 ? '2 Muka' : '1 Muka'})
+                                <CheckCircle2 size={11} /> {t('statusTemplateReady')} ({matchedTemplate.kategori === 'kenaikan_tali_pinggang' ? matchedTemplate.peringkat.replace(/^ujian\s+/i, '') : matchedTemplate.nama_template} • {Number(matchedTemplate.page_count) === 2 ? '2 Muka' : '1 Muka'})
                               </span>
                             ) : (
                               <span className="inline-flex items-center gap-1 font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 text-[10px]">
@@ -1511,7 +1526,7 @@ export function GenerateCerts() {
                           {matchedTemplate ? (
                             <span className="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-100 text-[10px]">
                               <CheckCircle2 size={11} />
-                              <span className="hidden sm:inline">Templat:</span> {matchedTemplate.peringkat.replace(/^ujian\s+/i, '')}
+                              <span className="hidden sm:inline">Templat:</span> {matchedTemplate.kategori === 'kenaikan_tali_pinggang' ? matchedTemplate.peringkat.replace(/^ujian\s+/i, '') : matchedTemplate.nama_template}
                             </span>
                           ) : (
                             <span className="inline-flex items-center gap-1 font-bold text-amber-700 bg-amber-50 px-2.5 py-0.5 rounded-full border border-amber-200 text-[10px]">

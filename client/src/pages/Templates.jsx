@@ -73,27 +73,14 @@ const SAMPLE_NAMES = [
 const BELT_RANKS_PRESETS = LEVEL_RANK_ORDER;
 
 const PENCAPAIAN_PRESETS = [
-  'Johan (Emas)',
-  'Naib Johan (Perak)',
-  'Ketiga (Gangsa)',
-  'Tempat Keempat',
-  'Pencapaian Khas',
   'Semua Peringkat',
 ];
 
 const PENGHARGAAN_PRESETS = [
-  'Jurulatih / Wasit Juri',
-  'Pembantu Program',
-  'Jawatankuasa Penganjur',
-  'Penyumbang Khas',
   'Semua Peringkat',
 ];
 
 const PENYERTAAN_PRESETS = [
-  'Peserta Bengkel Silat',
-  'Peserta Kursus Kejurulatihan',
-  'Peserta Perkhemahan Latihan',
-  'Peserta Seminar',
   'Semua Peringkat',
 ];
 
@@ -377,7 +364,7 @@ function UploadTemplateModal({ open, onClose, onSaved }) {
       setPeringkat('Ujian Awan Putih Cula Merah 1');
     } else if (newCat === 'pencapaian') {
       setNama('Sijil Pencapaian Kejohanan Silat');
-      setPeringkat('Johan (Emas)');
+      setPeringkat('Semua Peringkat');
     } else if (newCat === 'penghargaan') {
       setNama('Sijil Penghargaan Khas');
       setPeringkat('Semua Peringkat');
@@ -430,7 +417,9 @@ function UploadTemplateModal({ open, onClose, onSaved }) {
     }
 
     if (nama.trim().length < 3) return toast.error('Sila masukkan nama templat sijil.');
-    if (!peringkat.trim()) return toast.error('Sila pilih atau masukkan peringkat pesilat.');
+    if (kategori === 'kenaikan_tali_pinggang' && !peringkat.trim()) {
+      return toast.error('Sila pilih atau masukkan peringkat pesilat.');
+    }
 
     const targetFile = (pageCount === 2 && uploadMode2P === 'split') ? filePage1 : file;
     if (!targetFile) return toast.error('Fail PDF tidak ditemui.');
@@ -460,7 +449,7 @@ function UploadTemplateModal({ open, onClose, onSaved }) {
     }
     form.append('nama_template', nama.trim());
     form.append('kategori', kategori);
-    form.append('peringkat', peringkat.trim());
+    form.append('peringkat', kategori === 'kenaikan_tali_pinggang' ? peringkat.trim() : 'Semua Peringkat');
     form.append('keterangan', keterangan.trim());
 
     if (page1PreviewUrl) {
@@ -742,33 +731,32 @@ function UploadTemplateModal({ open, onClose, onSaved }) {
             onChange={(e) => setNama(e.target.value)}
           />
 
-          <div>
-            <label className="mb-1.5 block text-xs font-bold text-slate-600">
-              {kategori === 'kenaikan_tali_pinggang'
-                ? 'Padanan Peringkat / Warna Cula Pesilat *'
-                : 'Peringkat / Kategori Penerima *'}
-            </label>
-            <div className="relative">
-              <input
-                list="template-rank-presets"
-                value={peringkat}
-                onChange={(e) => setPeringkat(e.target.value)}
-                placeholder="Pilih atau taip peringkat..."
-                className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 outline-none focus:border-red-600 focus:ring-4 focus:ring-red-100"
-                required
-              />
-              <datalist id="template-rank-presets">
-                {currentPresets.map((lvl) => (
-                  <option key={lvl} value={lvl} />
-                ))}
-              </datalist>
+          {/* Padanan Peringkat / Warna Cula Pesilat - Hanya untuk Sijil Kenaikan Tali Pinggang */}
+          {kategori === 'kenaikan_tali_pinggang' && (
+            <div>
+              <label className="mb-1.5 block text-xs font-bold text-slate-600">
+                Padanan Peringkat / Warna Cula Pesilat *
+              </label>
+              <div className="relative">
+                <input
+                  list="template-rank-presets"
+                  value={peringkat}
+                  onChange={(e) => setPeringkat(e.target.value)}
+                  placeholder="Pilih atau taip peringkat..."
+                  className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 outline-none focus:border-red-600 focus:ring-4 focus:ring-red-100"
+                  required
+                />
+                <datalist id="template-rank-presets">
+                  {currentPresets.map((lvl) => (
+                    <option key={lvl} value={lvl} />
+                  ))}
+                </datalist>
+              </div>
+              <p className="mt-1 text-[11px] text-slate-400">
+                Sistem memadankan templat ini mengikut warna cula dan peringkat bengkung pesilat.
+              </p>
             </div>
-            <p className="mt-1 text-[11px] text-slate-400">
-              {kategori === 'kenaikan_tali_pinggang'
-                ? 'Sistem memadankan templat ini mengikut warna cula dan peringkat bengkung pesilat.'
-                : 'Gunakan "Semua Peringkat" jika templat ini sesuai untuk mana-mana penerima.'}
-            </p>
-          </div>
+          )}
 
           <Input
             label="Keterangan / Catatan (Pilihan)"
@@ -1068,7 +1056,14 @@ function EditTemplateLayoutModal({ open, onClose, template, onSaved }) {
   }
 
   return (
-    <Modal open={open} onClose={onClose} title={`Ubah Posisi & Gaya Nama: ${template.peringkat}`} wide>
+    <Modal
+      open={open}
+      onClose={onClose}
+      title={template.kategori === 'kenaikan_tali_pinggang'
+        ? `Ubah Posisi & Gaya Nama: ${template.peringkat}`
+        : `Ubah Posisi & Gaya Nama: ${template.nama_template}`}
+      wide
+    >
       <div className="space-y-4">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
           <div className="lg:col-span-7">
@@ -1302,7 +1297,9 @@ function TestGenerateModal({ open, onClose, template }) {
       <div className="space-y-3.5">
         <div className="rounded-xl bg-slate-50 p-3.5 border border-slate-200">
           <div className="font-bold text-slate-950 text-xs sm:text-sm">{template.nama_template}</div>
-          <div className="text-[11px] text-slate-500 mt-0.5">Peringkat: {template.peringkat}</div>
+          {template.kategori === 'kenaikan_tali_pinggang' && (
+            <div className="text-[11px] text-slate-500 mt-0.5">Peringkat: {template.peringkat}</div>
+          )}
         </div>
 
         <Input
@@ -1352,10 +1349,12 @@ export function LargeTemplatePreviewModal({ open, onClose, template, onTestGener
                 <span>{cat.emoji}</span>
                 <span>{cat.label}</span>
               </span>
-              <span className={`inline-flex items-center gap-1 rounded-md px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider border ${meta.badge}`}>
-                <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
-                {template.peringkat}
-              </span>
+              {template.kategori === 'kenaikan_tali_pinggang' && (
+                <span className={`inline-flex items-center gap-1 rounded-md px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider border ${meta.badge}`}>
+                  <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
+                  {template.peringkat}
+                </span>
+              )}
               <span className="inline-flex items-center rounded-md bg-slate-900 text-white px-2 py-0.5 text-xs font-bold shadow-2xs">
                 {Number(template.page_count) === 2 ? '2 Muka Surat' : '1 Muka Surat'}
               </span>
@@ -1842,11 +1841,13 @@ export function Templates() {
 
                               {/* Top-left Rank/Category & Page Count Badge on preview */}
                               <div className="absolute top-1.5 left-1.5 z-10 flex flex-wrap items-center gap-1 max-w-[80%]">
-                                <span
-                                  className="inline-flex items-center rounded-md bg-white/95 px-1.5 py-0.5 text-[8.5px] font-bold uppercase tracking-tight text-slate-700 border border-slate-200/90 shadow-2xs truncate"
-                                >
-                                  {item.peringkat.replace(/^ujian\s+/i, '')}
-                                </span>
+                                {item.kategori === 'kenaikan_tali_pinggang' && (
+                                  <span
+                                    className="inline-flex items-center rounded-md bg-white/95 px-1.5 py-0.5 text-[8.5px] font-bold uppercase tracking-tight text-slate-700 border border-slate-200/90 shadow-2xs truncate"
+                                  >
+                                    {item.peringkat.replace(/^ujian\s+/i, '')}
+                                  </span>
+                                )}
                                 <span className="inline-flex items-center rounded-md bg-slate-900/90 text-white px-1.5 py-0.5 text-[8px] font-bold shadow-2xs shrink-0">
                                   {Number(item.page_count) === 2 ? '2 Muka' : '1 Muka'}
                                 </span>
@@ -1870,14 +1871,22 @@ export function Templates() {
                             <div className="mt-2 min-w-0">
                               <div
                                 className="text-[11px] font-extrabold text-slate-950 truncate cursor-pointer hover:text-red-700 transition"
-                                title={item.peringkat}
+                                title={item.kategori === 'kenaikan_tali_pinggang' ? item.peringkat : item.nama_template}
                                 onClick={() => setPreviewTarget(item)}
                               >
-                                {item.peringkat}
+                                {item.kategori === 'kenaikan_tali_pinggang' ? item.peringkat : item.nama_template}
                               </div>
-                              <div className="text-[10px] text-slate-500 truncate mt-0.5" title={item.nama_template}>
-                                {item.nama_template}
-                              </div>
+                              {item.kategori === 'kenaikan_tali_pinggang' ? (
+                                <div className="text-[10px] text-slate-500 truncate mt-0.5" title={item.nama_template}>
+                                  {item.nama_template}
+                                </div>
+                              ) : (
+                                item.keterangan && (
+                                  <div className="text-[10px] text-slate-500 truncate mt-0.5" title={item.keterangan}>
+                                    {item.keterangan}
+                                  </div>
+                                )
+                              )}
                             </div>
                           </div>
 
@@ -1961,7 +1970,9 @@ export function Templates() {
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-1.5">
                           <Chip color={catMeta.chip}>{catMeta.shortLabel}</Chip>
-                          <Chip color={meta.chip}>{item.peringkat}</Chip>
+                          {item.kategori === 'kenaikan_tali_pinggang' && (
+                            <Chip color={meta.chip}>{item.peringkat}</Chip>
+                          )}
                         </div>
                         <div
                           onClick={() => setPreviewTarget(item)}
@@ -2077,7 +2088,11 @@ export function Templates() {
                           )}
                         </td>
                         <td className="px-3.5 py-2.5 whitespace-nowrap">
-                          <Chip color={meta.chip}>{item.peringkat}</Chip>
+                          {item.kategori === 'kenaikan_tali_pinggang' ? (
+                            <Chip color={meta.chip}>{item.peringkat}</Chip>
+                          ) : (
+                            <span className="text-slate-400 text-xs">-</span>
+                          )}
                         </td>
                         <td className="px-3.5 py-2.5 whitespace-nowrap">
                           <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700 border border-slate-200">

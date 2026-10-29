@@ -1014,6 +1014,9 @@ app.post('/api/admin/templates/generate-batch',requireAdmin,async(req,res,next)=
    if(!matchedTemplate){
     matchedTemplate=templates.find(t=>t.peringkat.trim().toLowerCase()==='semua peringkat');
    }
+   if(!matchedTemplate && templates[0]?.kategori !== 'kenaikan_tali_pinggang'){
+    matchedTemplate=templates[0];
+   }
 
    if(!matchedTemplate){
     failed.push({id:student.id,nama:student.nama_penuh,peringkat:student.peringkat,reason:`Tiada templat PDF untuk peringkat "${student.peringkat}"`});
