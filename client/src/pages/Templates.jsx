@@ -63,6 +63,10 @@ const PENYERTAAN_PRESETS = [
 
 function UploadTemplateModal({ open, onClose, onSaved }) {
   const [file, setFile] = useState(null);
+  const [filePage1, setFilePage1] = useState(null);
+  const [filePage2, setFilePage2] = useState(null);
+  const [pageCount, setPageCount] = useState(1); // 1 or 2
+  const [uploadMode2P, setUploadMode2P] = useState('single'); // 'single' (1 file with 2 pages) or 'split' (2 separate files)
   const [kategori, setKategori] = useState('kenaikan_tali_pinggang');
   const [nama, setNama] = useState('Sijil Ujian Kenaikan Tali Pinggang (Penggal 1/2026)');
   const [peringkat, setPeringkat] = useState('Ujian Awan Putih Cula Merah 1');
@@ -90,6 +94,10 @@ function UploadTemplateModal({ open, onClose, onSaved }) {
   useEffect(() => {
     if (!open) {
       setFile(null);
+      setFilePage1(null);
+      setFilePage2(null);
+      setPageCount(1);
+      setUploadMode2P('single');
       setKategori('kenaikan_tali_pinggang');
       setNama('Sijil Ujian Kenaikan Tali Pinggang (Penggal 1/2026)');
       setPeringkat('Ujian Awan Putih Cula Merah 1');
@@ -99,17 +107,41 @@ function UploadTemplateModal({ open, onClose, onSaved }) {
 
   async function submit(e) {
     e.preventDefault();
-    if (!file) return toast.error('Sila pilih fail PDF templat.');
-    if (!file.name.toLowerCase().endsWith('.pdf')) return toast.error('Fail mestilah format .pdf.');
-    if (file.size > 4.2 * 1024 * 1024) {
-      return toast.error(
-        `Saiz fail (${(file.size / (1024 * 1024)).toFixed(1)}MB) melebihi had maksima 4.2MB untuk pelayan Cloud. Sila kecilkan (compress) saiz fail PDF terlebih dahulu.`
-      );
+    if (pageCount === 1) {
+      if (!file) return toast.error('Sila pilih fail PDF templat 1 muka surat.');
+      if (!file.name.toLowerCase().endsWith('.pdf')) return toast.error('Fail mestilah format .pdf.');
+      if (file.size > 4.2 * 1024 * 1024) {
+        return toast.error('Saiz fail melebihi had maksima 4.2MB.');
+      }
+    } else {
+      if (uploadMode2P === 'split') {
+        if (!filePage1) return toast.error('Sila pilih fail PDF untuk Halaman 1 (Muka Hadapan).');
+        if (!filePage2) return toast.error('Sila pilih fail PDF untuk Halaman 2 (Muka Belakang).');
+        if (!filePage1.name.toLowerCase().endsWith('.pdf') || !filePage2.name.toLowerCase().endsWith('.pdf')) {
+          return toast.error('Kedua-dua fail mestilah dalam format .pdf.');
+        }
+        if (filePage1.size + filePage2.size > 8 * 1024 * 1024) {
+          return toast.error('Jumlah saiz fail melebihi had maksima.');
+        }
+      } else {
+        if (!file) return toast.error('Sila pilih fail PDF templat 2 muka surat.');
+        if (!file.name.toLowerCase().endsWith('.pdf')) return toast.error('Fail mestilah format .pdf.');
+        if (file.size > 4.2 * 1024 * 1024) {
+          return toast.error('Saiz fail melebihi had maksima 4.2MB.');
+        }
+      }
     }
+
     if (nama.trim().length < 3) return toast.error('Sila masukkan nama templat sijil.');
 
     const form = new FormData();
-    form.append('file', file);
+    form.append('page_count', String(pageCount));
+    if (pageCount === 2 && uploadMode2P === 'split') {
+      form.append('file_page1', filePage1);
+      form.append('file_page2', filePage2);
+    } else {
+      form.append('file', file);
+    }
     form.append('nama_template', nama.trim());
     form.append('kategori', kategori);
     form.append('peringkat', peringkat.trim());
@@ -118,7 +150,11 @@ function UploadTemplateModal({ open, onClose, onSaved }) {
     setBusy(true);
     try {
       await api('/admin/templates', { method: 'POST', body: form });
-      toast.success('Templat sijil berjaya dimuat naik!');
+      toast.success(
+        pageCount === 2
+          ? 'Templat sijil 2 muka surat berjaya dimuat naik!'
+          : 'Templat sijil 1 muka surat berjaya dimuat naik!'
+      );
       onSaved();
       onClose();
     } catch (err) {
@@ -137,28 +173,170 @@ function UploadTemplateModal({ open, onClose, onSaved }) {
 
   return (
     <Modal open={open} onClose={onClose} title="Muat Naik Templat Sijil (PDF)" wide>
-      <form onSubmit={submit} className="space-y-3.5">
+      <form onSubmit={submit} className="space-y-4">
+        {/* PILIHAN 1 PAGE ATAU 2 PAGE */}
         <div>
-          <label className="mb-1.5 block text-xs font-bold text-slate-600">Fail Templat PDF (2 Muka Surat) *</label>
-          <label className="flex min-h-[110px] cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-slate-200 bg-slate-50/70 p-4 text-center transition hover:border-red-600">
-            <UploadCloud size={24} className="text-red-700 mb-1" />
-            <div className="text-xs sm:text-sm font-bold text-slate-950">
-              {file ? file.name : 'Pilih atau seret fail PDF templat sijil'}
-            </div>
-            <p className="mt-0.5 text-[11px] text-slate-400">PDF standard (maksima 4.2MB). Muka surat 1 mengandungi ruangan nama.</p>
-            {file && (
-              <span className="mt-1.5 text-[11px] font-semibold text-red-700 bg-red-50 px-2.5 py-0.5 rounded-full">
-                {(file.size / 1024).toFixed(1)} KB • Sedia dimuat naik
-              </span>
-            )}
-            <input
-              type="file"
-              accept=".pdf,application/pdf"
-              className="sr-only"
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
-            />
-          </label>
+          <label className="mb-1.5 block text-xs font-bold text-slate-700">Pilihan Format Halaman Sijil *</label>
+          <div className="grid grid-cols-2 gap-2.5">
+            <button
+              type="button"
+              onClick={() => setPageCount(1)}
+              className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                pageCount === 1
+                  ? 'border-slate-900 bg-slate-900 text-white shadow-xs'
+                  : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs sm:text-sm font-bold">1 Muka Surat (1 Page)</span>
+                <FileText size={16} className={pageCount === 1 ? 'text-white' : 'text-slate-400'} />
+              </div>
+              <p className={`text-[11px] mt-1 ${pageCount === 1 ? 'text-slate-300' : 'text-slate-500'}`}>
+                Sijil sehelai (muka hadapan sahaja dengan ruangan nama)
+              </p>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setPageCount(2)}
+              className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                pageCount === 2
+                  ? 'border-slate-900 bg-slate-900 text-white shadow-xs'
+                  : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs sm:text-sm font-bold">2 Muka Surat (2 Pages)</span>
+                <Layers size={16} className={pageCount === 2 ? 'text-white' : 'text-slate-400'} />
+              </div>
+              <p className={`text-[11px] mt-1 ${pageCount === 2 ? 'text-slate-300' : 'text-slate-500'}`}>
+                Sijil dua helai (Depan dengan nama & Belakang sukatan/silabus)
+              </p>
+            </button>
+          </div>
         </div>
+
+        {/* ZON MUAT NAIK MENGIKUT PILIHAN 1 ATAU 2 PAGE */}
+        {pageCount === 1 ? (
+          <div>
+            <label className="mb-1.5 block text-xs font-semibold text-slate-700">Fail Templat PDF (1 Muka Surat) *</label>
+            <label className="flex min-h-[105px] cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50/70 p-4 text-center transition hover:border-slate-500 hover:bg-slate-50">
+              <UploadCloud size={24} className="text-slate-600 mb-1" />
+              <div className="text-xs sm:text-sm font-bold text-slate-900 truncate max-w-full">
+                {file ? file.name : 'Pilih fail PDF templat 1 muka surat'}
+              </div>
+              <p className="mt-0.5 text-[11px] text-slate-500">PDF standard (maksima 4.2MB). Mengandungi garisan ruangan nama pesilat.</p>
+              {file && (
+                <span className="mt-1.5 text-[11px] font-semibold text-slate-800 bg-slate-200 px-2.5 py-0.5 rounded-md">
+                  {(file.size / 1024).toFixed(1)} KB • Sedia dimuat naik
+                </span>
+              )}
+              <input
+                type="file"
+                accept=".pdf,application/pdf"
+                className="sr-only"
+                onChange={(e) => setFile(e.target.files?.[0] || null)}
+              />
+            </label>
+          </div>
+        ) : (
+          <div className="space-y-2.5">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <label className="block text-xs font-semibold text-slate-700">Kaedah Muat Naik 2 Muka Surat *</label>
+              <div className="inline-flex rounded-lg bg-slate-100 p-0.5 text-xs font-semibold">
+                <button
+                  type="button"
+                  onClick={() => setUploadMode2P('single')}
+                  className={`px-2.5 py-1 rounded-md transition cursor-pointer ${
+                    uploadMode2P === 'single' ? 'bg-white text-slate-900 shadow-2xs font-bold' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  1 Fail PDF (2 Halaman)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setUploadMode2P('split')}
+                  className={`px-2.5 py-1 rounded-md transition cursor-pointer ${
+                    uploadMode2P === 'split' ? 'bg-white text-slate-900 shadow-2xs font-bold' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  2 Fail Berasingan (Depan & Belakang)
+                </button>
+              </div>
+            </div>
+
+            {uploadMode2P === 'single' ? (
+              <div>
+                <label className="flex min-h-[105px] cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50/70 p-4 text-center transition hover:border-slate-500 hover:bg-slate-50">
+                  <UploadCloud size={24} className="text-slate-600 mb-1" />
+                  <div className="text-xs sm:text-sm font-bold text-slate-900 truncate max-w-full">
+                    {file ? file.name : 'Pilih fail PDF lengkap (mengandungi muka 1 & muka 2)'}
+                  </div>
+                  <p className="mt-0.5 text-[11px] text-slate-500">Fail PDF tunggal yang mengandungi kedua-dua muka surat depan dan belakang.</p>
+                  {file && (
+                    <span className="mt-1.5 text-[11px] font-semibold text-slate-800 bg-slate-200 px-2.5 py-0.5 rounded-md">
+                      {(file.size / 1024).toFixed(1)} KB • Sedia dimuat naik
+                    </span>
+                  )}
+                  <input
+                    type="file"
+                    accept=".pdf,application/pdf"
+                    className="sr-only"
+                    onChange={(e) => setFile(e.target.files?.[0] || null)}
+                  />
+                </label>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {/* File Page 1 */}
+                <div>
+                  <label className="mb-1 block text-[11px] font-semibold text-slate-700">📄 Halaman 1 (Muka Hadapan) *</label>
+                  <label className="flex min-h-[95px] cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50/70 p-3 text-center transition hover:border-slate-500 hover:bg-slate-50">
+                    <UploadCloud size={20} className="text-slate-600 mb-1" />
+                    <div className="text-xs font-bold text-slate-900 truncate max-w-full">
+                      {filePage1 ? filePage1.name : 'Pilih fail Halaman 1'}
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Muka hadapan sijil (ada ruangan nama)</p>
+                    {filePage1 && (
+                      <span className="mt-1 text-[10px] font-semibold text-slate-800 bg-slate-200 px-2 py-0.5 rounded">
+                        {(filePage1.size / 1024).toFixed(1)} KB
+                      </span>
+                    )}
+                    <input
+                      type="file"
+                      accept=".pdf,application/pdf"
+                      className="sr-only"
+                      onChange={(e) => setFilePage1(e.target.files?.[0] || null)}
+                    />
+                  </label>
+                </div>
+
+                {/* File Page 2 */}
+                <div>
+                  <label className="mb-1 block text-[11px] font-semibold text-slate-700">📄 Halaman 2 (Muka Belakang) *</label>
+                  <label className="flex min-h-[95px] cursor-pointer flex-col items-center justify-center rounded-xl border border-dashed border-slate-300 bg-slate-50/70 p-3 text-center transition hover:border-slate-500 hover:bg-slate-50">
+                    <UploadCloud size={20} className="text-slate-600 mb-1" />
+                    <div className="text-xs font-bold text-slate-900 truncate max-w-full">
+                      {filePage2 ? filePage2.name : 'Pilih fail Halaman 2'}
+                    </div>
+                    <p className="text-[10px] text-slate-400 mt-0.5">Silabus / maklumat belakang sijil</p>
+                    {filePage2 && (
+                      <span className="mt-1 text-[10px] font-semibold text-slate-800 bg-slate-200 px-2 py-0.5 rounded">
+                        {(filePage2.size / 1024).toFixed(1)} KB
+                      </span>
+                    )}
+                    <input
+                      type="file"
+                      accept=".pdf,application/pdf"
+                      className="sr-only"
+                      onChange={(e) => setFilePage2(e.target.files?.[0] || null)}
+                    />
+                  </label>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Pilihan Jenis / Kategori Sijil */}
         <div>
@@ -169,9 +347,9 @@ function UploadTemplateModal({ open, onClose, onSaved }) {
                 type="button"
                 key={cat.id}
                 onClick={() => handleCategoryChange(cat.id)}
-                className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-center transition-all ${
+                className={`flex flex-col items-center justify-center p-2.5 rounded-xl border text-center transition-all cursor-pointer ${
                   kategori === cat.id
-                    ? 'border-red-600 bg-red-50/80 ring-2 ring-red-400/30 font-extrabold text-red-900 shadow-2xs'
+                    ? 'border-slate-900 bg-slate-900 text-white font-bold shadow-xs'
                     : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-700'
                 }`}
               >
@@ -225,15 +403,17 @@ function UploadTemplateModal({ open, onClose, onSaved }) {
           onChange={(e) => setKeterangan(e.target.value)}
         />
 
-        <div className="rounded-xl border border-emerald-100 bg-emerald-50/70 p-3 text-xs text-emerald-900 leading-relaxed">
-          <strong>Peraturan Janaan PDF:</strong>
-          <ul className="mt-1 list-disc list-inside space-y-0.5 text-emerald-800 text-[11px]">
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-700 leading-relaxed">
+          <strong className="text-slate-900">Peraturan Janaan PDF:</strong>
+          <ul className="mt-1 list-disc list-inside space-y-0.5 text-slate-600 text-[11px]">
             <li>
-              <strong>Page 1:</strong> Nama pesilat dicetak di atas garisan nama dengan <strong>fon Lora</strong>, saiz <strong>20</strong>, warna merah <strong>#c1362d</strong>.
+              <strong>Halaman 1 (Hadapan):</strong> Nama pesilat dicetak di atas garisan nama dengan <strong>fon Lora</strong>, saiz <strong>20</strong>, warna merah <strong>#c1362d</strong>.
             </li>
-            <li>
-              <strong>Page 2:</strong> Dikekalkan sepenuhnya tanpa sebarang perubahan.
-            </li>
+            {pageCount === 2 && (
+              <li>
+                <strong>Halaman 2 (Belakang):</strong> Dikekalkan sepenuhnya tanpa sebarang perubahan nama.
+              </li>
+            )}
           </ul>
         </div>
 
@@ -242,7 +422,7 @@ function UploadTemplateModal({ open, onClose, onSaved }) {
             Batal
           </Button>
           <Button type="submit" loading={busy} className="text-xs">
-            <UploadCloud size={15} /> Muat Naik Templat
+            <UploadCloud size={15} /> Muat Naik Templat ({pageCount} Page)
           </Button>
         </div>
       </form>
@@ -342,6 +522,9 @@ export function LargeTemplatePreviewModal({ open, onClose, template, onTestGener
                 <span className={`h-1.5 w-1.5 rounded-full ${meta.dot}`} />
                 {template.peringkat}
               </span>
+              <span className="inline-flex items-center rounded-md bg-slate-900 text-white px-2 py-0.5 text-xs font-bold shadow-2xs">
+                {Number(template.page_count) === 2 ? '2 Muka Surat' : '1 Muka Surat'}
+              </span>
               <span className="text-xs text-slate-400 font-mono">ID #{template.id}</span>
             </div>
             <h3 className="mt-1 text-sm sm:text-base font-extrabold text-slate-950 truncate" title={template.nama_template}>
@@ -353,26 +536,32 @@ export function LargeTemplatePreviewModal({ open, onClose, template, onTestGener
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
-            <div className="flex items-center rounded-xl bg-white border border-slate-200 p-0.5 shadow-2xs text-xs font-bold">
-              <button
-                type="button"
-                onClick={() => setPage(1)}
-                className={`px-3 py-1.5 rounded-lg transition ${
-                  page === 1 ? 'bg-red-700 text-white shadow-xs' : 'text-slate-600 hover:text-red-700'
-                }`}
-              >
-                Muka 1 (Nama Pesilat)
-              </button>
-              <button
-                type="button"
-                onClick={() => setPage(2)}
-                className={`px-3 py-1.5 rounded-lg transition ${
-                  page === 2 ? 'bg-red-700 text-white shadow-xs' : 'text-slate-600 hover:text-red-700'
-                }`}
-              >
-                Muka 2 (Belakang)
-              </button>
-            </div>
+            {Number(template.page_count) === 2 ? (
+              <div className="flex items-center rounded-lg bg-slate-100 p-0.5 text-xs font-bold">
+                <button
+                  type="button"
+                  onClick={() => setPage(1)}
+                  className={`px-3 py-1.5 rounded-md transition cursor-pointer ${
+                    page === 1 ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Muka 1 (Depan)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setPage(2)}
+                  className={`px-3 py-1.5 rounded-md transition cursor-pointer ${
+                    page === 2 ? 'bg-slate-900 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900'
+                  }`}
+                >
+                  Muka 2 (Belakang)
+                </button>
+              </div>
+            ) : (
+              <span className="inline-flex items-center rounded-md bg-white border border-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 shadow-2xs">
+                1 Muka Surat (Halaman Penuh)
+              </span>
+            )}
           </div>
         </div>
 
@@ -777,12 +966,15 @@ export function Templates() {
                                 className="h-full w-full pointer-events-none"
                               />
 
-                              {/* Top-left Rank/Category Badge on preview */}
-                              <div className="absolute top-1.5 left-1.5 z-10">
+                              {/* Top-left Rank/Category & Page Count Badge on preview */}
+                              <div className="absolute top-1.5 left-1.5 z-10 flex flex-wrap items-center gap-1 max-w-[80%]">
                                 <span
-                                  className="inline-flex items-center rounded-md bg-white/95 px-1.5 py-0.5 text-[8.5px] font-bold uppercase tracking-tight text-slate-700 border border-slate-200/90 shadow-2xs"
+                                  className="inline-flex items-center rounded-md bg-white/95 px-1.5 py-0.5 text-[8.5px] font-bold uppercase tracking-tight text-slate-700 border border-slate-200/90 shadow-2xs truncate"
                                 >
                                   {item.peringkat.replace(/^ujian\s+/i, '')}
+                                </span>
+                                <span className="inline-flex items-center rounded-md bg-slate-900/90 text-white px-1.5 py-0.5 text-[8px] font-bold shadow-2xs shrink-0">
+                                  {Number(item.page_count) === 2 ? '2 Muka' : '1 Muka'}
                                 </span>
                               </div>
 
@@ -941,6 +1133,7 @@ export function Templates() {
                     <th className="px-3.5 py-2.5">Kategori</th>
                     <th className="px-3.5 py-2.5">Nama Templat</th>
                     <th className="px-3.5 py-2.5">Peringkat / Bengkung</th>
+                    <th className="px-3.5 py-2.5">Halaman</th>
                     <th className="px-3.5 py-2.5">Fail PDF</th>
                     <th className="px-3.5 py-2.5">Tarikh Muat Naik</th>
                     <th className="px-3.5 py-2.5 text-right">Tindakan</th>
@@ -980,6 +1173,11 @@ export function Templates() {
                         </td>
                         <td className="px-3.5 py-2.5 whitespace-nowrap">
                           <Chip color={meta.chip}>{item.peringkat}</Chip>
+                        </td>
+                        <td className="px-3.5 py-2.5 whitespace-nowrap">
+                          <span className="inline-flex items-center rounded-md bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700 border border-slate-200">
+                            {Number(item.page_count) === 2 ? '2 Muka' : '1 Muka'}
+                          </span>
                         </td>
                         <td className="px-3.5 py-2.5 text-xs text-slate-600 whitespace-nowrap">
                           <div className="flex items-center gap-1 font-medium">

@@ -13,6 +13,7 @@ import { dataDir, portalUrl, production, projectRoot } from './config.js';
 import { decodeCsv, csvSafe } from './csv.js';
 import { createCertificatePdf, uploadedToPdf } from './pdf.js';
 import { generateCertificatePdf } from './certificateGenerator.js';
+import { PDFDocument } from 'pdf-lib';
 import { trim, validatePesilat, validDate } from './validation.js';
 
 const app = express();
@@ -50,6 +51,7 @@ app.use('/api', (req, res, next) => {
 const authLimit = rateLimit({windowMs:15*60*1000,limit:12,standardHeaders:'draft-7',legacyHeaders:false,message:{error:'Terlalu banyak percubaan. Cuba semula dalam 15 minit.'}});
 const searchLimit = rateLimit({windowMs:60*1000,limit:35,standardHeaders:'draft-7',legacyHeaders:false,message:{error:'Terlalu banyak carian. Cuba semula sebentar lagi.'}});
 const upload = multer({storage:multer.memoryStorage(),limits:{fileSize:10*1024*1024,files:1}});
+const uploadTemplate = multer({storage:multer.memoryStorage(),limits:{fileSize:10*1024*1024,files:3}});
 const today = () => new Date().toISOString().slice(0,10);
 const fail = (res,message,status=400) => res.status(status).json({error:message});
 const cleanId = v => Number.isSafeInteger(Number(v)) && Number(v) > 0 ? Number(v) : null;
@@ -599,7 +601,7 @@ app.get('/api/admin/templates',requireAdmin,async (req,res)=>{
     }
    } catch(e) { console.warn('[Turso Templates Force Sync Warning]', e.message); }
   }
-  let query = 'SELECT id,nama_template,peringkat,keterangan,file_name,file_size,kategori,created_at FROM template_sijil';
+  let query = 'SELECT id,nama_template,peringkat,keterangan,file_name,file_size,kategori,page_count,created_at FROM template_sijil';
   const conds = [];
   const params = [];
   if (category && category !== 'semua') {
@@ -637,23 +639,91 @@ app.get('/api/admin/templates',requireAdmin,async (req,res)=>{
  }
 });
 
-app.post('/api/admin/templates',requireAdmin,upload.single('file'),async (req,res,next)=>{
+app.post('/api/admin/templates',requireAdmin,uploadTemplate.fields([{ name: 'file', maxCount: 1 }, { name: 'file_page1', maxCount: 1 }, { name: 'file_page2', maxCount: 1 }]),async (req,res,next)=>{
  try {
-  if(!req.file)return fail(res,'Sila muat naik fail templat PDF.');
-  const bytes=req.file.buffer;
-  if(bytes.subarray(0,5).toString('ascii')!=='%PDF-')return fail(res,'Fail mestilah dalam format PDF.');
-  const nama=trim(req.body?.nama_template,160);
-  const peringkat=trim(req.body?.peringkat,100);
-  const keterangan=trim(req.body?.keterangan,250);
-  const kategori=trim(req.body?.kategori,50)||'kenaikan_tali_pinggang';
-  if(nama.length<3)return fail(res,'Nama templat perlu sekurang-kurangnya 3 aksara.');
-  if(!peringkat)return fail(res,'Sila pilih atau masukkan peringkat pesilat untuk templat ini.');
-  const file_name=req.file.originalname||'template.pdf';
-  const file_base64=bytes.toString('base64');
-  const file_path=path.join(dataDir,'templates',crypto.randomUUID()+'.pdf');
-  try{fs.writeFileSync(file_path,bytes,{flag:'wx'});}catch(_){}
-  
-  let newId=null;
+  const requestedPageCount = Number(req.body?.page_count) === 2 ? 2 : 1;
+  const singleFile = req.files?.file?.[0] || req.file;
+  const filePage1 = req.files?.file_page1?.[0];
+  const filePage2 = req.files?.file_page2?.[0];
+
+  let finalBytes = null;
+  let file_name = 'template.pdf';
+  let actualPageCount = requestedPageCount;
+
+  if (requestedPageCount === 2 && filePage1 && filePage2) {
+    const b1 = filePage1.buffer;
+    const b2 = filePage2.buffer;
+    if (b1.subarray(0, 5).toString('ascii') !== '%PDF-' || b2.subarray(0, 5).toString('ascii') !== '%PDF-') {
+      return fail(res, 'Kedua-dua fail mestilah dalam format PDF.');
+    }
+    const doc1 = await PDFDocument.load(b1);
+    const doc2 = await PDFDocument.load(b2);
+    const merged = await PDFDocument.create();
+    const [p1] = await merged.copyPages(doc1, [0]);
+    const [p2] = await merged.copyPages(doc2, [0]);
+    merged.addPage(p1);
+    merged.addPage(p2);
+    finalBytes = Buffer.from(await merged.save());
+    actualPageCount = 2;
+    file_name = filePage1.originalname || 'template_2pages.pdf';
+  } else if (singleFile) {
+    const bytes = singleFile.buffer;
+    if (bytes.subarray(0, 5).toString('ascii') !== '%PDF-') {
+      return fail(res, 'Fail mestilah dalam format PDF.');
+    }
+    const doc = await PDFDocument.load(bytes);
+    const numPages = doc.getPageCount();
+
+    const targetPages = req.body?.page_count !== undefined && req.body?.page_count !== null && req.body?.page_count !== ''
+      ? (Number(req.body.page_count) === 2 ? 2 : 1)
+      : (numPages >= 2 ? 2 : 1);
+
+    if (targetPages === 1) {
+      if (numPages > 1) {
+        // Ambil hanya muka surat pertama untuk templat 1 muka surat
+        const singleDoc = await PDFDocument.create();
+        const [p1] = await singleDoc.copyPages(doc, [0]);
+        singleDoc.addPage(p1);
+        finalBytes = Buffer.from(await singleDoc.save());
+      } else {
+        finalBytes = bytes;
+      }
+      actualPageCount = 1;
+    } else {
+      if (numPages < 2) {
+        return fail(
+          res,
+          'Pilihan 2 Muka Surat dipilih tetapi fail PDF hanya mempunyai 1 muka surat. Sila muat naik fail PDF dengan 2 muka surat, atau gunakan pilihan "2 Fail Berasingan" untuk memuat naik Halaman 1 & 2.'
+        );
+      }
+      if (numPages > 2) {
+        const twoDoc = await PDFDocument.create();
+        const copied = await twoDoc.copyPages(doc, [0, 1]);
+        twoDoc.addPage(copied[0]);
+        twoDoc.addPage(copied[1]);
+        finalBytes = Buffer.from(await twoDoc.save());
+      } else {
+        finalBytes = bytes;
+      }
+      actualPageCount = 2;
+    }
+    file_name = singleFile.originalname || 'template.pdf';
+  } else {
+    return fail(res, 'Sila muat naik fail templat PDF.');
+  }
+
+  const nama = trim(req.body?.nama_template, 160);
+  const peringkat = trim(req.body?.peringkat, 100);
+  const keterangan = trim(req.body?.keterangan, 250);
+  const kategori = trim(req.body?.kategori, 50) || 'kenaikan_tali_pinggang';
+  if (nama.length < 3) return fail(res, 'Nama templat perlu sekurang-kurangnya 3 aksara.');
+  if (!peringkat) return fail(res, 'Sila pilih atau masukkan peringkat pesilat untuk templat ini.');
+
+  const file_base64 = finalBytes.toString('base64');
+  const file_path = path.join(dataDir, 'templates', crypto.randomUUID() + '.pdf');
+  try { fs.writeFileSync(file_path, finalBytes, { flag: 'wx' }); } catch (_) {}
+
+  let newId = null;
 
   // 1. Simpan terus ke Turso Cloud jika bersambung (Cloud sebagai sumber utama)
   try {
@@ -661,15 +731,15 @@ app.post('/api/admin/templates',requireAdmin,upload.single('file'),async (req,re
     if (isTursoConfigured()) {
       const turso = getTursoClient();
       const tursoRes = await turso.execute({
-        sql: "INSERT INTO template_sijil (nama_template, peringkat, keterangan, file_path, file_name, file_size, file_base64, kategori, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now')) RETURNING id",
-        args: [nama, peringkat, keterangan || null, file_path, file_name, bytes.length, file_base64, kategori]
+        sql: "INSERT INTO template_sijil (nama_template, peringkat, keterangan, file_path, file_name, file_size, file_base64, kategori, page_count, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now')) RETURNING id",
+        args: [nama, peringkat, keterangan || null, file_path, file_name, finalBytes.length, file_base64, kategori, actualPageCount]
       });
       if (tursoRes.rows && tursoRes.rows[0]?.id) {
         newId = Number(tursoRes.rows[0].id);
       } else if (tursoRes.lastInsertRowid) {
         newId = Number(tursoRes.lastInsertRowid);
       }
-      console.log('[Turso] Templat berjaya disegerakkan ke Turso Cloud:', nama, 'ID:', newId, 'Kategori:', kategori);
+      console.log('[Turso] Templat berjaya disegerakkan ke Turso Cloud:', nama, 'ID:', newId, 'Muka Surat:', actualPageCount);
     }
   } catch (err) {
     console.error('[Turso Template Insert Error]', err);
@@ -678,16 +748,16 @@ app.post('/api/admin/templates',requireAdmin,upload.single('file'),async (req,re
 
   // 2. Simpan juga ke SQLite tempatan (cache)
   if (newId) {
-    db.prepare('INSERT OR REPLACE INTO template_sijil (id,nama_template,peringkat,keterangan,file_path,file_name,file_size,file_base64,kategori) VALUES (?,?,?,?,?,?,?,?,?)')
-      .run(newId, nama, peringkat, keterangan, file_path, file_name, bytes.length, file_base64, kategori);
+    db.prepare('INSERT OR REPLACE INTO template_sijil (id,nama_template,peringkat,keterangan,file_path,file_name,file_size,file_base64,kategori,page_count) VALUES (?,?,?,?,?,?,?,?,?,?)')
+      .run(newId, nama, peringkat, keterangan, file_path, file_name, finalBytes.length, file_base64, kategori, actualPageCount);
   } else {
-    const result=db.prepare('INSERT INTO template_sijil (nama_template,peringkat,keterangan,file_path,file_name,file_size,file_base64,kategori) VALUES (?,?,?,?,?,?,?,?)')
-      .run(nama, peringkat, keterangan, file_path, file_name, bytes.length, file_base64, kategori);
-    newId=Number(result.lastInsertRowid);
+    const result = db.prepare('INSERT INTO template_sijil (nama_template,peringkat,keterangan,file_path,file_name,file_size,file_base64,kategori,page_count) VALUES (?,?,?,?,?,?,?,?,?)')
+      .run(nama, peringkat, keterangan, file_path, file_name, finalBytes.length, file_base64, kategori, actualPageCount);
+    newId = Number(result.lastInsertRowid);
   }
 
-  return res.status(201).json({id:newId,nama_template:nama,peringkat,kategori,file_name});
- }catch(e){next(e);}
+  return res.status(201).json({ id: newId, nama_template: nama, peringkat, kategori, page_count: actualPageCount, file_name });
+ } catch (e) { next(e); }
 });
 
 app.delete('/api/admin/templates/:id',requireAdmin,async (req,res,next)=>{
@@ -759,13 +829,13 @@ app.get('/api/admin/templates/groups',requireAdmin,async (req,res)=>{
     }
    } catch(e) { console.warn('[Turso Groups Force Sync Warning]', e.message); }
   }
-  let rows=db.prepare('SELECT id,nama_template,peringkat,file_name,kategori FROM template_sijil ORDER BY id DESC, nama_template, peringkat').all();
+  let rows=db.prepare('SELECT id,nama_template,peringkat,file_name,kategori,page_count FROM template_sijil ORDER BY id DESC, nama_template, peringkat').all();
   if(!rows.length){
    try {
     const { isTursoConfigured, pullTemplatesFromTurso } = await import('./turso.js');
     if (isTursoConfigured()) {
      await pullTemplatesFromTurso();
-     rows=db.prepare('SELECT id,nama_template,peringkat,file_name,kategori FROM template_sijil ORDER BY id DESC, nama_template, peringkat').all();
+     rows=db.prepare('SELECT id,nama_template,peringkat,file_name,kategori,page_count FROM template_sijil ORDER BY id DESC, nama_template, peringkat').all();
     }
    } catch(e) { console.warn('[Turso Groups Warning]', e.message); }
   }

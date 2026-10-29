@@ -812,7 +812,7 @@ export function GenerateCerts() {
                             className="h-full w-full pointer-events-none"
                           />
 
-                          {/* Rank / Cula / Category Badge on top of preview */}
+                          {/* Rank / Cula / Category Badge & Page Count on top of preview */}
                           <div className="absolute top-1.5 left-1.5 z-10 flex items-center gap-1 max-w-[85%]">
                             {isBelt ? (
                               <span className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9px] font-bold border shadow-2xs truncate ${rankMeta.badge}`}>
@@ -825,6 +825,9 @@ export function GenerateCerts() {
                                 <span className="truncate">{catMeta.shortLabel}</span>
                               </span>
                             )}
+                            <span className="inline-flex items-center rounded-md bg-slate-900/90 text-white px-1.5 py-0.5 text-[8px] font-bold shadow-2xs shrink-0">
+                              {Number(template.page_count) === 2 ? '2 Muka' : '1 Muka'}
+                            </span>
                           </div>
 
                           {/* Top-right zoom button */}
@@ -1095,7 +1098,7 @@ export function GenerateCerts() {
                       <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
                         {matchedTemplate ? (
                           <span className="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100 text-[10px]">
-                            <CheckCircle2 size={11} /> {t('statusTemplateReady')}
+                            <CheckCircle2 size={11} /> {t('statusTemplateReady')} ({Number(matchedTemplate.page_count) === 2 ? '2P' : '1P'})
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 text-[10px]">
@@ -1181,7 +1184,7 @@ export function GenerateCerts() {
                           <td className="px-3.5 py-1.5 text-xs whitespace-nowrap">
                             {matchedTemplate ? (
                               <span className="inline-flex items-center gap-1 font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100 text-[10px]">
-                                <CheckCircle2 size={11} /> {t('statusTemplateReady')} ({matchedTemplate.peringkat.replace(/^ujian\s+/i, '')})
+                                <CheckCircle2 size={11} /> {t('statusTemplateReady')} ({matchedTemplate.peringkat.replace(/^ujian\s+/i, '')} • {Number(matchedTemplate.page_count) === 2 ? '2 Muka' : '1 Muka'})
                               </span>
                             ) : (
                               <span className="inline-flex items-center gap-1 font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full border border-amber-200 text-[10px]">
