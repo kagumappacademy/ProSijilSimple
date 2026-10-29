@@ -204,7 +204,7 @@ function DraggableCertificateTextPositioner({
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onPointerCancel={onPointerUp}
-        className={`relative w-full aspect-[1/1.414] rounded-xl border border-slate-300 overflow-hidden bg-slate-950/5 select-none touch-none shadow-inner ${
+        className={`relative w-full rounded-xl border border-slate-300 overflow-hidden bg-slate-100 select-none touch-none shadow-inner ${
           isDragging ? 'cursor-grabbing ring-2 ring-red-500' : 'cursor-crosshair'
         }`}
       >
@@ -212,11 +212,11 @@ function DraggableCertificateTextPositioner({
           <img
             src={imageSrc}
             alt="Pratonton Sijil"
-            className="w-full h-full object-contain pointer-events-none select-none"
+            className="w-full h-auto block pointer-events-none select-none"
             draggable={false}
           />
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center text-slate-400 p-4 text-center">
+          <div className="w-full aspect-[1/1.414] flex flex-col items-center justify-center text-slate-400 p-4 text-center">
             <Loader2 size={24} className="animate-spin text-red-600 mb-2" />
             <span className="text-xs font-semibold">Menjana visual sijil...</span>
           </div>
@@ -236,43 +236,48 @@ function DraggableCertificateTextPositioner({
           </>
         )}
 
-        {/* The Draggable Name Element */}
+        {/* The Draggable Name Element - Centered Exactly at (xPercent, yPercent) */}
         <div
           style={{
             left: `${xPercent}%`,
             top: `${yPercent}%`,
             transform: 'translate(-50%, -50%)',
           }}
-          className={`absolute pointer-events-none transition-transform duration-75 px-3 py-1 rounded-md max-w-[85%] text-center ${
-            isDragging
-              ? 'bg-transparent border border-dashed border-red-500 ring-2 ring-red-400/40 scale-105'
-              : 'bg-transparent border border-dashed border-red-500/60'
+          className={`absolute pointer-events-none transition-transform duration-75 select-none max-w-[90%] text-center ${
+            isDragging ? 'scale-105' : ''
           }`}
         >
-          {/* Subtle Drag Handle Icon above */}
-          <div className="flex items-center justify-center gap-1 mb-1">
-            <span className="inline-flex items-center gap-1 bg-transparent text-slate-700/80 px-1 py-0.5 text-[8.5px] font-bold uppercase tracking-wider select-none">
-              <Move size={9} className="text-red-600" />
-              <span>Tarik Untuk Ubah Posisi</span>
-            </span>
+          {/* Subtle Drag Handle Floating Above - Does NOT push the text down */}
+          <div className="absolute -top-5 left-1/2 -translate-x-1/2 whitespace-nowrap pointer-events-none flex items-center justify-center gap-1 text-[8px] font-bold text-slate-700 uppercase tracking-wider select-none">
+            <Move size={8} className="text-red-600" />
+            <span>Tarik Untuk Ubah Posisi</span>
           </div>
 
-          {/* Rendered Text */}
+          {/* Dotted Guideline Box wrapping the Text */}
           <div
-            style={{
-              fontFamily: fontObj.style,
-              fontSize: `${effectivePx}px`,
-              color: colorHex,
-              fontWeight: 'bold',
-              lineHeight: 1.25,
-            }}
-            className="tracking-wide select-none drop-shadow-xs truncate max-w-full"
+            className={`px-2 py-0.5 rounded border border-dashed text-center ${
+              isDragging
+                ? 'border-red-500 ring-2 ring-red-400/40 bg-red-500/5'
+                : 'border-red-500/60'
+            }`}
           >
-            {displayLines.map((line, idx) => (
-              <div key={idx} className="truncate">
-                {line}
-              </div>
-            ))}
+            {/* Rendered Text */}
+            <div
+              style={{
+                fontFamily: fontObj.style,
+                fontSize: `${effectivePx}px`,
+                color: colorHex,
+                fontWeight: 'bold',
+                lineHeight: 1.25,
+              }}
+              className="tracking-wide select-none drop-shadow-xs truncate max-w-full"
+            >
+              {displayLines.map((line, idx) => (
+                <div key={idx} className="truncate">
+                  {line}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>

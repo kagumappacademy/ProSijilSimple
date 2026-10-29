@@ -4,7 +4,11 @@ import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.js?url';
 import { RotateCw, FileText, Image as ImageIcon } from 'lucide-react';
 
 if (typeof window !== 'undefined') {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker;
+  try {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker || 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+  } catch (_) {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+  }
 }
 
 // In-memory buffer cache & in-flight deduplication
@@ -92,6 +96,14 @@ export function PdfThumbnail({
       } catch (_) {}
     }
   }, [thumbnail, cacheKey]);
+
+  // Reset imgFailed and error whenever thumbnail or templateId prop changes
+  useEffect(() => {
+    if (thumbnail) {
+      setImgFailed(false);
+      setError(false);
+    }
+  }, [thumbnail, templateId]);
 
   // Compute effective image thumbnail (Direct base64 or server-rendered JPEG thumbnail)
   const effectiveThumb = useMemo(() => {

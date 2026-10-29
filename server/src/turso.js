@@ -388,13 +388,14 @@ export async function ensureTemplateFileBase64(templateId) {
   try {
     const turso = getTursoClient();
     const res = await turso.execute({
-      sql: 'SELECT file_base64 FROM template_sijil WHERE id=?',
+      sql: 'SELECT file_base64, layout_config FROM template_sijil WHERE id=?',
       args: [templateId]
     });
-    const b64 = res.rows?.[0]?.file_base64;
-    if (b64) {
-      db.prepare('UPDATE template_sijil SET file_base64=? WHERE id=?').run(b64, templateId);
-      return b64;
+    const tRow = res.rows?.[0];
+    if (tRow?.file_base64) {
+      db.prepare('UPDATE template_sijil SET file_base64=?, layout_config=COALESCE(?, layout_config) WHERE id=?')
+        .run(tRow.file_base64, tRow.layout_config || null, templateId);
+      return tRow.file_base64;
     }
   } catch (err) {
     console.warn(`[Turso] Gagal memuat turun file_base64 templat ${templateId}:`, err.message);

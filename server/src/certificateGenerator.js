@@ -55,8 +55,9 @@ export async function generateCertificatePdf({
   const finalColorHex = cfg.colorHex || colorHex || '#c1362d';
   const finalFontFamily = cfg.fontFamily || 'Lora';
   const nameLayout = cfg.nameLayout || 'auto'; // 'auto', 'single', 'double'
-  const xRatio = cfg.xPercent !== undefined ? (Number(cfg.xPercent) / 100) : centerXRatio;
-  const yRatio = cfg.yPercent !== undefined ? (1 - (Number(cfg.yPercent) / 100)) : 0.5718;
+  const hasCustomPos = cfg.xPercent !== undefined && cfg.yPercent !== undefined;
+  const xRatio = hasCustomPos ? (Number(cfg.xPercent) / 100) : centerXRatio;
+  const yRatio = hasCustomPos ? (1 - (Number(cfg.yPercent) / 100)) : 0.5718;
 
   const fontBytes = getFontBytes();
   const loraFont = await pdfDoc.embedFont(fontBytes);
@@ -64,7 +65,7 @@ export async function generateCertificatePdf({
   let selectedFont = loraFont;
   if (finalFontFamily === 'Helvetica' || finalFontFamily === 'Sans') {
     selectedFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
-  } else if (finalFontFamily === 'Times Roman' || finalFontFamily === 'Serif') {
+  } else if (finalFontFamily === 'Times Roman' || finalFontFamily === 'Times-Roman' || finalFontFamily === 'Serif') {
     selectedFont = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
   } else if (finalFontFamily === 'Courier') {
     selectedFont = await pdfDoc.embedFont(StandardFonts.CourierBold);
@@ -132,14 +133,20 @@ export async function generateCertificatePdf({
   }
 
   const centerX = width * xRatio;
-  const lineY = height * yRatio;
+  const centerY = height * yRatio;
 
   const drawnCoordinates = [];
   if (lines.length === 1) {
-    // 1 Baris: diletakkan di atas garisan dengan jarak yang kemas
+    // 1 Baris:
+    // Jika ada posisi tersuai dari web drag & drop, selaraskan titik tengah teks tepat dengan centerY.
+    // Huruf besar mempunyai cap-height ~0.70 * fontSize, jadi pusat menegak berada pada (baseline + 0.35 * fontSize).
+    // Maka baseline Y dalam PDF = centerY - (0.35 * finalFontSize).
     const textWidth = selectedFont.widthOfTextAtSize(lines[0], finalFontSize);
     const x = Math.max(15, centerX - (textWidth / 2));
-    const y = lineY + 14;
+    const y = hasCustomPos
+      ? centerY - (0.35 * finalFontSize)
+      : centerY + 14;
+
     page1.drawText(lines[0], {
       x,
       y,
@@ -149,10 +156,14 @@ export async function generateCertificatePdf({
     });
     drawnCoordinates.push({ line: lines[0], x, y });
   } else {
-    // 2 Baris: kedua-duanya tersusun kemas di atas garisan
+    // 2 Baris: kedua-duanya tersusun kemas berpusatkan centerY
     const lineSpacing = Math.round(finalFontSize * 1.25);
-    const bottomLineY = lineY + 10;
-    const topLineY = bottomLineY + lineSpacing;
+    const topLineY = hasCustomPos
+      ? centerY + (0.5 * lineSpacing) - (0.35 * finalFontSize)
+      : centerY + 10 + lineSpacing;
+    const bottomLineY = hasCustomPos
+      ? centerY - (0.5 * lineSpacing) - (0.35 * finalFontSize)
+      : centerY + 10;
 
     const yPositions = [topLineY, bottomLineY];
     for (let i = 0; i < lines.length; i++) {
