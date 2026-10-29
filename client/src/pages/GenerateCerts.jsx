@@ -463,11 +463,11 @@ export function GenerateCerts() {
       <div className="mb-5 rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
         <div className="relative">
           {/* Subtle Connecting Track Line */}
-          <div className="absolute top-3.5 left-10 right-10 -translate-y-1/2 h-0.5 bg-slate-200 z-0 hidden sm:block">
+          <div className="absolute top-3.5 left-[16.6%] right-[16.6%] -translate-y-1/2 h-0.5 bg-slate-200 z-0 hidden sm:block">
             <div
               className="h-full bg-slate-900 transition-all duration-300 ease-out"
               style={{
-                width: currentStep === 1 ? '16%' : currentStep === 2 ? '50%' : '100%',
+                width: currentStep === 1 ? '0%' : currentStep === 2 ? '50%' : '100%',
               }}
             />
           </div>
@@ -478,10 +478,10 @@ export function GenerateCerts() {
             <button
               type="button"
               onClick={() => goToStep(1)}
-              className="flex items-center sm:justify-center gap-2.5 text-left sm:text-center transition-colors cursor-pointer p-1 rounded-lg"
+              className="group flex flex-col items-center text-center transition-colors cursor-pointer p-1 rounded-lg w-full"
             >
               <div
-                className={`grid h-7 w-7 place-items-center rounded-full text-xs font-bold shrink-0 transition-colors ${
+                className={`relative z-10 grid h-7 w-7 place-items-center rounded-full text-xs font-bold shrink-0 transition-colors ring-4 ring-white ${
                   currentStep > 1
                     ? 'bg-slate-900 text-white'
                     : currentStep === 1
@@ -491,12 +491,12 @@ export function GenerateCerts() {
               >
                 {currentStep > 1 ? <Check size={14} strokeWidth={3} /> : '1'}
               </div>
-              <div className="min-w-0">
+              <div className="mt-2 min-w-0 max-w-full">
                 <div className={`text-xs font-semibold truncate ${currentStep === 1 ? 'text-slate-900 font-bold' : 'text-slate-600'}`}>
                   <span className="sm:hidden">1. Templat</span>
                   <span className="hidden sm:inline">1. {t('step1Short')}</span>
                 </div>
-                <div className="text-[10px] text-slate-400 truncate">
+                <div className="text-[10px] text-slate-400 truncate mt-0.5">
                   {currentStep > 1 ? 'Selesai' : selectedTemplateName || 'Pilih templat'}
                 </div>
               </div>
@@ -513,10 +513,10 @@ export function GenerateCerts() {
                 }
                 goToStep(2);
               }}
-              className="flex items-center sm:justify-center gap-2.5 text-left sm:text-center transition-colors cursor-pointer p-1 rounded-lg"
+              className="group flex flex-col items-center text-center transition-colors cursor-pointer p-1 rounded-lg w-full"
             >
               <div
-                className={`grid h-7 w-7 place-items-center rounded-full text-xs font-bold shrink-0 transition-colors ${
+                className={`relative z-10 grid h-7 w-7 place-items-center rounded-full text-xs font-bold shrink-0 transition-colors ring-4 ring-white ${
                   currentStep > 2
                     ? 'bg-slate-900 text-white'
                     : currentStep === 2
@@ -526,12 +526,12 @@ export function GenerateCerts() {
               >
                 {currentStep > 2 ? <Check size={14} strokeWidth={3} /> : '2'}
               </div>
-              <div className="min-w-0">
+              <div className="mt-2 min-w-0 max-w-full">
                 <div className={`text-xs font-semibold truncate ${currentStep === 2 ? 'text-slate-900 font-bold' : 'text-slate-600'}`}>
                   <span className="sm:hidden">2. Pesilat</span>
                   <span className="hidden sm:inline">2. {t('step2Short')}</span>
                 </div>
-                <div className="text-[10px] text-slate-400 truncate">
+                <div className="text-[10px] text-slate-400 truncate mt-0.5">
                   {`${selectedStudentsList.length} dipilih`}
                 </div>
               </div>
@@ -553,10 +553,10 @@ export function GenerateCerts() {
                 }
                 goToStep(3);
               }}
-              className="flex items-center sm:justify-center gap-2.5 text-left sm:text-center transition-colors cursor-pointer p-1 rounded-lg"
+              className="group flex flex-col items-center text-center transition-colors cursor-pointer p-1 rounded-lg w-full"
             >
               <div
-                className={`grid h-7 w-7 place-items-center rounded-full text-xs font-bold shrink-0 transition-colors ${
+                className={`relative z-10 grid h-7 w-7 place-items-center rounded-full text-xs font-bold shrink-0 transition-colors ring-4 ring-white ${
                   result
                     ? 'bg-slate-900 text-white'
                     : currentStep === 3
@@ -566,12 +566,12 @@ export function GenerateCerts() {
               >
                 {result ? <Check size={14} strokeWidth={3} /> : '3'}
               </div>
-              <div className="min-w-0">
+              <div className="mt-2 min-w-0 max-w-full">
                 <div className={`text-xs font-semibold truncate ${currentStep === 3 ? 'text-slate-900 font-bold' : 'text-slate-600'}`}>
                   <span className="sm:hidden">3. Janaan</span>
                   <span className="hidden sm:inline">3. {t('step3Short')}</span>
                 </div>
-                <div className="text-[10px] text-slate-400 truncate">
+                <div className="text-[10px] text-slate-400 truncate mt-0.5">
                   {result ? `Selesai (${result.successCount})` : currentStep === 3 ? 'Pengesahan akhir' : 'Jana sijil'}
                 </div>
               </div>
