@@ -5,28 +5,28 @@ import { Loader2, X, Search, ChevronLeft, ChevronRight, Inbox, AlertTriangle } f
 export function Logo({ light = false, small = false, center = false, className = '' }) {
   return (
     <div
-      className={`flex items-center gap-2.5 select-none ${
+      className={`flex items-center gap-2 select-none ${
         center ? 'justify-center mx-auto text-left' : ''
       } ${className}`}
     >
       <img
         src="/logo-prosijil.png"
         alt="Logo ProSijil"
-        className={`${small ? 'h-7 sm:h-8' : 'h-8 sm:h-9'} w-auto object-contain shrink-0 ${
+        className={`${small ? 'h-7' : 'h-8 sm:h-9'} w-auto object-contain shrink-0 ${
           light ? 'brightness-0 invert' : ''
         }`}
       />
-      <div className="leading-tight shrink-0 hidden sm:block">
+      <div className="leading-tight shrink-0">
         <span
           className={`block ${
-            small ? 'text-xs sm:text-[13px]' : 'text-sm sm:text-base'
+            small ? 'text-xs' : 'text-sm sm:text-base'
           } font-bold tracking-tight whitespace-nowrap ${light ? 'text-white' : 'text-slate-900'}`}
         >
           AKADEMI <span className={light ? 'text-red-400' : 'text-red-700'}>PROSILAT</span>
         </span>
         <span
           className={`block ${
-            small ? 'text-[7.5px] sm:text-[8px] tracking-[0.08em]' : 'text-[8.5px] sm:text-[9px] tracking-[0.12em]'
+            small ? 'text-[7.5px] tracking-[0.06em]' : 'text-[8.5px] sm:text-[9px] tracking-[0.12em]'
           } uppercase font-semibold whitespace-nowrap ${
             light ? 'text-white/60' : 'text-slate-400'
           }`}

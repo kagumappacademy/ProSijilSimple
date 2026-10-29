@@ -34,8 +34,8 @@ function Sidebar({ close, logout, user }) {
   return (
     <div className="flex h-full flex-col overflow-y-auto bg-white border-r border-slate-200">
       {/* Brand Header */}
-      <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-        <Link to="/" onClick={close} className="flex items-center text-left">
+      <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3.5">
+        <Link to="/" onClick={close} className="flex items-center text-left min-w-0">
           <Logo small />
         </Link>
         {close && (
@@ -154,7 +154,7 @@ export function AdminLayout({ user, onLogout }) {
   return (
     <div className="min-h-screen bg-[#F8F9FA] text-slate-900 antialiased">
       {/* Desktop Sidebar (Clean, architectural line) */}
-      <aside className="fixed inset-y-0 left-0 z-50 hidden w-[220px] bg-white lg:block">
+      <aside className="fixed inset-y-0 left-0 z-50 hidden w-[240px] bg-white lg:block">
         <Sidebar user={user} logout={logout} />
       </aside>
 
@@ -174,7 +174,7 @@ export function AdminLayout({ user, onLogout }) {
       )}
 
       {/* Main Workspace */}
-      <div className="lg:pl-[220px] w-full max-w-full min-w-0 overflow-x-hidden">
+      <div className="lg:pl-[240px] w-full max-w-full min-w-0 overflow-x-hidden">
         {/* Apple / Google Minimalist Clean Header */}
         <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-slate-200 bg-white/95 px-4 sm:px-6 backdrop-blur-md">
           <div className="flex items-center gap-3 min-w-0 flex-1 mr-2">
