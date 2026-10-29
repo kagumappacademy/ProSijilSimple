@@ -111,26 +111,55 @@ export function GenerateCerts() {
   }, [selectedTemplateName, lang]);
 
   // Load students
-  const loadStudents = useCallback(async () => {
+  const loadStudents = useCallback(async (isInitial = false) => {
     try {
       const res = await api('/admin/students?limit=10000&page=1');
       setStudents(res.rows || []);
       setBranches(res.branches || []);
       setLevels(res.levels || []);
-      // Default select all eligible students
-      const allIds = new Set((res.rows || []).map((s) => s.id));
-      setSelectedIds(allIds);
+      if (isInitial) {
+        // Default select all eligible students on initial load
+        const allIds = new Set((res.rows || []).map((s) => s.id));
+        setSelectedIds(allIds);
+      }
     } catch (err) {
-      toast.error('Gagal memuat senarai pesilat: ' + err.message);
+      if (isInitial) toast.error('Gagal memuat senarai pesilat: ' + err.message);
     } finally {
       setLoading(false);
     }
   }, []);
 
+  const [manualRefreshing, setManualRefreshing] = useState(false);
+  const handleFullRefresh = useCallback(async () => {
+    setManualRefreshing(true);
+    try {
+      await Promise.all([
+        loadTemplates(true),
+        loadStudents(false),
+      ]);
+      toast.success(lang === 'eng' ? 'Data refreshed successfully!' : 'Data templat dan pesilat berjaya dimuat semula!');
+    } catch (e) {
+      toast.error(e.message);
+    } finally {
+      setManualRefreshing(false);
+    }
+  }, [loadTemplates, loadStudents, lang]);
+
+  // Initial load and auto-refresh every 15 seconds
   useEffect(() => {
-    loadTemplates();
-    loadStudents();
-  }, [loadTemplates, loadStudents]);
+    loadTemplates(false);
+    loadStudents(true);
+
+    const interval = setInterval(() => {
+      // Background silent auto-refresh every 15s (only if not actively generating certs)
+      if (!generating) {
+        loadTemplates(false);
+        loadStudents(false);
+      }
+    }, 15000);
+
+    return () => clearInterval(interval);
+  }, [loadTemplates, loadStudents, generating]);
 
   const norm = (s) =>
     String(s || '')
@@ -392,12 +421,27 @@ export function GenerateCerts() {
         title={t('generateTitle')}
         desc={t('generateDesc')}
         action={
-          <Link
-            to="/admin/templates"
-            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-900 transition hover:bg-slate-50"
-          >
-            <Layers size={15} /> {t('btnManageTemplatesPdf')}
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={handleFullRefresh}
+              disabled={manualRefreshing || refreshingTemplates}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-50 hover:text-slate-900 shadow-2xs active:scale-95 cursor-pointer disabled:opacity-60"
+              title="Muat semula data templat dan pesilat (Auto-refresh setiap 15 saat)"
+            >
+              <RefreshCw
+                size={14}
+                className={manualRefreshing || refreshingTemplates ? 'animate-spin text-red-600' : ''}
+              />
+              <span>{manualRefreshing || refreshingTemplates ? (lang === 'eng' ? 'Refreshing...' : 'Menyegerak...') : (lang === 'eng' ? 'Refresh' : 'Muat Semula')}</span>
+            </button>
+            <Link
+              to="/admin/templates"
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-900 transition hover:bg-slate-50 shadow-2xs"
+            >
+              <Layers size={15} /> {t('btnManageTemplatesPdf')}
+            </Link>
+          </div>
         }
       />
 

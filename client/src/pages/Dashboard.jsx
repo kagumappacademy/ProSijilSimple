@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   GraduationCap,
@@ -10,7 +10,9 @@ import {
   ChevronRight,
   Layers,
   FileCheck,
+  RefreshCw,
 } from 'lucide-react';
+import { toast } from 'sonner';
 import { api, fmtDate } from '../lib/api';
 import { PageIntro, Panel, Loading, Empty, Chip } from '../components/UI';
 import { useLang } from '../lib/i18n';
@@ -89,12 +91,28 @@ function BreakdownCard({ title, rows, icon: Icon }) {
 export function Dashboard() {
   const { t, lang } = useLang();
   const [data, setData] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchDashboard = useCallback((isManual = false) => {
+    if (isManual) setRefreshing(true);
+    return api('/admin/dashboard')
+      .then((res) => {
+        setData(res);
+        if (isManual) toast.success(lang === 'eng' ? 'Dashboard refreshed!' : 'Statistik dashboard berjaya dikemaskini!');
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (isManual) setRefreshing(false);
+      });
+  }, [lang]);
 
   useEffect(() => {
-    api('/admin/dashboard')
-      .then(setData)
-      .catch(() => {});
-  }, []);
+    fetchDashboard(false);
+    const timer = setInterval(() => {
+      fetchDashboard(false);
+    }, 15000);
+    return () => clearInterval(timer);
+  }, [fetchDashboard]);
 
   return (
     <>
@@ -102,6 +120,18 @@ export function Dashboard() {
         eyebrow={t('overviewEyebrow')}
         title={t('overviewTitle')}
         desc={t('overviewDesc')}
+        action={
+          <button
+            type="button"
+            onClick={() => fetchDashboard(true)}
+            disabled={refreshing}
+            className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-50 hover:text-slate-900 shadow-2xs active:scale-95 cursor-pointer disabled:opacity-60"
+            title="Muat semula ringkasan statistik (Auto-refresh setiap 15 saat)"
+          >
+            <RefreshCw size={14} className={refreshing ? 'animate-spin text-red-600' : ''} />
+            <span>{refreshing ? (lang === 'eng' ? 'Refreshing...' : 'Menyegerak...') : (lang === 'eng' ? 'Refresh' : 'Muat Semula')}</span>
+          </button>
+        }
       />
 
       {!data ? (

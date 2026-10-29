@@ -17,6 +17,7 @@ import {
   Maximize2,
   Award,
   Sparkles,
+  RefreshCw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api, fmtDate } from '../lib/api';
@@ -631,15 +632,35 @@ export function Templates() {
   const [filterCula, setFilterCula] = useState('semua'); // 'semua', 'merah', 'kuning', 'hijau', 'hitam'
   const [sortBy, setSortBy] = useState('peringkat'); // 'peringkat', 'terkini', 'nama'
 
-  const loadTemplates = useCallback(() => {
-    api('/admin/templates')
-      .then(setData)
-      .catch((err) => toast.error(err.message));
-  }, []);
+  const [refreshing, setRefreshing] = useState(false);
 
+  const loadTemplates = useCallback((isManual = false) => {
+    if (isManual) setRefreshing(true);
+    const url = isManual ? '/admin/templates?force_sync=1' : '/admin/templates';
+    return api(url)
+      .then((res) => {
+        setData(res);
+        if (isManual) toast.success(lang === 'eng' ? 'Templates updated!' : 'Senarai templat berjaya dikemaskini!');
+      })
+      .catch((err) => {
+        if (isManual) toast.error(err.message);
+      })
+      .finally(() => {
+        if (isManual) setRefreshing(false);
+      });
+  }, [lang]);
+
+  // Initial load & Auto-refresh every 15 seconds
   useEffect(() => {
-    loadTemplates();
-  }, [loadTemplates]);
+    loadTemplates(false);
+    const timer = setInterval(() => {
+      // Background silent auto-refresh every 15s (if modals closed)
+      if (!uploadOpen && !deleteTarget && !testTarget) {
+        loadTemplates(false);
+      }
+    }, 15000);
+    return () => clearInterval(timer);
+  }, [loadTemplates, uploadOpen, deleteTarget, testTarget]);
 
   async function handleDelete() {
     if (!deleteTarget) return;
@@ -740,9 +761,21 @@ export function Templates() {
         title={t('templatesTitle')}
         desc={t('templatesDesc')}
         action={
-          <Button onClick={() => setUploadOpen(true)} className="!px-3.5 !py-2 text-xs">
-            <Plus size={15} /> {t('btnUploadTemplate')}
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => loadTemplates(true)}
+              disabled={refreshing}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-50 hover:text-slate-900 shadow-2xs active:scale-95 cursor-pointer disabled:opacity-60"
+              title="Muat semula senarai templat dari Cloud (Auto-refresh setiap 15 saat)"
+            >
+              <RefreshCw size={14} className={refreshing ? 'animate-spin text-red-600' : ''} />
+              <span>{refreshing ? (lang === 'eng' ? 'Refreshing...' : 'Menyegerak...') : (lang === 'eng' ? 'Refresh' : 'Muat Semula')}</span>
+            </button>
+            <Button onClick={() => setUploadOpen(true)} className="!px-3.5 !py-2 text-xs">
+              <Plus size={15} /> {t('btnUploadTemplate')}
+            </Button>
+          </div>
         }
       />
 

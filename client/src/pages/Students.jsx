@@ -1,6 +1,6 @@
 import React,{useCallback,useEffect,useState} from 'react';
 import {useSearchParams} from 'react-router-dom';
-import {Plus,Download,Edit3,Trash2,GraduationCap,Search,Filter,FileUp,IdCard,Eye,CalendarDays,Award,UploadCloud,CheckCircle2,FileText,MapPin} from 'lucide-react';
+import {Plus,Download,Edit3,Trash2,GraduationCap,Search,Filter,FileUp,IdCard,Eye,CalendarDays,Award,UploadCloud,CheckCircle2,FileText,MapPin,RefreshCw} from 'lucide-react';
 import {toast} from 'sonner';
 import {api,fmtDate} from '../lib/api';
 import {PageIntro,Panel,Button,Input,Select,Modal,Confirm,Loading,Empty,SearchField,Pagination,Chip} from '../components/UI';
@@ -798,34 +798,55 @@ export function Students(){
     [deleting,setDeleting]=useState(false),
     [viewTarget,setViewTarget]=useState(null);
 
-  const fetchRows=useCallback(()=>
-    api('/admin/students?'+new URLSearchParams({q,branch,level,page:String(page)}))
-      .then(setData)
-      .catch(e=>toast.error(e.message)),
-    [q,branch,level,page]
-  );
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(()=>{
-    const t=setTimeout(fetchRows,180);
-    return()=>clearTimeout(t);
-  },[fetchRows]);
+  const fetchRows = useCallback((isManual = false) => {
+    if (isManual) setRefreshing(true);
+    return api('/admin/students?' + new URLSearchParams({ q, branch, level, page: String(page) }))
+      .then((res) => {
+        setData(res);
+        if (isManual) toast.success(lang === 'eng' ? 'Students list refreshed!' : 'Senarai pesilat berjaya dikemaskini!');
+      })
+      .catch((e) => {
+        if (isManual) toast.error(e.message);
+      })
+      .finally(() => {
+        if (isManual) setRefreshing(false);
+      });
+  }, [q, branch, level, page, lang]);
 
-  async function remove(){
+  useEffect(() => {
+    const t = setTimeout(() => fetchRows(false), 180);
+    return () => clearTimeout(t);
+  }, [fetchRows]);
+
+  // Auto-refresh every 15 seconds
+  useEffect(() => {
+    const timer = setInterval(() => {
+      // Don't auto-refresh while editing or modals open
+      if (!formOpen && !importOpen && !exportOpen && !deleteTarget && !viewTarget) {
+        fetchRows(false);
+      }
+    }, 15000);
+    return () => clearInterval(timer);
+  }, [fetchRows, formOpen, importOpen, exportOpen, deleteTarget, viewTarget]);
+
+  async function remove() {
     setDeleting(true);
     try {
-      await api('/admin/students/'+deleteTarget.id,{method:'DELETE'});
+      await api('/admin/students/' + deleteTarget.id, { method: 'DELETE' });
       toast.success(lang === 'eng' ? 'Student deleted along with associated certificates.' : 'Pesilat dipadam bersama sijil berkaitan.');
       setDeleteTarget(null);
-      fetchRows();
-    } catch(e) {
+      fetchRows(false);
+    } catch (e) {
       toast.error(e.message);
     } finally {
       setDeleting(false);
     }
   }
 
-  function openAdd(){ setEdit(null); setFormOpen(true); }
-  function openEdit(item){ setEdit(item); setFormOpen(true); }
+  function openAdd() { setEdit(null); setFormOpen(true); }
+  function openEdit(item) { setEdit(item); setFormOpen(true); }
 
   return (
     <>
@@ -835,6 +856,17 @@ export function Students(){
         desc={t('studentsDesc')}
         actions={
           <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => fetchRows(true)}
+              disabled={refreshing}
+              className="!px-3 !py-2 text-xs"
+              title="Muat semula senarai pesilat (Auto-refresh setiap 15 saat)"
+            >
+              <RefreshCw size={14} className={refreshing ? 'animate-spin text-red-600' : ''} />
+              <span>{refreshing ? (lang === 'eng' ? 'Refreshing...' : 'Menyegerak...') : (lang === 'eng' ? 'Refresh' : 'Muat Semula')}</span>
+            </Button>
             <Button
               type="button"
               variant="secondary"
@@ -848,11 +880,11 @@ export function Students(){
                 <span className="h-1.5 w-1.5 rounded-full bg-red-700" title="Tapisan cawangan/peringkat aktif" />
               )}
             </Button>
-            <Button variant="secondary" onClick={()=>setImportOpen(true)} className="!px-3 !py-2 text-xs">
-              <FileUp size={14}/> {t('btnImportCSV')}
+            <Button variant="secondary" onClick={() => setImportOpen(true)} className="!px-3 !py-2 text-xs">
+              <FileUp size={14} /> {t('btnImportCSV')}
             </Button>
             <Button onClick={openAdd} className="!px-3 !py-2 text-xs">
-              <Plus size={15}/> {t('btnRegisterStudent')}
+              <Plus size={15} /> {t('btnRegisterStudent')}
             </Button>
           </div>
         }

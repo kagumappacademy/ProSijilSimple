@@ -18,6 +18,7 @@ import {
   Search,
   CheckCircle2,
   CheckSquare,
+  RefreshCw,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api, fmtDate, certDownload, certPreview } from '../lib/api';
@@ -307,8 +308,11 @@ export function Certificates() {
     }
   }
 
+  const [refreshing, setRefreshing] = useState(false);
+
   // Load all certificates matching filters for clean grouping
-  const load = useCallback(() => {
+  const load = useCallback((isManual = false) => {
+    if (isManual) setRefreshing(true);
     const params = new URLSearchParams({ all: '1' });
     if (q) params.set('q', q);
     if (selectedBranch) params.set('branch', selectedBranch);
@@ -317,15 +321,34 @@ export function Certificates() {
       params.set('category', selectedCategory);
     }
 
-    api('/admin/certificates?' + params.toString())
-      .then(setData)
-      .catch((e) => toast.error(e.message));
-  }, [q, selectedBranch, selectedLevel, selectedCategory]);
+    return api('/admin/certificates?' + params.toString())
+      .then((res) => {
+        setData(res);
+        if (isManual) toast.success(lang === 'eng' ? 'Certificates refreshed!' : 'Senarai sijil berjaya dikemaskini!');
+      })
+      .catch((e) => {
+        if (isManual) toast.error(e.message);
+      })
+      .finally(() => {
+        if (isManual) setRefreshing(false);
+      });
+  }, [q, selectedBranch, selectedLevel, selectedCategory, lang]);
 
   useEffect(() => {
-    const timer = setTimeout(load, 200);
+    const timer = setTimeout(() => load(false), 200);
     return () => clearTimeout(timer);
   }, [load]);
+
+  // Auto-refresh every 15 seconds
+  useEffect(() => {
+    const timer = setInterval(() => {
+      // Auto-refresh silently if user not in modals/batch delete
+      if (!modal && !batchModal && !busy && !batchBusy) {
+        load(false);
+      }
+    }, 15000);
+    return () => clearInterval(timer);
+  }, [load, modal, batchModal, busy, batchBusy]);
 
   async function remove() {
     setBusy(true);
@@ -464,9 +487,21 @@ export function Certificates() {
         title={t('certsTitle')}
         desc={t('certsDesc')}
         action={
-          <Button onClick={() => setModal(true)} className="!px-3.5 !py-2 text-xs">
-            <Plus size={15} /> {t('btnNewCert')}
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => load(true)}
+              disabled={refreshing}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-50 hover:text-slate-900 shadow-2xs active:scale-95 cursor-pointer disabled:opacity-60"
+              title="Muat semula senarai sijil (Auto-refresh setiap 15 saat)"
+            >
+              <RefreshCw size={14} className={refreshing ? 'animate-spin text-red-600' : ''} />
+              <span>{refreshing ? (lang === 'eng' ? 'Refreshing...' : 'Menyegerak...') : (lang === 'eng' ? 'Refresh' : 'Muat Semula')}</span>
+            </button>
+            <Button onClick={() => setModal(true)} className="!px-3.5 !py-2 text-xs">
+              <Plus size={15} /> {t('btnNewCert')}
+            </Button>
+          </div>
         }
       />
 
