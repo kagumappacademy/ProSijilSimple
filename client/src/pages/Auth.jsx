@@ -57,7 +57,7 @@ export function Login({ onLogin }) {
 
         {/* Brand Header */}
         <div className="mb-6 flex items-center justify-between gap-2.5">
-          <Logo />
+          <Logo showTextOnMobile />
           <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-700">
             <ShieldCheck size={12} className="text-slate-500" />
             {t('authPortalEyebrow')}

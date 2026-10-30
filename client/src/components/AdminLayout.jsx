@@ -38,7 +38,7 @@ function Sidebar({ close, logout, user }) {
       {/* Brand Header */}
       <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3.5">
         <Link to="/" onClick={close} className="flex items-center text-left min-w-0">
-          <Logo small />
+          <Logo small showTextOnMobile />
         </Link>
         {close && (
           <button

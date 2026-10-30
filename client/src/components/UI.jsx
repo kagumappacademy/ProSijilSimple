@@ -2,10 +2,16 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Loader2, X, Search, ChevronLeft, ChevronRight, Inbox, AlertTriangle } from 'lucide-react';
 
-export function Logo({ light = false, small = false, center = false, className = '' }) {
+export function Logo({
+  light = false,
+  small = false,
+  center = false,
+  className = '',
+  showTextOnMobile = false,
+}) {
   return (
     <div
-      className={`flex items-center gap-2 select-none ${
+      className={`flex items-center gap-2 select-none shrink-0 ${
         center ? 'justify-center mx-auto text-left' : ''
       } ${className}`}
     >
@@ -16,7 +22,7 @@ export function Logo({ light = false, small = false, center = false, className =
           light ? 'brightness-0 invert' : ''
         }`}
       />
-      <div className="leading-tight shrink-0">
+      <div className={`leading-tight shrink-0 ${showTextOnMobile ? 'block' : 'hidden sm:block'}`}>
         <span
           className={`block ${
             small ? 'text-xs' : 'text-sm sm:text-base'

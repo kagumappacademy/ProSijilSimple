@@ -37,8 +37,8 @@ function PublicNav() {
 
   return (
     <header className="absolute inset-x-0 top-0 z-30">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-8 sm:py-5 lg:px-12">
-        <Link to="/" aria-label="Utama">
+      <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3.5 sm:px-8 sm:py-5 lg:px-12">
+        <Link to="/" aria-label="Utama" className="shrink-0 flex items-center min-w-0">
           <Logo light />
         </Link>
         <nav className="hidden items-center gap-7 text-xs font-semibold text-white/80 md:flex">
@@ -52,7 +52,7 @@ function PublicNav() {
             {t('navAboutUs')}
           </a>
         </nav>
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           {/* Live Clock & Date on Front Page */}
           <LiveClock light showDate={true} className="hidden lg:inline-flex" />
 
@@ -61,7 +61,7 @@ function PublicNav() {
 
           <Link
             to="/admin/login"
-            className="flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3.5 py-1.5 text-xs font-bold text-white transition hover:bg-white/20 backdrop-blur-sm shadow-xs"
+            className="flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 sm:px-3.5 sm:py-1.5 text-xs font-bold text-white transition hover:bg-white/20 backdrop-blur-sm shadow-xs shrink-0"
           >
             <LockKeyhole size={13} /> {t('btnAdminLogin')} <ArrowUpRight size={13} />
           </Link>
@@ -512,7 +512,7 @@ export function Home() {
 
       <footer className="border-t border-slate-200/80 bg-white">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-6 sm:px-8 lg:px-12">
-          <Logo small />
+          <Logo small showTextOnMobile />
           <div className="flex items-center gap-3">
             <LanguageSwitcher />
             <p className="text-xs text-slate-400">
