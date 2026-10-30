@@ -229,8 +229,39 @@ app.get('/api/admin/dashboard',requireAdmin,(_req,res)=>{
  res.json({pesilat,sijil,branches,byLevel,byBranch,recent});
 });
 
-app.get('/api/admin/recent-activity', requireAdmin, (req, res) => {
+app.get('/api/admin/recent-activity', requireAdmin, async (req, res) => {
  try {
+  // Segerakkan aktiviti terkini dari Turso Cloud jika ada sambungan awan
+  try {
+    const { isTursoConfigured, getTursoClient } = await import('./turso.js');
+    if (isTursoConfigured()) {
+      const turso = getTursoClient();
+      const remoteActs = await turso.execute('SELECT id, type, action, title, detail, target_url, students_before, students_after, certs_before, certs_after, templates_before, templates_after, created_at FROM admin_activity ORDER BY id DESC LIMIT 150');
+      if (remoteActs.rows && remoteActs.rows.length > 0) {
+        const actStmt = db.prepare(`
+          INSERT OR REPLACE INTO admin_activity (
+            id, type, action, title, detail, target_url,
+            students_before, students_after,
+            certs_before, certs_after,
+            templates_before, templates_after,
+            created_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `);
+        for (const row of remoteActs.rows) {
+          actStmt.run(
+            row.id, row.type, row.action, row.title, row.detail, row.target_url,
+            row.students_before, row.students_after,
+            row.certs_before, row.certs_after,
+            row.templates_before, row.templates_after,
+            row.created_at
+          );
+        }
+      }
+    }
+  } catch (syncErr) {
+    console.warn('[Recent Activity Turso Pull Warning]', syncErr.message);
+  }
+
   const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 200);
   const type = trim(req.query.type, 30);
   let query = 'SELECT id, type, action, title, detail, target_url, students_before, students_after, certs_before, certs_after, templates_before, templates_after, created_at FROM admin_activity';
@@ -244,13 +275,22 @@ app.get('/api/admin/recent-activity', requireAdmin, (req, res) => {
   const activities = db.prepare(query).all(...params);
   res.json({ success: true, activities });
  } catch (err) {
-  res.status(500).json({ error: 'Gagal memuat aktiviti terkini.' });
+  res.status(500).json({ error: 'Gagal memuat aktiviti terkini: ' + err.message });
  }
 });
 
-app.delete('/api/admin/recent-activity', requireAdmin, (_req, res) => {
+app.delete('/api/admin/recent-activity', requireAdmin, async (_req, res) => {
  try {
   db.prepare('DELETE FROM admin_activity').run();
+  try {
+    const { isTursoConfigured, getTursoClient } = await import('./turso.js');
+    if (isTursoConfigured()) {
+      const turso = getTursoClient();
+      await turso.execute('DELETE FROM admin_activity');
+    }
+  } catch (e) {
+    console.warn('[Turso Delete Activity Warning]', e.message);
+  }
   res.json({ success: true, message: 'Log aktiviti berjaya dibersihkan.' });
  } catch (err) {
   res.status(500).json({ error: 'Gagal membersihkan log aktiviti.' });
@@ -1160,11 +1200,19 @@ app.post('/api/admin/templates/generate-batch',requireAdmin,async(req,res,next)=
      insertStmt.run(item.studentId,item.namaSijil,item.tarikh,'uploaded',item.outputPath,'application/pdf',item.token,item.kategori,item.layoutConfig);
     }
     db.exec('COMMIT');
+
+    // Catat aktiviti janaan sebelum penyegerakan Turso
+    const tplName = (toInsert[0]?.namaSijil) || 'Templat Sijil';
+    const detailMsg = failed.length > 0
+      ? `${successCount} sijil berjaya dijana, ${failed.length} dilangkau (${tplName})`
+      : `${successCount} sijil dijana (${tplName})`;
+    logActivity('certificate', 'generate_batch', 'Janaan Sijil Pukal', detailMsg, '/admin/sijil', { countsBefore, countsAfter: getSystemCounts() });
+
     try {
       const { isTursoConfigured, pushLocalToTurso } = await import('./turso.js');
       if (isTursoConfigured()) {
         await pushLocalToTurso();
-        console.log('[Turso] Sijil generate-batch disegerakkan ke Turso Cloud');
+        console.log('[Turso] Sijil generate-batch dan log aktiviti disegerakkan ke Turso Cloud');
       }
     } catch(err) {
       console.warn('[Turso Batch Sync Warning]', err.message);
@@ -1176,11 +1224,8 @@ app.post('/api/admin/templates/generate-batch',requireAdmin,async(req,res,next)=
     }
     throw err;
    }
-  }
-
-  if(successCount > 0){
-   const tplName = (toInsert[0]?.namaSijil) || 'Templat Sijil';
-   logActivity('certificate', 'generate_batch', 'Janaan Sijil Pukal', `${successCount} sijil dijana (${tplName})`, '/admin/sijil', { countsBefore, countsAfter: getSystemCounts() });
+  } else if (failed.length > 0) {
+   logActivity('certificate', 'generate_batch', 'Janaan Sijil Dilangkau', `${failed.length} pesilat dilangkau (${failed[0]?.reason || 'Tiada templat sepadan: ' + namaTemplate})`, '/admin/jana-sijil', { countsBefore, countsAfter: getSystemCounts() });
   }
 
   res.json({

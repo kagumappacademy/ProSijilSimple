@@ -155,7 +155,9 @@ export function logActivity(type, action, title, detail = '', target_url = '', m
     const templates_before = metrics.templates_before ?? countsBefore.templates ?? 0;
     const templates_after = metrics.templates_after ?? countsAfter.templates ?? 0;
 
-    db.prepare(`
+    const nowIso = new Date().toISOString();
+
+    const info = db.prepare(`
       INSERT INTO admin_activity (
         type, action, title, detail, target_url,
         students_before, students_after,
@@ -163,12 +165,13 @@ export function logActivity(type, action, title, detail = '', target_url = '', m
         templates_before, templates_after,
         created_at
       )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       type, action, title, detail || '', target_url || '',
       students_before, students_after,
       certs_before, certs_after,
-      templates_before, templates_after
+      templates_before, templates_after,
+      nowIso
     );
 
     // Hadkan kepada 200 rekod terkini untuk kebersihan dan prestasi SQLite
@@ -178,6 +181,29 @@ export function logActivity(type, action, title, detail = '', target_url = '', m
         SELECT id FROM admin_activity ORDER BY id DESC LIMIT 200
       )
     `).run();
+
+    // Hantar terus rekod aktiviti ke Turso Cloud secara asynchronously
+    import('./turso.js').then(({ isTursoConfigured, getTursoClient }) => {
+      if (isTursoConfigured()) {
+        const turso = getTursoClient();
+        turso.execute({
+          sql: `INSERT INTO admin_activity (
+            type, action, title, detail, target_url,
+            students_before, students_after,
+            certs_before, certs_after,
+            templates_before, templates_after,
+            created_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          args: [
+            type, action, title, detail || null, target_url || null,
+            students_before, students_after,
+            certs_before, certs_after,
+            templates_before, templates_after,
+            nowIso
+          ]
+        }).catch((err) => console.warn('[Turso Live Activity Insert Warning]', err.message));
+      }
+    }).catch(() => {});
   } catch (err) {
     console.warn('[Activity Log Warning]', err.message);
   }

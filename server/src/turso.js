@@ -255,6 +255,33 @@ export async function pushLocalToTurso() {
     }
   }
 
+  // 6. Admin Activity (Simpan ke Turso Cloud supaya aktiviti terkini kekal)
+  try {
+    const localActivities = db.prepare('SELECT id, type, action, title, detail, target_url, students_before, students_after, certs_before, certs_after, templates_before, templates_after, created_at FROM admin_activity ORDER BY id DESC LIMIT 150').all();
+    if (localActivities.length > 0) {
+      const actStmts = localActivities.map((row) => ({
+        sql: `INSERT OR REPLACE INTO admin_activity (
+          id, type, action, title, detail, target_url,
+          students_before, students_after,
+          certs_before, certs_after,
+          templates_before, templates_after,
+          created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        args: [
+          row.id, row.type, row.action, row.title, row.detail || null, row.target_url || null,
+          row.students_before ?? null, row.students_after ?? null,
+          row.certs_before ?? null, row.certs_after ?? null,
+          row.templates_before ?? null, row.templates_after ?? null,
+          row.created_at
+        ]
+      }));
+      await batchExecute(turso, actStmts);
+      stats.admin_activity = localActivities.length;
+    }
+  } catch (actErr) {
+    console.warn('[Turso Push Activity Warning]:', actErr.message);
+  }
+
   return stats;
 }
 
@@ -352,6 +379,34 @@ export async function pullTursoToLocal() {
     for (const row of remoteTemplates.rows) {
       tplStmt.run(row.id, row.nama_template, row.peringkat, row.keterangan, row.file_path, row.file_name, row.file_size, row.kategori || 'kenaikan_tali_pinggang', row.page_count ?? 1, row.thumbnail_base64 || null, row.layout_config || null, row.created_at);
       stats.template_sijil++;
+    }
+
+    // 6. Admin Activity (Muat turun aktiviti terkini dari Turso Cloud ke SQLite)
+    try {
+      const remoteActivities = await turso.execute('SELECT id, type, action, title, detail, target_url, students_before, students_after, certs_before, certs_after, templates_before, templates_after, created_at FROM admin_activity ORDER BY id DESC LIMIT 150');
+      if (remoteActivities.rows && remoteActivities.rows.length > 0) {
+        const actStmt = db.prepare(`
+          INSERT OR REPLACE INTO admin_activity (
+            id, type, action, title, detail, target_url,
+            students_before, students_after,
+            certs_before, certs_after,
+            templates_before, templates_after,
+            created_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `);
+        for (const row of remoteActivities.rows) {
+          actStmt.run(
+            row.id, row.type, row.action, row.title, row.detail, row.target_url,
+            row.students_before, row.students_after,
+            row.certs_before, row.certs_after,
+            row.templates_before, row.templates_after,
+            row.created_at
+          );
+        }
+        stats.admin_activity = remoteActivities.rows.length;
+      }
+    } catch (actErr) {
+      console.warn('[Turso Pull Activity Warning]:', actErr.message);
     }
 
     db.exec('COMMIT');

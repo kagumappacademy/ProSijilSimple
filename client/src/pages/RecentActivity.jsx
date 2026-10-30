@@ -144,7 +144,8 @@ export function RecentActivity() {
     if (isManual) setRefreshingLocal(true);
     setRefreshing(true);
     try {
-      const res = await api('/admin/recent-activity?limit=150');
+      const url = isManual ? '/admin/recent-activity?limit=150&force_sync=1' : '/admin/recent-activity?limit=150';
+      const res = await api(url);
       setActivities(res.activities || []);
       if (isManual) {
         toast.success(lang === 'eng' ? 'Activity log refreshed!' : 'Log aktiviti berjaya dikemaskini!');
