@@ -1948,13 +1948,12 @@ export function Templates() {
                 const catMeta = getCategoryMeta(getCertCategory(item));
                 const previewUrl = `/api/admin/templates/${item.id}/preview`;
                 return (
-                  <div key={item.id} className="rounded-2xl border border-slate-200/90 bg-white p-3.5 space-y-3 shadow-2xs">
-                    {/* Baris Atas: Thumbnail Tetap + Butiran Templat */}
+                  <div key={item.id} className="rounded-xl border border-slate-200/90 bg-white p-3.5 space-y-3 shadow-2xs">
                     <div className="flex items-start gap-3">
-                      {/* Thumbnail Saiz Tetap & Tidak Boleh Terlebih Lebar */}
+                      {/* Thumbnail PDF dengan saiz tetap tidak pecah */}
                       <div
                         onClick={() => setPreviewTarget(item)}
-                        className="w-[72px] h-[98px] shrink-0 rounded-xl overflow-hidden border border-slate-200 bg-slate-50 shadow-2xs cursor-pointer hover:border-red-500 transition relative group/thumb"
+                        className="h-20 w-16 shrink-0 rounded-lg overflow-hidden border border-slate-200 bg-slate-50 shadow-2xs cursor-pointer hover:border-red-500 transition relative group/thumb"
                         title="Klik untuk besarkan pratonton"
                       >
                         <PdfThumbnail
@@ -1966,90 +1965,84 @@ export function Templates() {
                           className="h-full w-full object-contain"
                         />
                         <div className="absolute inset-0 bg-slate-950/30 opacity-0 group-hover/thumb:opacity-100 flex items-center justify-center transition">
-                          <Maximize2 size={13} className="text-white" />
+                          <Maximize2 size={12} className="text-white" />
                         </div>
                       </div>
 
-                      {/* Maklumat Templat: Kategori, Peringkat & Nama Penuh */}
-                      <div className="min-w-0 flex-1 space-y-1.5">
+                      {/* Maklumat Templat Sijil */}
+                      <div className="min-w-0 flex-1 space-y-1">
                         <div className="flex flex-wrap items-center gap-1.5">
                           <Chip color={catMeta.chip}>{catMeta.shortLabel}</Chip>
                           {item.kategori === 'kenaikan_tali_pinggang' && (
                             <Chip color={meta.chip}>{item.peringkat}</Chip>
                           )}
-                          <span className="inline-flex items-center rounded-md bg-slate-900 text-white px-1.5 py-0.5 text-[9px] font-bold">
+                          <span className="inline-flex items-center rounded-md bg-slate-100 px-1.5 py-0.5 text-[9.5px] font-semibold text-slate-600">
                             {Number(item.page_count) === 2 ? '2 Muka' : '1 Muka'}
                           </span>
                         </div>
-
                         <div
                           onClick={() => setPreviewTarget(item)}
-                          className="font-extrabold text-slate-950 text-xs sm:text-sm leading-snug cursor-pointer hover:text-red-700 transition break-words"
+                          className="font-bold text-slate-950 text-sm leading-snug break-words cursor-pointer hover:text-red-700 transition"
                         >
                           {item.nama_template}
                         </div>
-
                         {item.keterangan && (
-                          <div className="text-[11px] text-slate-500 break-words line-clamp-2">
+                          <div className="text-[11px] text-slate-500 break-words leading-relaxed">
                             {item.keterangan}
                           </div>
                         )}
-
-                        <div className="text-[10px] text-slate-400 font-medium">
-                          Dimuat naik: {fmtDate(item.created_at.slice(0, 10))}
+                        <div className="text-[11px] text-slate-400 font-medium">
+                          Dimuat naik: <span className="text-slate-600 font-semibold">{fmtDate(item.created_at.slice(0, 10))}</span>
                         </div>
                       </div>
                     </div>
 
-                    {/* Baris Bawah: Butang Tindakan yang Tersusun Kemas untuk Telefon */}
+                    {/* Bar Tindakan Bawah - Tersusun Kemas & Mesra Skrin Telefon */}
                     <div className="pt-2.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
                       <div className="flex flex-wrap items-center gap-1.5">
                         <button
                           type="button"
                           onClick={() => setPreviewTarget(item)}
-                          className="inline-flex items-center gap-1 rounded-lg bg-red-50 border border-red-200/70 px-2.5 py-1.5 text-xs font-bold text-red-700 hover:bg-red-100 transition active:scale-95"
+                          className="inline-flex items-center gap-1 rounded-lg bg-red-50 border border-red-200/70 px-2.5 py-1.5 text-xs font-bold text-red-700 hover:bg-red-100 transition active:scale-95 cursor-pointer"
                           title="Besarkan pratonton sijil"
                         >
-                          <Maximize2 size={12} />
-                          <span>Pratonton</span>
+                          <Maximize2 size={12} /> Pratonton
                         </button>
-
                         <button
                           type="button"
                           onClick={() => setLayoutTarget(item)}
-                          className="inline-flex items-center gap-1 rounded-lg bg-slate-100 border border-slate-200 px-2.5 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-200 transition active:scale-95"
+                          className="inline-flex items-center gap-1 rounded-lg bg-slate-100 border border-slate-200/80 px-2.5 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-200 transition active:scale-95 cursor-pointer"
                           title="Ubah posisi & reka bentuk nama"
                         >
-                          <Sliders size={12} />
-                          <span>Posisi</span>
+                          <Sliders size={12} /> Posisi
                         </button>
-
                         <button
                           type="button"
                           onClick={() => setTestTarget(item)}
                           title="Uji janaan nama pada templat"
-                          className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 border border-emerald-200 px-2.5 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition active:scale-95"
+                          className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 border border-emerald-200/70 px-2.5 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition active:scale-95 cursor-pointer"
                         >
-                          <Play size={12} />
-                          <span>Uji</span>
+                          <Play size={12} /> Uji
                         </button>
                       </div>
 
-                      <div className="flex items-center gap-1 shrink-0">
+                      <div className="flex items-center gap-1.5 ml-auto">
                         <a
                           href={previewUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="rounded-lg bg-slate-100 border border-slate-200 p-2 text-slate-600 transition hover:bg-red-50 hover:text-red-800"
+                          className="rounded-lg bg-slate-100 border border-slate-200/80 p-2 text-slate-600 transition hover:bg-red-50 hover:text-red-800 active:scale-95"
                           title="Lihat fail PDF asal"
+                          aria-label="Lihat fail PDF asal"
                         >
                           <Eye size={14} />
                         </a>
                         <button
                           type="button"
                           onClick={() => setDeleteTarget(item)}
-                          className="rounded-lg bg-rose-50 border border-rose-200 p-2 text-rose-600 transition hover:bg-rose-100"
+                          className="rounded-lg bg-rose-50 border border-rose-200/60 p-2 text-rose-600 transition hover:bg-rose-100 active:scale-95 cursor-pointer"
                           title="Padam templat ini"
+                          aria-label="Padam templat ini"
                         >
                           <Trash2 size={14} />
                         </button>
