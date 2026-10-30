@@ -171,6 +171,57 @@ export function Empty({ title = 'Belum ada data', message = 'Rekod akan dipapark
   );
 }
 
+export function LoadingProsijil({
+  text = 'Sedang memuatkan data...',
+  subtext,
+  size = 'md', // 'sm', 'md', 'lg'
+}) {
+  const isSm = size === 'sm';
+  const isLg = size === 'lg';
+  const outerSize = isSm ? 'h-8 w-8' : isLg ? 'h-16 w-16' : 'h-11 w-11';
+  const innerSize = isSm ? 'h-5 w-5' : isLg ? 'h-10 w-10' : 'h-7 w-7';
+  const logoSize = isSm ? 'h-3 w-3' : isLg ? 'h-6 w-6' : 'h-4 w-4';
+
+  const content = (
+    <div className={`flex flex-col items-center justify-center text-center select-none py-10 px-4`}> 
+      <div className={`relative flex items-center justify-center ${outerSize}`}> 
+        <div
+          className="absolute inset-0 rounded-full border-2 border-slate-200 border-t-red-700 animate-spin"
+          style={{ animationDuration: '0.8s' }}
+        />
+        <div className={`relative z-10 flex items-center justify-center rounded-full bg-white shadow-2xs ${innerSize}`}> 
+          <img
+            src="/logo-prosijil.png"
+            alt="ProSijil"
+            className={`${logoSize} object-contain`}
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+            }}
+          />
+        </div>
+      </div>
+      <div className="mt-3 flex flex-col items-center max-w-xs">
+        <div className="text-xs sm:text-sm font-semibold text-slate-900">
+          {text}
+        </div>
+        {subtext && (
+          <p className="mt-0.5 text-xs text-slate-400 font-normal">
+            {subtext}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white/95 backdrop-blur-xs p-4">
+      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-lg max-w-xs w-full text-center">
+        {content}
+      </div>
+    </div>
+  );
+}
+
 export function Loading({
   text = 'Sedang memuatkan data...',
   subtext,

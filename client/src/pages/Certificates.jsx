@@ -898,8 +898,8 @@ export function Certificates() {
                             </button>
                           </div>
 
-                          {/* Student Certificate Cards in this Rank */}
-                          <div className="grid gap-2.5 sm:gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                          {/* Senarai Terperinci Sijil Pesilat dalam Peringkat Ini (Paparan Detail) */}
+                          <div className="space-y-2">
                             {certList.map((r) => {
                               const isChecked = selectedIds.has(r.id);
                               const catMeta = getCategoryMeta(getCertCategory(r));
@@ -907,78 +907,81 @@ export function Certificates() {
                               return (
                                 <div
                                   key={r.id}
-                                  className={`group relative rounded-xl border p-3 transition shadow-2xs ${
+                                  className={`group relative rounded-xl border p-3 sm:px-4 sm:py-3 transition flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs ${
                                     isChecked
-                                      ? 'border-red-600 bg-red-50/50 ring-2 ring-red-400/30'
-                                      : 'border-slate-200/90 bg-white hover:border-slate-300 hover:shadow-xs'
+                                      ? 'border-red-600 bg-red-50/60 ring-2 ring-red-400/30'
+                                      : 'border-slate-200/90 bg-white hover:border-slate-300 hover:bg-slate-50/50 hover:shadow-xs'
                                   }`}
                                 >
-                                  {/* Top student row with selection checkbox */}
-                                  <div className="flex items-start justify-between gap-2">
-                                    <div className="flex items-start gap-2 min-w-0">
-                                      <input
-                                        type="checkbox"
-                                        checked={isChecked}
-                                        onChange={() => toggleSelect(r.id)}
-                                        className="mt-0.5 h-4 w-4 rounded border-slate-300 text-red-600 focus:ring-red-500 cursor-pointer shrink-0"
-                                      />
-                                      <div className="min-w-0">
-                                        <div className="font-extrabold text-slate-950 text-xs sm:text-sm truncate" title={r.nama_penuh}>
+                                  {/* Bahagian Kiri: Checkbox & Maklumat Pesilat Terperinci */}
+                                  <div className="flex items-start sm:items-center gap-3 min-w-0 flex-1">
+                                    <input
+                                      type="checkbox"
+                                      checked={isChecked}
+                                      onChange={() => toggleSelect(r.id)}
+                                      className="mt-1 sm:mt-0 h-4 w-4 rounded border-slate-300 text-red-600 focus:ring-red-500 cursor-pointer shrink-0"
+                                    />
+                                    <div className="min-w-0 flex-1">
+                                      <div className="flex flex-wrap items-center gap-2">
+                                        <span className="font-extrabold text-slate-900 text-sm sm:text-base leading-snug">
                                           {r.nama_penuh}
-                                        </div>
-                                        <div className="text-[10px] font-mono text-slate-500">
-                                          {r.no_kp_atau_id || '—'}
-                                        </div>
+                                        </span>
+                                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold border shrink-0 ${catMeta.badge}`}>
+                                          <span>{catMeta.emoji}</span>
+                                          <span>{catMeta.shortLabel}</span>
+                                        </span>
+                                      </div>
+                                      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-slate-500">
+                                        <span className="font-mono text-slate-600 font-medium">
+                                          ID / No. KP: <strong className="text-slate-800">{r.no_kp_atau_id || '—'}</strong>
+                                        </span>
+                                        <span className="text-slate-300 hidden sm:inline">•</span>
+                                        <span className="inline-flex items-center gap-1 text-slate-700 font-medium">
+                                          <FileText size={13} className="text-red-600 shrink-0" />
+                                          <span>{r.nama_sijil}</span>
+                                        </span>
+                                        <span className="text-slate-300 hidden sm:inline">•</span>
+                                        <span className="inline-flex items-center gap-1 text-slate-500">
+                                          <CalendarDays size={12} className="text-slate-400 shrink-0" />
+                                          <span>Dikeluarkan: {fmtDate(r.tarikh_isu)}</span>
+                                        </span>
                                       </div>
                                     </div>
-
-                                    {/* Category Badge */}
-                                    <span className={`shrink-0 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9.5px] font-bold border ${catMeta.badge}`}>
-                                      <span>{catMeta.emoji}</span>
-                                      <span>{catMeta.shortLabel}</span>
-                                    </span>
                                   </div>
 
-                                  <div className="mt-2 flex items-center gap-1.5 text-xs font-semibold text-slate-800">
-                                    <FileText size={13} className="text-red-600 shrink-0" />
-                                    <span className="truncate" title={r.nama_sijil}>{r.nama_sijil}</span>
-                                  </div>
-
-                                  <div className="mt-2.5 flex items-center justify-between border-t border-slate-100 pt-2">
-                                    <span className="inline-flex items-center gap-1 text-[11px] text-slate-500">
-                                      <CalendarDays size={11} className="text-slate-400" />
-                                      {fmtDate(r.tarikh_isu)}
-                                    </span>
-                                    <div className="flex items-center gap-1">
-                                      <a
-                                        href={certPreview(r.public_token)}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        title="Lihat sijil"
-                                        aria-label="Lihat sijil"
-                                        className="rounded-lg bg-slate-100 p-1.5 text-slate-600 transition hover:bg-red-50 hover:text-red-800"
-                                      >
-                                        <Eye size={13} />
-                                      </a>
-                                      <a
-                                        href={certDownload(r.public_token)}
-                                        download={`${r.nama_penuh}.pdf`}
-                                        title="Muat turun sijil"
-                                        aria-label="Muat turun sijil"
-                                        className="rounded-lg bg-red-50 p-1.5 text-red-700 transition hover:bg-red-100 border border-red-100"
-                                      >
-                                        <Download size={13} />
-                                      </a>
-                                      <button
-                                        type="button"
-                                        onClick={() => setTarget(r)}
-                                        title="Padam sijil"
-                                        aria-label="Padam sijil"
-                                        className="rounded-lg bg-rose-50 p-1.5 text-rose-600 transition hover:bg-rose-100"
-                                      >
-                                        <Trash2 size={13} />
-                                      </button>
-                                    </div>
+                                  {/* Bahagian Kanan: Butang Tindakan */}
+                                  <div className="flex items-center justify-end gap-1.5 shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-slate-100">
+                                    <a
+                                      href={certPreview(r.public_token)}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      title="Lihat sijil"
+                                      aria-label="Lihat sijil"
+                                      className="inline-flex items-center gap-1.5 rounded-lg bg-slate-100 px-2.5 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-200 hover:text-slate-900"
+                                    >
+                                      <Eye size={14} className="text-slate-500" />
+                                      <span className="hidden sm:inline">Lihat</span>
+                                    </a>
+                                    <a
+                                      href={certDownload(r.public_token)}
+                                      download={`${r.nama_penuh}.pdf`}
+                                      title="Muat turun sijil"
+                                      aria-label="Muat turun sijil"
+                                      className="inline-flex items-center gap-1.5 rounded-lg bg-red-50 border border-red-200 px-2.5 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-100 hover:text-red-900"
+                                    >
+                                      <Download size={14} />
+                                      <span className="hidden sm:inline">Muat Turun</span>
+                                    </a>
+                                    <button
+                                      type="button"
+                                      onClick={() => setTarget(r)}
+                                      title="Padam sijil"
+                                      aria-label="Padam sijil"
+                                      className="inline-flex items-center gap-1 rounded-lg bg-rose-50 border border-rose-200/60 p-1.5 sm:px-2.5 sm:py-1.5 text-xs font-semibold text-rose-700 transition hover:bg-rose-100 hover:text-rose-900"
+                                    >
+                                      <Trash2 size={14} />
+                                      <span className="hidden sm:inline">Padam</span>
+                                    </button>
                                   </div>
                                 </div>
                               );
@@ -1020,7 +1023,7 @@ export function Certificates() {
                           className="mt-1 h-4 w-4 rounded border-slate-300 text-red-600 focus:ring-red-500 cursor-pointer shrink-0"
                         />
                         <div className="min-w-0">
-                          <div className="font-extrabold text-slate-950 text-sm truncate">{r.nama_penuh}</div>
+                          <div className="font-extrabold text-slate-950 text-sm leading-snug">{r.nama_penuh}</div>
                           <div className="text-xs text-slate-400 font-mono">{r.no_kp_atau_id || '—'}</div>
                         </div>
                       </div>
