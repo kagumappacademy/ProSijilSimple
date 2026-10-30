@@ -58,6 +58,12 @@ CREATE TABLE IF NOT EXISTS admin_activity (
  title TEXT NOT NULL,
  detail TEXT,
  target_url TEXT,
+ students_before INTEGER,
+ students_after INTEGER,
+ certs_before INTEGER,
+ certs_after INTEGER,
+ templates_before INTEGER,
+ templates_after INTEGER,
  created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_pesilat_nama ON pesilat(nama_penuh);
@@ -75,6 +81,12 @@ try { db.exec('ALTER TABLE sijil ADD COLUMN kategori TEXT;'); } catch (_) {}
 try { db.exec('ALTER TABLE template_sijil ADD COLUMN page_count INTEGER DEFAULT 1;'); } catch (_) {}
 try { db.exec('ALTER TABLE template_sijil ADD COLUMN thumbnail_base64 TEXT;'); } catch (_) {}
 try { db.exec('ALTER TABLE template_sijil ADD COLUMN layout_config TEXT;'); } catch (_) {}
+try { db.exec('ALTER TABLE admin_activity ADD COLUMN students_before INTEGER;'); } catch (_) {}
+try { db.exec('ALTER TABLE admin_activity ADD COLUMN students_after INTEGER;'); } catch (_) {}
+try { db.exec('ALTER TABLE admin_activity ADD COLUMN certs_before INTEGER;'); } catch (_) {}
+try { db.exec('ALTER TABLE admin_activity ADD COLUMN certs_after INTEGER;'); } catch (_) {}
+try { db.exec('ALTER TABLE admin_activity ADD COLUMN templates_before INTEGER;'); } catch (_) {}
+try { db.exec('ALTER TABLE admin_activity ADD COLUMN templates_after INTEGER;'); } catch (_) {}
 const defaults = {
  nama_organisasi: 'AKADEMI PRO SILAT',
  sub_organisasi: 'Pusat Latihan Silat Pintar',
@@ -102,12 +114,62 @@ export function uniqueId() {
  return id;
 }
 
-export function logActivity(type, action, title, detail = '', target_url = '') {
+export function getSystemCounts() {
   try {
+    const students = db.prepare('SELECT COUNT(*) as c FROM pesilat').get()?.c || 0;
+    const certs = db.prepare('SELECT COUNT(*) as c FROM sijil').get()?.c || 0;
+    const templates = db.prepare('SELECT COUNT(*) as c FROM template_sijil').get()?.c || 0;
+    return { students, certs, templates };
+  } catch (_) {
+    return { students: 0, certs: 0, templates: 0 };
+  }
+}
+
+export function logActivity(type, action, title, detail = '', target_url = '', metrics = {}) {
+  try {
+    let countsBefore = metrics.countsBefore || metrics.before || null;
+    let countsAfter = metrics.countsAfter || metrics.after || null;
+
+    const current = getSystemCounts();
+    if (!countsAfter) {
+      countsAfter = current;
+    }
+    if (!countsBefore) {
+      countsBefore = { ...countsAfter };
+      if (type === 'student') {
+        if (action === 'create' || action === 'import_csv') countsBefore.students = Math.max(0, countsAfter.students - 1);
+        else if (action === 'delete') countsBefore.students = countsAfter.students + 1;
+      } else if (type === 'certificate') {
+        if (action === 'create' || action === 'generate_batch') countsBefore.certs = Math.max(0, countsAfter.certs - 1);
+        else if (action === 'delete') countsBefore.certs = countsAfter.certs + 1;
+      } else if (type === 'template') {
+        if (action === 'create') countsBefore.templates = Math.max(0, countsAfter.templates - 1);
+        else if (action === 'delete') countsBefore.templates = countsAfter.templates + 1;
+      }
+    }
+
+    const students_before = metrics.students_before ?? countsBefore.students ?? 0;
+    const students_after = metrics.students_after ?? countsAfter.students ?? 0;
+    const certs_before = metrics.certs_before ?? countsBefore.certs ?? 0;
+    const certs_after = metrics.certs_after ?? countsAfter.certs ?? 0;
+    const templates_before = metrics.templates_before ?? countsBefore.templates ?? 0;
+    const templates_after = metrics.templates_after ?? countsAfter.templates ?? 0;
+
     db.prepare(`
-      INSERT INTO admin_activity (type, action, title, detail, target_url, created_at)
-      VALUES (?, ?, ?, ?, ?, datetime('now'))
-    `).run(type, action, title, detail || '', target_url || '');
+      INSERT INTO admin_activity (
+        type, action, title, detail, target_url,
+        students_before, students_after,
+        certs_before, certs_after,
+        templates_before, templates_after,
+        created_at
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))
+    `).run(
+      type, action, title, detail || '', target_url || '',
+      students_before, students_after,
+      certs_before, certs_after,
+      templates_before, templates_after
+    );
 
     // Hadkan kepada 200 rekod terkini untuk kebersihan dan prestasi SQLite
     db.prepare(`
@@ -121,10 +183,31 @@ export function logActivity(type, action, title, detail = '', target_url = '') {
   }
 }
 
+// Kemaskini rekod sedia ada yang masih belum mempunyai maklumat kiraan sebelum/selepas
+try {
+  const currentCounts = getSystemCounts();
+  db.prepare(`
+    UPDATE admin_activity
+    SET students_before = COALESCE(students_before, ?),
+        students_after = COALESCE(students_after, ?),
+        certs_before = COALESCE(certs_before, ?),
+        certs_after = COALESCE(certs_after, ?),
+        templates_before = COALESCE(templates_before, ?),
+        templates_after = COALESCE(templates_after, ?)
+    WHERE students_before IS NULL OR students_after IS NULL
+  `).run(
+    currentCounts.students, currentCounts.students,
+    currentCounts.certs, currentCounts.certs,
+    currentCounts.templates, currentCounts.templates
+  );
+} catch (_) {}
+
 export function ensureSeedActivities() {
   try {
     const row = db.prepare('SELECT COUNT(*) as count FROM admin_activity').get();
     if (row && row.count > 0) return;
+
+    const current = getSystemCounts();
 
     // Masukkan aktiviti awal berdasarkan rekod yang sudah wujud dalam sistem
     const certs = db.prepare(`
@@ -135,9 +218,21 @@ export function ensureSeedActivities() {
     `).all();
     for (const c of certs) {
       db.prepare(`
-        INSERT INTO admin_activity (type, action, title, detail, target_url, created_at)
-        VALUES ('certificate', 'create', 'Sijil Dikeluarkan', ?, '/admin/sijil', ?)
-      `).run(`${c.nama_sijil} (${c.nama_penuh || 'Pesilat'})`, c.created_at || new Date().toISOString());
+        INSERT INTO admin_activity (
+          type, action, title, detail, target_url,
+          students_before, students_after,
+          certs_before, certs_after,
+          templates_before, templates_after,
+          created_at
+        )
+        VALUES ('certificate', 'create', 'Sijil Dikeluarkan', ?, '/admin/sijil', ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        `${c.nama_sijil} (${c.nama_penuh || 'Pesilat'})`,
+        current.students, current.students,
+        Math.max(0, current.certs - 1), current.certs,
+        current.templates, current.templates,
+        c.created_at || new Date().toISOString()
+      );
     }
 
     const students = db.prepare(`
@@ -147,9 +242,21 @@ export function ensureSeedActivities() {
     `).all();
     for (const s of students) {
       db.prepare(`
-        INSERT INTO admin_activity (type, action, title, detail, target_url, created_at)
-        VALUES ('student', 'create', 'Pendaftaran Pesilat', ?, '/admin/pesilat', ?)
-      `).run(`${s.nama_penuh} • ${s.cawangan || 'Akademi'}`, s.created_at || new Date().toISOString());
+        INSERT INTO admin_activity (
+          type, action, title, detail, target_url,
+          students_before, students_after,
+          certs_before, certs_after,
+          templates_before, templates_after,
+          created_at
+        )
+        VALUES ('student', 'create', 'Pendaftaran Pesilat', ?, '/admin/pesilat', ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        `${s.nama_penuh} • ${s.cawangan || 'Akademi'}`,
+        Math.max(0, current.students - 1), current.students,
+        current.certs, current.certs,
+        current.templates, current.templates,
+        s.created_at || new Date().toISOString()
+      );
     }
 
     const templates = db.prepare(`
@@ -159,9 +266,21 @@ export function ensureSeedActivities() {
     `).all();
     for (const t of templates) {
       db.prepare(`
-        INSERT INTO admin_activity (type, action, title, detail, target_url, created_at)
-        VALUES ('template', 'create', 'Templat Dimuat Naik', ?, '/admin/templates', ?)
-      `).run(`${t.nama_template} (${t.peringkat})`, t.created_at || new Date().toISOString());
+        INSERT INTO admin_activity (
+          type, action, title, detail, target_url,
+          students_before, students_after,
+          certs_before, certs_after,
+          templates_before, templates_after,
+          created_at
+        )
+        VALUES ('template', 'create', 'Templat Dimuat Naik', ?, '/admin/templates', ?, ?, ?, ?, ?, ?, ?)
+      `).run(
+        `${t.nama_template} (${t.peringkat})`,
+        current.students, current.students,
+        current.certs, current.certs,
+        Math.max(0, current.templates - 1), current.templates,
+        t.created_at || new Date().toISOString()
+      );
     }
   } catch (err) {
     console.warn('[Activity Seed Warning]', err.message);

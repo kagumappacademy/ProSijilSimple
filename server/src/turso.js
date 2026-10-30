@@ -91,6 +91,12 @@ export const TURSO_SCHEMA_STATEMENTS = [
     title TEXT NOT NULL,
     detail TEXT,
     target_url TEXT,
+    students_before INTEGER,
+    students_after INTEGER,
+    certs_before INTEGER,
+    certs_after INTEGER,
+    templates_before INTEGER,
+    templates_after INTEGER,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   )`,
   `CREATE INDEX IF NOT EXISTS idx_pesilat_nama ON pesilat(nama_penuh)`,
@@ -113,6 +119,12 @@ export async function initTursoSchema(client) {
   try {
     await turso.execute('ALTER TABLE template_sijil ADD COLUMN thumbnail_base64 TEXT;');
   } catch (_) {}
+  try { await turso.execute('ALTER TABLE admin_activity ADD COLUMN students_before INTEGER;'); } catch (_) {}
+  try { await turso.execute('ALTER TABLE admin_activity ADD COLUMN students_after INTEGER;'); } catch (_) {}
+  try { await turso.execute('ALTER TABLE admin_activity ADD COLUMN certs_before INTEGER;'); } catch (_) {}
+  try { await turso.execute('ALTER TABLE admin_activity ADD COLUMN certs_after INTEGER;'); } catch (_) {}
+  try { await turso.execute('ALTER TABLE admin_activity ADD COLUMN templates_before INTEGER;'); } catch (_) {}
+  try { await turso.execute('ALTER TABLE admin_activity ADD COLUMN templates_after INTEGER;'); } catch (_) {}
 }
 
 /**

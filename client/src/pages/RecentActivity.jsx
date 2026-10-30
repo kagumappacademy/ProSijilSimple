@@ -104,6 +104,30 @@ function formatFullDateTime(dateString) {
   }
 }
 
+function renderDiff(before, after) {
+  if (before === undefined || before === null || after === undefined || after === null) return null;
+  const diff = Number(after) - Number(before);
+  if (diff > 0) {
+    return (
+      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 shrink-0">
+        +{diff}
+      </span>
+    );
+  }
+  if (diff < 0) {
+    return (
+      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800 shrink-0">
+        {diff}
+      </span>
+    );
+  }
+  return (
+    <span className="text-[10px] text-slate-400 font-medium px-0.5 shrink-0">
+      (=)
+    </span>
+  );
+}
+
 export function RecentActivity() {
   const { t, lang } = useLang();
   const { setRefreshing } = useSync();
@@ -358,59 +382,139 @@ export function RecentActivity() {
                 return (
                   <div
                     key={act.id}
-                    className="group relative flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl border border-slate-200/80 bg-white hover:border-slate-300 hover:shadow-xs transition-all duration-150"
+                    className="group relative flex flex-col gap-3 p-4 rounded-xl border border-slate-200/80 bg-white hover:border-slate-300 hover:shadow-xs transition-all duration-150"
                   >
-                    <div className="flex items-start gap-3.5 min-w-0">
-                      {/* Icon Badge */}
-                      <div className={`mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-xl border ${badgeBg}`}>
-                        <Icon size={18} />
+                    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                      <div className="flex items-start gap-3.5 min-w-0 flex-1">
+                        {/* Icon Badge */}
+                        <div className={`mt-0.5 grid h-9 w-9 shrink-0 place-items-center rounded-xl border ${badgeBg}`}>
+                          <Icon size={18} />
+                        </div>
+
+                        {/* Content */}
+                        <div className="min-w-0 flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-sm font-bold text-slate-900 group-hover:text-red-700 transition-colors">
+                              {act.title}
+                            </span>
+                            <span
+                              className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-md border uppercase tracking-wider ${badgeBg}`}
+                            >
+                              <span className={`h-1.5 w-1.5 rounded-full ${dotColor}`} />
+                              {catLabel}
+                            </span>
+                          </div>
+
+                          {act.detail && (
+                            <p className="text-xs text-slate-600 mt-1 font-normal leading-relaxed">
+                              {act.detail}
+                            </p>
+                          )}
+
+                          <div className="flex items-center gap-3 text-[11px] text-slate-400 mt-2">
+                            <span className="flex items-center gap-1">
+                              <Clock size={12} className="text-slate-400" />
+                              {formatFullDateTime(act.created_at)}
+                            </span>
+                            <span>•</span>
+                            <span className="font-medium text-slate-500">
+                              {formatTimeAgo(act.created_at)}
+                            </span>
+                          </div>
+                        </div>
                       </div>
 
-                      {/* Content */}
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-sm font-bold text-slate-900 group-hover:text-red-700 transition-colors">
-                            {act.title}
-                          </span>
-                          <span
-                            className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-md border uppercase tracking-wider ${badgeBg}`}
+                      {/* Action Button */}
+                      {act.target_url && (
+                        <div className="self-end sm:self-center shrink-0 pt-1 sm:pt-0">
+                          <Link
+                            to={act.target_url}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all cursor-pointer shadow-2xs"
                           >
-                            <span className={`h-1.5 w-1.5 rounded-full ${dotColor}`} />
-                            {catLabel}
-                          </span>
+                            <span>{t('openTargetPage') || 'Buka Halaman'}</span>
+                            <ArrowUpRight size={13} />
+                          </Link>
                         </div>
-
-                        {act.detail && (
-                          <p className="text-xs text-slate-600 mt-1 font-normal leading-relaxed">
-                            {act.detail}
-                          </p>
-                        )}
-
-                        <div className="flex items-center gap-3 text-[11px] text-slate-400 mt-2">
-                          <span className="flex items-center gap-1">
-                            <Clock size={12} className="text-slate-400" />
-                            {formatFullDateTime(act.created_at)}
-                          </span>
-                          <span>•</span>
-                          <span className="font-medium text-slate-500">
-                            {formatTimeAgo(act.created_at)}
-                          </span>
-                        </div>
-                      </div>
+                      )}
                     </div>
 
-                    {/* Action Button */}
-                    {act.target_url && (
-                      <div className="self-end sm:self-center shrink-0 pt-2 sm:pt-0">
-                        <Link
-                          to={act.target_url}
-                          className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-900 hover:text-white hover:border-slate-900 transition-all cursor-pointer shadow-2xs"
-                        >
-                          <span>{t('openTargetPage') || 'Buka Halaman'}</span>
-                          <ArrowUpRight size={13} />
-                        </Link>
+                    {/* Snapshot Kiraan Sebelum & Selepas */}
+                    <div className="pt-2.5 mt-0.5 border-t border-slate-100 flex flex-wrap items-center gap-2 sm:gap-3">
+                      {/* Pelajar */}
+                      <div
+                        className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-xs transition-colors ${
+                          act.type === 'student'
+                            ? 'bg-blue-50/90 border-blue-200 text-blue-950 font-medium'
+                            : 'bg-slate-50/80 border-slate-200/70 text-slate-700'
+                        }`}
+                        title={`${t('studentsCountLabel') || 'Pelajar'}: ${t('beforeCountLabel') || 'Sebelum'} ${act.students_before ?? '-'} ➔ ${t('afterCountLabel') || 'Selepas'} ${act.students_after ?? '-'}`}
+                      >
+                        <div className="flex items-center gap-1.5 text-blue-700 font-semibold shrink-0">
+                          <GraduationCap size={14} />
+                          <span className="text-[11px]">{t('studentsCountLabel') || 'Pelajar'}:</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 font-mono text-xs">
+                          <span className="text-slate-500 font-medium" title={t('beforeCountLabel') || 'Sebelum'}>
+                            {act.students_before ?? '-'}
+                          </span>
+                          <span className="text-slate-300 font-sans">&rarr;</span>
+                          <span className="font-bold text-slate-900" title={t('afterCountLabel') || 'Selepas'}>
+                            {act.students_after ?? '-'}
+                          </span>
+                        </div>
+                        {renderDiff(act.students_before, act.students_after)}
                       </div>
-                    )}
+
+                      {/* Sijil */}
+                      <div
+                        className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-xs transition-colors ${
+                          act.type === 'certificate'
+                            ? 'bg-emerald-50/90 border-emerald-200 text-emerald-950 font-medium'
+                            : 'bg-slate-50/80 border-slate-200/70 text-slate-700'
+                        }`}
+                        title={`${t('certsCountLabel') || 'Sijil'}: ${t('beforeCountLabel') || 'Sebelum'} ${act.certs_before ?? '-'} ➔ ${t('afterCountLabel') || 'Selepas'} ${act.certs_after ?? '-'}`}
+                      >
+                        <div className="flex items-center gap-1.5 text-emerald-700 font-semibold shrink-0">
+                          <Award size={14} />
+                          <span className="text-[11px]">{t('certsCountLabel') || 'Sijil'}:</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 font-mono text-xs">
+                          <span className="text-slate-500 font-medium" title={t('beforeCountLabel') || 'Sebelum'}>
+                            {act.certs_before ?? '-'}
+                          </span>
+                          <span className="text-slate-300 font-sans">&rarr;</span>
+                          <span className="font-bold text-slate-900" title={t('afterCountLabel') || 'Selepas'}>
+                            {act.certs_after ?? '-'}
+                          </span>
+                        </div>
+                        {renderDiff(act.certs_before, act.certs_after)}
+                      </div>
+
+                      {/* Templat */}
+                      <div
+                        className={`flex items-center gap-2 px-2.5 py-1.5 rounded-lg border text-xs transition-colors ${
+                          act.type === 'template'
+                            ? 'bg-purple-50/90 border-purple-200 text-purple-950 font-medium'
+                            : 'bg-slate-50/80 border-slate-200/70 text-slate-700'
+                        }`}
+                        title={`${t('templatesCountLabel') || 'Templat'}: ${t('beforeCountLabel') || 'Sebelum'} ${act.templates_before ?? '-'} ➔ ${t('afterCountLabel') || 'Selepas'} ${act.templates_after ?? '-'}`}
+                      >
+                        <div className="flex items-center gap-1.5 text-purple-700 font-semibold shrink-0">
+                          <Layers size={14} />
+                          <span className="text-[11px]">{t('templatesCountLabel') || 'Templat'}:</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 font-mono text-xs">
+                          <span className="text-slate-500 font-medium" title={t('beforeCountLabel') || 'Sebelum'}>
+                            {act.templates_before ?? '-'}
+                          </span>
+                          <span className="text-slate-300 font-sans">&rarr;</span>
+                          <span className="font-bold text-slate-900" title={t('afterCountLabel') || 'Selepas'}>
+                            {act.templates_after ?? '-'}
+                          </span>
+                        </div>
+                        {renderDiff(act.templates_before, act.templates_after)}
+                      </div>
+                    </div>
                   </div>
                 );
               })}
@@ -424,8 +528,9 @@ export function RecentActivity() {
             Menunjukkan <span className="font-bold text-slate-800">{filteredActivities.length}</span> daripada{' '}
             <span className="font-bold text-slate-800">{activities.length}</span> aktiviti direkodkan.
           </div>
-          <div className="text-[11px] text-slate-400 hidden sm:block">
-            Disimpan secara selamat di pangkalan data & disegerakkan secara automatik
+          <div className="text-[11px] text-slate-400 hidden sm:flex items-center gap-1.5">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+            <span>{t('metricBeforeAfterNote') || 'Kiraan integriti data direkod sebelum & selepas setiap tindakan pentadbir.'}</span>
           </div>
         </div>
       </Panel>

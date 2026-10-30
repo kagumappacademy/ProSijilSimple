@@ -7,7 +7,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import { rateLimit } from 'express-rate-limit';
-import { db, getSettings, uniqueId, triggerTursoSync, logActivity } from './db.js';
+import { db, getSettings, uniqueId, triggerTursoSync, logActivity, getSystemCounts } from './db.js';
 import { cookieName, cookieOptions, requireAdmin, setSession } from './auth.js';
 import { dataDir, portalUrl, production, projectRoot } from './config.js';
 import { decodeCsv, csvSafe } from './csv.js';
@@ -233,7 +233,7 @@ app.get('/api/admin/recent-activity', requireAdmin, (req, res) => {
  try {
   const limit = Math.min(Math.max(parseInt(req.query.limit, 10) || 50, 1), 200);
   const type = trim(req.query.type, 30);
-  let query = 'SELECT id, type, action, title, detail, target_url, created_at FROM admin_activity';
+  let query = 'SELECT id, type, action, title, detail, target_url, students_before, students_after, certs_before, certs_after, templates_before, templates_after, created_at FROM admin_activity';
   const params = [];
   if (type && type !== 'all') {
    query += ' WHERE type = ?';
@@ -277,6 +277,7 @@ app.get('/api/admin/students',requireAdmin,(req,res)=>{
 });
 app.post('/api/admin/students',requireAdmin,async (req,res)=>{
  try{
+ const countsBefore = getSystemCounts();
  const values=validatePesilat(req.body||{});
  values.no_kp_atau_id=values.no_kp_atau_id||uniqueId();
  let newId = null;
@@ -310,7 +311,7 @@ app.post('/api/admin/students',requireAdmin,async (req,res)=>{
   newId = Number(result.lastInsertRowid);
  }
 
- logActivity('student', 'create', 'Pesilat Didaftarkan', `${values.nama_penuh} (${values.cawangan || values.peringkat || 'Pesilat'})`, '/admin/pesilat');
+ logActivity('student', 'create', 'Pesilat Didaftarkan', `${values.nama_penuh} (${values.cawangan || values.peringkat || 'Pesilat'})`, '/admin/pesilat', { countsBefore, countsAfter: getSystemCounts() });
 
  res.status(201).json({id:newId,...values});
  }catch(e){return fail(res,e.message.includes('UNIQUE')?'Nombor KP/ID sudah digunakan.':e.message);}
@@ -319,6 +320,7 @@ app.put('/api/admin/students/:id',requireAdmin,async (req,res)=>{
  const id=cleanId(req.params.id);if(!id)return fail(res,'ID pesilat tidak sah.');
  const before=db.prepare('SELECT * FROM pesilat WHERE id=?').get(id);if(!before)return fail(res,'Pesilat tidak ditemui.',404);
  try{
+ const countsBefore = getSystemCounts();
  const values=validatePesilat({...before,...req.body});
  values.no_kp_atau_id=values.no_kp_atau_id||before.no_kp_atau_id;
 
@@ -341,7 +343,7 @@ app.put('/api/admin/students/:id',requireAdmin,async (req,res)=>{
  // 2. Kemaskini di SQLite tempatan (cache)
  db.prepare("UPDATE pesilat SET nama_penuh=@nama_penuh,no_kp_atau_id=@no_kp_atau_id,peringkat=@peringkat,cawangan=@cawangan,tarikh_daftar=@tarikh_daftar,updated_at=datetime('now') WHERE id=@id").run({...values,id});
 
- logActivity('student', 'update', 'Pesilat Dikemaskini', `${values.nama_penuh} (${values.cawangan || values.peringkat || 'Pesilat'})`, '/admin/pesilat');
+ logActivity('student', 'update', 'Pesilat Dikemaskini', `${values.nama_penuh} (${values.cawangan || values.peringkat || 'Pesilat'})`, '/admin/pesilat', { countsBefore, countsAfter: getSystemCounts() });
 
  res.json({id,...values});
  }catch(e){return fail(res,e.message.includes('UNIQUE')?'Nombor KP/ID sudah digunakan.':e.message);}
@@ -350,6 +352,7 @@ app.delete('/api/admin/students/:id',requireAdmin,async (req,res)=>{
  const id=cleanId(req.params.id);if(!id)return fail(res,'ID pesilat tidak sah.');
  const targetStudent=db.prepare('SELECT nama_penuh FROM pesilat WHERE id=?').get(id);
  const certs=db.prepare('SELECT file_path FROM sijil WHERE pesilat_id=?').all(id);
+ const countsBefore = getSystemCounts();
 
  // 1. Padam di Turso Cloud terlebih dahulu
  try {
@@ -369,7 +372,7 @@ app.delete('/api/admin/students/:id',requireAdmin,async (req,res)=>{
  if(!result.changes)return fail(res,'Pesilat tidak ditemui.',404);
  for(const c of certs) if(c.file_path) { try{ fs.rmSync(c.file_path,{force:true}); }catch(_){} }
 
- logActivity('student', 'delete', 'Pesilat Dipadam', targetStudent ? targetStudent.nama_penuh : `Pesilat #${id}`, '/admin/pesilat');
+ logActivity('student', 'delete', 'Pesilat Dipadam', targetStudent ? targetStudent.nama_penuh : `Pesilat #${id}`, '/admin/pesilat', { countsBefore, countsAfter: getSystemCounts() });
 
  res.json({success:true});
 });
@@ -413,6 +416,7 @@ app.post('/api/admin/students/import',requireAdmin,upload.single('file'),async (
  if(!req.file)return fail(res,'Sila pilih fail CSV.');
  if(!req.file.originalname.toLowerCase().endsWith('.csv'))return fail(res,'Format fail mestilah .csv.');
  try{
+ const countsBefore = getSystemCounts();
  const rows=decodeCsv(req.file.buffer);
  let inserted=0,skipped=0;const errors=[];
  const ins=db.prepare('INSERT INTO pesilat (nama_penuh,no_kp_atau_id,peringkat,cawangan,tarikh_daftar) VALUES (?,?,?,?,?)');
@@ -437,7 +441,7 @@ app.post('/api/admin/students/import',requireAdmin,upload.single('file'),async (
    console.warn('[Turso Import Sync Warning]', err.message);
   }
  }catch(e){db.exec('ROLLBACK');throw e;}
- logActivity('student', 'import_csv', 'Import Pesilat CSV', `${inserted} pesilat ditambah, ${skipped} dilangkau (${rows.length} rekod)`, '/admin/pesilat');
+ logActivity('student', 'import_csv', 'Import Pesilat CSV', `${inserted} pesilat ditambah, ${skipped} dilangkau (${rows.length} rekod)`, '/admin/pesilat', { countsBefore, countsAfter: getSystemCounts() });
  res.json({total:rows.length,inserted,skipped,errors:errors.slice(0,25)});
  }catch(e){return fail(res,e.message);}
 });
@@ -512,6 +516,7 @@ app.post('/api/admin/certificates',requireAdmin,upload.single('file'),async (req
   try{fs.writeFileSync(file_path,bytes,{flag:'wx'});}catch(_){}
  }
  try{
+ const countsBefore = getSystemCounts();
  const token=crypto.randomUUID();
  const result=db.prepare('INSERT INTO sijil (pesilat_id,nama_sijil,tarikh_isu,jenis,file_path,file_type,public_token,file_base64,kategori) VALUES (?,?,?,?,?,?,?,?,?)').run(id,title,tarikh,jenis,file_path,file_type,token,file_base64,kategori);
  const newCertId = Number(result.lastInsertRowid);
@@ -533,7 +538,7 @@ app.post('/api/admin/certificates',requireAdmin,upload.single('file'),async (req
 
  const studentRow = db.prepare('SELECT nama_penuh FROM pesilat WHERE id=?').get(id);
  const certLabel = jenis === 'uploaded' ? 'Sijil Dimuat Naik' : 'Sijil Dikeluarkan';
- logActivity('certificate', 'create', certLabel, `${title} (${studentRow?.nama_penuh || 'Pesilat'})`, '/admin/sijil');
+ logActivity('certificate', 'create', certLabel, `${title} (${studentRow?.nama_penuh || 'Pesilat'})`, '/admin/sijil', { countsBefore, countsAfter: getSystemCounts() });
 
  return res.status(201).json({id:newCertId,public_token:token,kategori});
  }catch(e){if(file_path){try{fs.rmSync(file_path,{force:true});}catch(_){}}throw e;}
@@ -543,6 +548,7 @@ app.put('/api/admin/certificates/:id',requireAdmin,upload.single('file'),async (
  const id=cleanId(req.params.id);if(!id)return fail(res,'ID tidak sah.');
  const current=db.prepare('SELECT * FROM sijil WHERE id=?').get(id);
  if(!current)return fail(res,'Sijil tidak ditemui.',404);
+ const countsBefore = getSystemCounts();
  const title=trim(req.body?.nama_sijil,130)||current.nama_sijil;
  const tarikh=trim(req.body?.tarikh_isu,10)||current.tarikh_isu;
  if(title.length<3)return fail(res,'Nama sijil perlu sekurang-kurangnya 3 aksara.');
@@ -583,7 +589,7 @@ app.put('/api/admin/certificates/:id',requireAdmin,upload.single('file'),async (
   console.warn('[Turso Sync Warning]', err.message);
  }
 
- logActivity('certificate', 'update', 'Sijil Dikemaskini', `${title}`, '/admin/sijil');
+ logActivity('certificate', 'update', 'Sijil Dikemaskini', `${title}`, '/admin/sijil', { countsBefore, countsAfter: getSystemCounts() });
 
  res.json({id,nama_sijil:title,tarikh_isu:tarikh,jenis,kategori,public_token:current.public_token});
  }catch(e){next(e);}
@@ -592,6 +598,7 @@ app.delete('/api/admin/certificates/:id',requireAdmin,async (req,res,next)=>{
  try {
  const id=cleanId(req.params.id);if(!id)return fail(res,'ID tidak sah.');
  const row=db.prepare('SELECT nama_sijil, public_token, file_path FROM sijil WHERE id=?').get(id);if(!row)return fail(res,'Sijil tidak ditemui.',404);
+ const countsBefore = getSystemCounts();
  db.prepare('DELETE FROM sijil WHERE id=?').run(id);
  if(row.file_path){try{fs.rmSync(row.file_path,{force:true});}catch(_){}}
 
@@ -605,7 +612,7 @@ app.delete('/api/admin/certificates/:id',requireAdmin,async (req,res,next)=>{
   console.warn('[Turso Delete Warning]', err.message);
  }
 
- logActivity('certificate', 'delete', 'Sijil Dipadam', `${row.nama_sijil || 'Sijil'} (${row.public_token || id})`, '/admin/sijil');
+ logActivity('certificate', 'delete', 'Sijil Dipadam', `${row.nama_sijil || 'Sijil'} (${row.public_token || id})`, '/admin/sijil', { countsBefore, countsAfter: getSystemCounts() });
 
  return res.json({success:true});
  }catch(e){next(e);}
@@ -614,6 +621,7 @@ app.post('/api/admin/certificates/batch-delete',requireAdmin,async (req,res,next
  try {
  const ids=Array.isArray(req.body?.ids)?req.body.ids.map(cleanId).filter(Boolean):[];
  if(!ids.length)return fail(res,'Sila pilih sekurang-kurangnya satu sijil.');
+ const countsBefore = getSystemCounts();
 
  const placeholders=ids.map(()=>'?').join(',');
  const rows=db.prepare(`SELECT id, file_path FROM sijil WHERE id IN (${placeholders})`).all(...ids);
@@ -641,7 +649,7 @@ app.post('/api/admin/certificates/batch-delete',requireAdmin,async (req,res,next
   console.warn('[Turso Batch Delete Warning]', err.message);
  }
 
- logActivity('certificate', 'delete', 'Padam Sijil Pukal', `${rows.length} sijil telah dipadam`, '/admin/sijil');
+ logActivity('certificate', 'delete', 'Padam Sijil Pukal', `${rows.length} sijil telah dipadam`, '/admin/sijil', { countsBefore, countsAfter: getSystemCounts() });
 
  return res.json({success:true,deletedCount:rows.length});
  }catch(e){next(e);}
@@ -700,6 +708,7 @@ app.get('/api/admin/templates',requireAdmin,async (req,res)=>{
 
 app.post('/api/admin/templates',requireAdmin,uploadTemplate.fields([{ name: 'file', maxCount: 1 }, { name: 'file_page1', maxCount: 1 }, { name: 'file_page2', maxCount: 1 }]),async (req,res,next)=>{
  try {
+  const countsBefore = getSystemCounts();
   const requestedPageCount = Number(req.body?.page_count) === 2 ? 2 : 1;
   const singleFile = req.files?.file?.[0] || req.file;
   const filePage1 = req.files?.file_page1?.[0];
@@ -823,7 +832,7 @@ app.post('/api/admin/templates',requireAdmin,uploadTemplate.fields([{ name: 'fil
     newId = Number(result.lastInsertRowid);
   }
 
-  logActivity('template', 'create', 'Templat Dimuat Naik', `${nama} (${peringkat || 'Semua Peringkat'})`, '/admin/templates');
+  logActivity('template', 'create', 'Templat Dimuat Naik', `${nama} (${peringkat || 'Semua Peringkat'})`, '/admin/templates', { countsBefore, countsAfter: getSystemCounts() });
 
   return res.status(201).json({ id: newId, nama_template: nama, peringkat, kategori, page_count: actualPageCount, file_name, layout_config });
  } catch (e) { next(e); }
@@ -834,6 +843,7 @@ app.delete('/api/admin/templates/:id',requireAdmin,async (req,res,next)=>{
   const id=cleanId(req.params.id);if(!id)return fail(res,'ID tidak sah.');
   const row=db.prepare('SELECT nama_template, peringkat, file_path FROM template_sijil WHERE id=?').get(id);
   if(!row)return fail(res,'Templat tidak ditemui.',404);
+  const countsBefore = getSystemCounts();
   db.prepare('DELETE FROM template_sijil WHERE id=?').run(id);
   if(row.file_path){try{fs.rmSync(row.file_path,{force:true});}catch(_){}}
 
@@ -845,7 +855,7 @@ app.delete('/api/admin/templates/:id',requireAdmin,async (req,res,next)=>{
     }
   } catch (e) { console.warn('[Turso Delete Warning]', e.message); }
 
-  logActivity('template', 'delete', 'Templat Dipadam', `${row.nama_template || 'Templat'} (${row.peringkat || ''})`, '/admin/templates');
+  logActivity('template', 'delete', 'Templat Dipadam', `${row.nama_template || 'Templat'} (${row.peringkat || ''})`, '/admin/templates', { countsBefore, countsAfter: getSystemCounts() });
 
   return res.json({success:true});
  }catch(e){next(e);}
@@ -939,6 +949,7 @@ app.post('/api/admin/templates/:id/thumbnail',requireAdmin,async (req,res,next)=
 app.post('/api/admin/templates/:id/layout',requireAdmin,async (req,res,next)=>{
  try {
   const id=cleanId(req.params.id);if(!id)return fail(res,'ID tidak sah.');
+  const countsBefore = getSystemCounts();
   const layoutConfig = typeof req.body?.layout_config === 'string'
     ? req.body.layout_config.trim()
     : (req.body?.layout_config ? JSON.stringify(req.body.layout_config) : null);
@@ -957,7 +968,7 @@ app.post('/api/admin/templates/:id/layout',requireAdmin,async (req,res,next)=>{
   } catch (e) { console.warn('[Turso Layout Update Warning]', e.message); }
 
   const tplRow = db.prepare('SELECT nama_template, peringkat FROM template_sijil WHERE id=?').get(id);
-  logActivity('template', 'update_layout', 'Reka Bentuk Templat Dikemaskini', `${tplRow?.nama_template || 'Templat'} (${tplRow?.peringkat || ''})`, '/admin/templates');
+  logActivity('template', 'update_layout', 'Reka Bentuk Templat Dikemaskini', `${tplRow?.nama_template || 'Templat'} (${tplRow?.peringkat || ''})`, '/admin/templates', { countsBefore, countsAfter: getSystemCounts() });
 
   return res.json({success:true, id, layout_config: layoutConfig});
  }catch(e){next(e);}
@@ -1033,6 +1044,7 @@ app.post('/api/admin/templates/test-preview',requireAdmin,async(req,res,next)=>{
 
 app.post('/api/admin/templates/generate-batch',requireAdmin,async(req,res,next)=>{
  try{
+  const countsBefore = getSystemCounts();
   const ids=Array.isArray(req.body?.pesilat_ids)?req.body.pesilat_ids.map(cleanId).filter(Boolean):[];
   if(!ids.length)return fail(res,'Sila pilih sekurang-kurangnya seorang pesilat.');
   const namaTemplate=trim(req.body?.nama_template,160);
@@ -1168,7 +1180,7 @@ app.post('/api/admin/templates/generate-batch',requireAdmin,async(req,res,next)=
 
   if(successCount > 0){
    const tplName = (toInsert[0]?.namaSijil) || 'Templat Sijil';
-   logActivity('certificate', 'generate_batch', 'Janaan Sijil Pukal', `${successCount} sijil dijana (${tplName})`, '/admin/sijil');
+   logActivity('certificate', 'generate_batch', 'Janaan Sijil Pukal', `${successCount} sijil dijana (${tplName})`, '/admin/sijil', { countsBefore, countsAfter: getSystemCounts() });
   }
 
   res.json({
@@ -1182,6 +1194,7 @@ app.post('/api/admin/templates/generate-batch',requireAdmin,async(req,res,next)=
 });
 app.get('/api/admin/settings',requireAdmin,(_req,res)=>res.json(getSettings()));
 app.put('/api/admin/settings',requireAdmin,async (req,res)=>{
+ const countsBefore = getSystemCounts();
  const fields=['nama_organisasi','sub_organisasi','nama_penandatangan','jawatan_penandatangan','tema_warna'];
  const stmt=db.prepare('INSERT INTO settings (key,value) VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value');
  for(const f of fields){
@@ -1211,7 +1224,7 @@ app.put('/api/admin/settings',requireAdmin,async (req,res)=>{
   console.warn('[Turso Settings Update Warning]', err.message);
  }
 
- logActivity('settings', 'update', 'Tetapan Sistem Disimpan', 'Konfigurasi organisasi dan penandatangan dikemaskini', '/admin/tetapan');
+ logActivity('settings', 'update', 'Tetapan Sistem Disimpan', 'Konfigurasi organisasi dan penandatangan dikemaskini', '/admin/tetapan', { countsBefore, countsAfter: getSystemCounts() });
 
  res.json(getSettings());
 });
