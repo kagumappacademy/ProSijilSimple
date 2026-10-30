@@ -1459,7 +1459,7 @@ export function Templates() {
   const [deleting, setDeleting] = useState(false);
 
   // Sorting & Filtering State
-  const [viewMode, setViewMode] = useState('grid'); // 'grid' (kotak) or 'table'
+  const [viewMode, setViewMode] = useState('table'); // 'table' (Jadual - lalai utama) or 'grid' (kotak)
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('semua'); // 'semua', 'kenaikan_tali_pinggang', 'pencapaian', 'penghargaan', 'penyertaan'
   const [filterCula, setFilterCula] = useState('semua'); // 'semua', 'merah', 'kuning', 'hijau', 'hitam'
@@ -1627,8 +1627,21 @@ export function Templates() {
               <Chip color="emerald">{filteredTemplates.length} {lang === 'eng' ? 'of' : 'daripada'} {data?.rows?.length || 0}</Chip>
             </div>
 
-            {/* View Switcher: Kotak (Grid) vs Jadual (List) */}
+            {/* View Switcher: Jadual (List/Table - Default) vs Kotak (Grid) */}
             <div className="flex items-center gap-1 bg-slate-100/80 p-1 rounded-2xl text-xs">
+              <button
+                type="button"
+                onClick={() => setViewMode('table')}
+                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition ${
+                  viewMode === 'table'
+                    ? 'bg-white text-slate-900 shadow-xs'
+                    : 'text-slate-500 hover:text-red-800'
+                }`}
+                title={lang === 'eng' ? 'Table View' : 'Paparan Jadual (Lalai)'}
+              >
+                <List size={14} />
+                <span>{lang === 'eng' ? 'Table' : 'Jadual'}</span>
+              </button>
               <button
                 type="button"
                 onClick={() => setViewMode('grid')}
@@ -1641,19 +1654,6 @@ export function Templates() {
               >
                 <LayoutGrid size={14} />
                 <span>{lang === 'eng' ? 'Grid' : 'Kotak'}</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setViewMode('table')}
-                className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition ${
-                  viewMode === 'table'
-                    ? 'bg-white text-slate-900 shadow-xs'
-                    : 'text-slate-500 hover:text-red-800'
-                }`}
-                title={lang === 'eng' ? 'Table View' : 'Paparan Jadual'}
-              >
-                <List size={14} />
-                <span>{lang === 'eng' ? 'Table' : 'Jadual'}</span>
               </button>
             </div>
           </div>
