@@ -1942,17 +1942,19 @@ export function Templates() {
           /* Table View Alternative */
           <div>
             {/* Mobile Cards View (< md) */}
-            <div className="block md:hidden divide-y divide-slate-100 p-3 space-y-3">
+            <div className="block md:hidden p-3 space-y-3">
               {filteredTemplates.map((item) => {
                 const meta = getRankMeta(item.peringkat);
                 const catMeta = getCategoryMeta(getCertCategory(item));
                 const previewUrl = `/api/admin/templates/${item.id}/preview`;
                 return (
-                  <div key={item.id} className="rounded-2xl border border-slate-200/80 bg-white p-3.5 space-y-2.5 shadow-2xs">
+                  <div key={item.id} className="rounded-2xl border border-slate-200/90 bg-white p-3.5 space-y-3 shadow-2xs">
+                    {/* Baris Atas: Thumbnail Tetap + Butiran Templat */}
                     <div className="flex items-start gap-3">
+                      {/* Thumbnail Saiz Tetap & Tidak Boleh Terlebih Lebar */}
                       <div
                         onClick={() => setPreviewTarget(item)}
-                        className="h-20 w-15 shrink-0 rounded-xl overflow-hidden border border-slate-200 bg-slate-50 shadow-2xs cursor-pointer hover:border-red-500 transition relative group/thumb"
+                        className="w-[72px] h-[98px] shrink-0 rounded-xl overflow-hidden border border-slate-200 bg-slate-50 shadow-2xs cursor-pointer hover:border-red-500 transition relative group/thumb"
                         title="Klik untuk besarkan pratonton"
                       >
                         <PdfThumbnail
@@ -1961,59 +1963,84 @@ export function Templates() {
                           templateId={item.id}
                           title={item.nama_template}
                           scale={0.7}
-                          className="h-full w-full"
+                          className="h-full w-full object-contain"
                         />
                         <div className="absolute inset-0 bg-slate-950/30 opacity-0 group-hover/thumb:opacity-100 flex items-center justify-center transition">
-                          <Maximize2 size={12} className="text-white" />
+                          <Maximize2 size={13} className="text-white" />
                         </div>
                       </div>
-                      <div className="min-w-0 flex-1">
+
+                      {/* Maklumat Templat: Kategori, Peringkat & Nama Penuh */}
+                      <div className="min-w-0 flex-1 space-y-1.5">
                         <div className="flex flex-wrap items-center gap-1.5">
                           <Chip color={catMeta.chip}>{catMeta.shortLabel}</Chip>
                           {item.kategori === 'kenaikan_tali_pinggang' && (
                             <Chip color={meta.chip}>{item.peringkat}</Chip>
                           )}
+                          <span className="inline-flex items-center rounded-md bg-slate-900 text-white px-1.5 py-0.5 text-[9px] font-bold">
+                            {Number(item.page_count) === 2 ? '2 Muka' : '1 Muka'}
+                          </span>
                         </div>
+
                         <div
                           onClick={() => setPreviewTarget(item)}
-                          className="font-bold text-slate-950 text-xs sm:text-sm mt-1 cursor-pointer hover:text-red-700 transition"
+                          className="font-extrabold text-slate-950 text-xs sm:text-sm leading-snug cursor-pointer hover:text-red-700 transition break-words"
                         >
                           {item.nama_template}
                         </div>
-                        {item.keterangan && <div className="text-[10px] text-slate-400 mt-0.5">{item.keterangan}</div>}
+
+                        {item.keterangan && (
+                          <div className="text-[11px] text-slate-500 break-words line-clamp-2">
+                            {item.keterangan}
+                          </div>
+                        )}
+
+                        <div className="text-[10px] text-slate-400 font-medium">
+                          Dimuat naik: {fmtDate(item.created_at.slice(0, 10))}
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center justify-between pt-2 border-t border-slate-100 text-xs text-slate-500">
-                      <span>{fmtDate(item.created_at.slice(0, 10))}</span>
-                      <div className="flex items-center gap-1">
+
+                    {/* Baris Bawah: Butang Tindakan yang Tersusun Kemas untuk Telefon */}
+                    <div className="pt-2.5 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
+                      <div className="flex flex-wrap items-center gap-1.5">
                         <button
                           type="button"
                           onClick={() => setPreviewTarget(item)}
-                          className="inline-flex items-center gap-1 rounded-lg bg-red-50 px-2 py-1.5 text-xs font-bold text-red-700 hover:bg-red-100 transition"
+                          className="inline-flex items-center gap-1 rounded-lg bg-red-50 border border-red-200/70 px-2.5 py-1.5 text-xs font-bold text-red-700 hover:bg-red-100 transition active:scale-95"
                           title="Besarkan pratonton sijil"
                         >
-                          <Maximize2 size={12} /> Pratonton
+                          <Maximize2 size={12} />
+                          <span>Pratonton</span>
                         </button>
+
                         <button
                           type="button"
                           onClick={() => setLayoutTarget(item)}
-                          className="inline-flex items-center gap-1 rounded-lg bg-slate-100 px-2 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-200 transition"
+                          className="inline-flex items-center gap-1 rounded-lg bg-slate-100 border border-slate-200 px-2.5 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-200 transition active:scale-95"
                           title="Ubah posisi & reka bentuk nama"
                         >
-                          <Sliders size={12} /> Posisi
+                          <Sliders size={12} />
+                          <span>Posisi</span>
                         </button>
+
                         <button
+                          type="button"
                           onClick={() => setTestTarget(item)}
                           title="Uji janaan nama pada templat"
-                          className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 px-2 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition"
+                          className="inline-flex items-center gap-1 rounded-lg bg-emerald-50 border border-emerald-200 px-2.5 py-1.5 text-xs font-bold text-emerald-700 hover:bg-emerald-100 transition active:scale-95"
                         >
-                          <Play size={12} /> Uji
+                          <Play size={12} />
+                          <span>Uji</span>
                         </button>
+                      </div>
+
+                      <div className="flex items-center gap-1 shrink-0">
                         <a
                           href={previewUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="rounded-lg bg-slate-100 p-1.5 text-slate-600 transition hover:bg-red-50 hover:text-red-800"
+                          className="rounded-lg bg-slate-100 border border-slate-200 p-2 text-slate-600 transition hover:bg-red-50 hover:text-red-800"
                           title="Lihat fail PDF asal"
                         >
                           <Eye size={14} />
@@ -2021,7 +2048,7 @@ export function Templates() {
                         <button
                           type="button"
                           onClick={() => setDeleteTarget(item)}
-                          className="rounded-lg bg-rose-50 p-1.5 text-rose-600 transition hover:bg-rose-100"
+                          className="rounded-lg bg-rose-50 border border-rose-200 p-2 text-rose-600 transition hover:bg-rose-100"
                           title="Padam templat ini"
                         >
                           <Trash2 size={14} />
