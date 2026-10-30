@@ -77,6 +77,7 @@ export function GenerateCerts() {
   const [refreshingTemplates, setRefreshingTemplates] = useState(false);
   const [previewTarget, setPreviewTarget] = useState(null);
   const [result, setResult] = useState(null);
+  const [genError, setGenError] = useState(null);
 
   const { setRefreshing: setGlobalRefreshing } = useSync();
 
@@ -395,6 +396,7 @@ export function GenerateCerts() {
 
     setGenerating(true);
     setResult(null);
+    setGenError(null);
 
     try {
       const res = await api('/admin/templates/generate-batch', {
@@ -414,15 +416,55 @@ export function GenerateCerts() {
         toast.warning(`${res.failedCount} pesilat dilangkau kerana tiada templat sepadan.`);
       }
     } catch (err) {
+      setGenError(err.message || 'Ralat janaan sijil');
       toast.error('Ralat janaan sijil: ' + err.message);
     } finally {
       setGenerating(false);
     }
   }
 
+  // Fungsi Jana Semula: Bawa kembali ke Langkah 2 (Pilih Pesilat) dengan nama siap bertanda & sistem disegarkan
+  const handleRetryBatch = useCallback(async () => {
+    // 1. Tentukan pesilat mana yang perlu ditandakan
+    // Jika ada senarai pesilat yang gagal dalam result, tandakan yang gagal sahaja
+    const failedList = result?.failed || [];
+    const failedIds = failedList.map((f) => f.id).filter(Boolean);
+
+    if (failedIds.length > 0) {
+      setSelectedIds(new Set(failedIds));
+    }
+    // Jika tiada senarai spesifik failed (contohnya ralat pelayan sebelum memproses), selectedIds yang sedia dipilih kekal bertanda
+
+    // 2. Kosongkan keputusan & ralat sebelumnya
+    setResult(null);
+    setGenError(null);
+
+    // 3. Beralih ke Step 2 (Pilih Pesilat)
+    goToStep(2);
+
+    // 4. Segerakkan data sistem (templat terkini & senarai pesilat)
+    try {
+      setManualRefreshing(true);
+      await Promise.all([
+        loadTemplates(true),
+        loadStudents(false),
+      ]);
+      toast.success(
+        lang === 'eng'
+          ? 'System refreshed! Pesilat selection preserved for retry.'
+          : 'Sistem disegarkan! Pesilat sedia ditandakan untuk janaan semula.'
+      );
+    } catch (e) {
+      console.warn('[Sync Error on Retry]', e.message);
+    } finally {
+      setManualRefreshing(false);
+    }
+  }, [result, loadTemplates, loadStudents, lang]);
+
   // Restart wizard for a fresh batch
   function handleResetNewBatch() {
     setResult(null);
+    setGenError(null);
     goToStep(1);
   }
 
@@ -1365,6 +1407,27 @@ export function GenerateCerts() {
       {/* ======================================================== */}
       {currentStep === 3 && (
         <div className="space-y-4 animate-in fade-in duration-200">
+          {/* Banner Ralat Janaan (jika berlaku ralat API atau pelayan) */}
+          {genError && (
+            <div className="rounded-2xl bg-red-50 p-4 border border-red-200 text-xs text-red-900 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-start gap-2.5 min-w-0">
+                <AlertCircle size={20} className="text-red-600 shrink-0 mt-0.5" />
+                <div className="min-w-0">
+                  <div className="font-extrabold text-sm text-red-950">Ralat Semasa Memproses Janaan Sijil</div>
+                  <p className="text-xs text-red-700 mt-0.5 break-words">{genError}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleRetryBatch}
+                className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-red-700 hover:bg-red-800 active:bg-red-900 text-white px-4 py-2 text-xs font-bold transition shadow-sm cursor-pointer shrink-0"
+              >
+                <RotateCcw size={14} />
+                <span>Jana Semula (Kembali ke Langkah 2)</span>
+              </button>
+            </div>
+          )}
+
           {!result ? (
             /* Bahagian 3A: Ringkasan Pengesahan Sebelum Menjana */
             <Panel className="p-4 sm:p-6">
@@ -1584,16 +1647,33 @@ export function GenerateCerts() {
                 </div>
               </div>
 
-              {/* Failed students notification */}
+              {/* Failed students notification dengan butang Jana Semula Segera */}
               {result.failed?.length > 0 && (
-                <div className="rounded-xl bg-white p-3.5 border border-amber-200 mb-4 text-xs text-amber-900">
-                  <div className="font-bold mb-1.5 flex items-center gap-1.5 text-amber-800">
-                    <AlertCircle size={14} /> {t('genFailedListTitle')}
+                <div className="rounded-2xl bg-white p-4 border-2 border-amber-300/80 mb-4 text-xs text-amber-950 shadow-xs">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 pb-2.5 mb-2.5 border-b border-amber-100">
+                    <div className="font-extrabold flex items-center gap-1.5 text-amber-950 text-sm">
+                      <AlertCircle size={16} className="text-amber-600 shrink-0" />
+                      <span>{t('genFailedListTitle')} ({result.failed.length})</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleRetryBatch}
+                      className="inline-flex items-center justify-center gap-1.5 rounded-xl bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white px-4 py-2 text-xs font-bold transition shadow-xs cursor-pointer shrink-0"
+                      title="Kembali ke Langkah 2 dengan pesilat ini sedia ditandakan"
+                    >
+                      <RotateCcw size={14} />
+                      <span>Jana Semula Pesilat Dilangkau</span>
+                    </button>
                   </div>
-                  <ul className="space-y-0.5 pl-4 list-disc text-[11px]">
+                  <p className="text-[11.5px] text-amber-800 mb-2 font-medium">
+                    {lang === 'eng'
+                      ? 'The following students were skipped because the matching PDF template was missing. Click "Jana Semula" above to return to Step 2 with these students pre-selected after you upload the template.'
+                      : 'Pesilat di bawah tidak dapat dijana kerana fail templat PDF bagi peringkat berkenaan tiada atau belum dimuat naik. Klik butang "Jana Semula Pesilat Dilangkau" di atas untuk kembali ke Langkah 2 dengan nama-nama pesilat ini sudah siap ditandakan dan data sistem disegarkan.'}
+                  </p>
+                  <ul className="space-y-1 pl-4 list-disc text-[11px] text-slate-800">
                     {result.failed.map((f, i) => (
                       <li key={i}>
-                        <strong>{f.nama}</strong> ({f.peringkat}): {f.reason}
+                        <strong>{f.nama}</strong> ({f.peringkat}): <span className="text-red-700 font-semibold">{f.reason}</span>
                       </li>
                     ))}
                   </ul>
@@ -1659,6 +1739,19 @@ export function GenerateCerts() {
                 >
                   <ExternalLink size={14} /> {t('btnVerifyOnPublic')}
                 </a>
+
+                {/* Butang Jana Semula jika ada kegagalan / pesilat dilangkau */}
+                {result.failedCount > 0 && (
+                  <button
+                    type="button"
+                    onClick={handleRetryBatch}
+                    className="inline-flex items-center gap-1.5 rounded-xl border border-amber-300 bg-amber-50 px-4 py-2.5 text-xs font-bold text-amber-900 hover:bg-amber-100 transition shadow-2xs cursor-pointer"
+                  >
+                    <RotateCcw size={14} className="text-amber-700" />
+                    <span>Jana Semula ({result.failedCount} Dilangkau)</span>
+                  </button>
+                )}
+
                 <button
                   type="button"
                   onClick={handleResetNewBatch}
