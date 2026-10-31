@@ -50,8 +50,8 @@ app.use('/api', (req, res, next) => {
 });
 const authLimit = rateLimit({windowMs:15*60*1000,limit:12,standardHeaders:'draft-7',legacyHeaders:false,message:{error:'Terlalu banyak percubaan. Cuba semula dalam 15 minit.'}});
 const searchLimit = rateLimit({windowMs:60*1000,limit:35,standardHeaders:'draft-7',legacyHeaders:false,message:{error:'Terlalu banyak carian. Cuba semula sebentar lagi.'}});
-const upload = multer({storage:multer.memoryStorage(),limits:{fileSize:10*1024*1024,fieldSize:10*1024*1024,files:1}});
-const uploadTemplate = multer({storage:multer.memoryStorage(),limits:{fileSize:10*1024*1024,fieldSize:10*1024*1024,files:3}});
+const upload = multer({storage:multer.memoryStorage(),limits:{fileSize:50*1024*1024,fieldSize:20*1024*1024,files:1}});
+const uploadTemplate = multer({storage:multer.memoryStorage(),limits:{fileSize:50*1024*1024,fieldSize:20*1024*1024,files:3}});
 const today = () => new Date().toISOString().slice(0,10);
 const fail = (res,message,status=400) => res.status(status).json({error:message});
 const cleanId = v => Number.isSafeInteger(Number(v)) && Number(v) > 0 ? Number(v) : null;

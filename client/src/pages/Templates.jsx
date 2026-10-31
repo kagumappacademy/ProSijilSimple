@@ -33,6 +33,8 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { PDFDocument } from 'pdf-lib';
+import * as pdfjsLib from 'pdfjs-dist';
 import { api, fmtDate } from '../lib/api';
 import { PageIntro, Panel, Button, Input, Modal, Confirm, Loading, Empty, Chip } from '../components/UI';
 import { PdfThumbnail, renderPdfBlobToDataUrl } from '../components/PdfThumbnail';
@@ -371,6 +373,64 @@ async function createSmallThumbnail(dataUrl, maxDim = 320, quality = 0.65) {
   });
 }
 
+// Fungsi pengoptimuman pintar PDF di pelayar jika saiz melebihi 3.2MB
+// Menjadikan muat naik "tiada had saiz" berjalan lancar tanpa gagal di pelayan
+async function optimizePdfIfNeeded(file, maxTargetBytes = 3.2 * 1024 * 1024) {
+  if (!file) return file;
+  if (file.size <= maxTargetBytes) return file;
+
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    const pdfData = new Uint8Array(arrayBuffer);
+    const loadingTask = pdfjsLib.getDocument({
+      data: pdfData,
+      cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
+      cMapPacked: true,
+    });
+    const pdf = await loadingTask.promise;
+    const numPages = pdf.numPages || 1;
+
+    const newDoc = await PDFDocument.create();
+
+    for (let i = 1; i <= numPages; i++) {
+      const page = await pdf.getPage(i);
+      const originalViewport = page.getViewport({ scale: 1.0 });
+      // Render pada 2.0x scale (~150 DPI) yang sangat jelas & tajam untuk sijil
+      const renderScale = 2.0;
+      const viewport = page.getViewport({ scale: renderScale });
+
+      const canvas = document.createElement('canvas');
+      canvas.width = Math.round(viewport.width);
+      canvas.height = Math.round(viewport.height);
+      const context = canvas.getContext('2d', { alpha: false });
+      await page.render({ canvasContext: context, viewport }).promise;
+
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+      const cleanB64 = dataUrl.replace(/^data:image\/jpeg;base64,/, '');
+      const binaryString = atob(cleanB64);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let j = 0; j < binaryString.length; j++) {
+        bytes[j] = binaryString.charCodeAt(j);
+      }
+
+      const embeddedJpg = await newDoc.embedJpg(bytes);
+      const newPage = newDoc.addPage([originalViewport.width, originalViewport.height]);
+      newPage.drawImage(embeddedJpg, {
+        x: 0,
+        y: 0,
+        width: originalViewport.width,
+        height: originalViewport.height,
+      });
+    }
+
+    const optimizedBytes = await newDoc.save();
+    return new File([optimizedBytes], file.name, { type: 'application/pdf' });
+  } catch (err) {
+    console.warn('PDF auto-optimization fallback:', err);
+    return file;
+  }
+}
+
 function UploadTemplateModal({ open, onClose, onSaved }) {
   const [step, setStep] = useState(1); // 1 = Fail & Maklumat, 2 = Reka Bentuk & Posisi
   const [file, setFile] = useState(null);
@@ -439,12 +499,11 @@ function UploadTemplateModal({ open, onClose, onSaved }) {
     }
   }, [open]);
 
-  // Peralihan dari Langkah 1 ke Langkah 2: Jana Pratonton Halaman 1
+  // Peralihan dari Langkah 1 ke Langkah 2: Jana Pratonton Halaman 1 (Tiada had saiz)
   async function handleGoToStep2() {
     if (pageCount === 1) {
       if (!file) return toast.error('Sila pilih fail PDF templat 1 muka surat.');
       if (!file.name.toLowerCase().endsWith('.pdf')) return toast.error('Fail mestilah format .pdf.');
-      if (file.size > 4.0 * 1024 * 1024) return toast.error('Saiz fail melebihi had 4.0MB. Sila mampatkan fail PDF dahulu.');
     } else {
       if (uploadMode2P === 'split') {
         if (!filePage1) return toast.error('Sila pilih fail PDF untuk Halaman 1 (Muka Hadapan).');
@@ -452,13 +511,9 @@ function UploadTemplateModal({ open, onClose, onSaved }) {
         if (!filePage1.name.toLowerCase().endsWith('.pdf') || !filePage2.name.toLowerCase().endsWith('.pdf')) {
           return toast.error('Kedua-dua fail mestilah dalam format .pdf.');
         }
-        if ((filePage1.size + filePage2.size) > 4.0 * 1024 * 1024) {
-          return toast.error('Jumlah saiz fail melebihi had 4.0MB. Sila mampatkan fail PDF dahulu.');
-        }
       } else {
         if (!file) return toast.error('Sila pilih fail PDF templat 2 muka surat.');
         if (!file.name.toLowerCase().endsWith('.pdf')) return toast.error('Fail mestilah format .pdf.');
-        if (file.size > 4.0 * 1024 * 1024) return toast.error('Saiz fail melebihi had 4.0MB. Sila mampatkan fail PDF dahulu.');
       }
     }
 
@@ -487,13 +542,32 @@ function UploadTemplateModal({ open, onClose, onSaved }) {
 
     setBusy(true);
     try {
+      // Optimumkan fail PDF di browser secara pintar jika saiz fail besar (> 3.2MB)
+      // supaya mana-mana saiz fail boleh dimuat naik dengan pantas tanpa sebarang halangan
+      let uploadFile = file;
+      let uploadPage1 = filePage1;
+      let uploadPage2 = filePage2;
+
+      if (pageCount === 2 && uploadMode2P === 'split') {
+        if (uploadPage1 && uploadPage1.size > 2.0 * 1024 * 1024) {
+          uploadPage1 = await optimizePdfIfNeeded(uploadPage1);
+        }
+        if (uploadPage2 && uploadPage2.size > 2.0 * 1024 * 1024) {
+          uploadPage2 = await optimizePdfIfNeeded(uploadPage2);
+        }
+      } else {
+        if (uploadFile && uploadFile.size > 3.2 * 1024 * 1024) {
+          uploadFile = await optimizePdfIfNeeded(uploadFile);
+        }
+      }
+
       const form = new FormData();
       form.append('page_count', String(pageCount));
       if (pageCount === 2 && uploadMode2P === 'split') {
-        form.append('file_page1', filePage1);
-        form.append('file_page2', filePage2);
+        form.append('file_page1', uploadPage1);
+        form.append('file_page2', uploadPage2);
       } else {
-        form.append('file', file);
+        form.append('file', uploadFile);
       }
       form.append('nama_template', nama.trim());
       form.append('kategori', kategori);
@@ -644,10 +718,10 @@ function UploadTemplateModal({ open, onClose, onSaved }) {
                 <div className="text-xs sm:text-sm font-bold text-slate-900 truncate max-w-full">
                   {file ? file.name : 'Pilih fail PDF templat 1 muka surat'}
                 </div>
-                <p className="mt-0.5 text-[11px] text-slate-500">PDF standard (maksima 4.2MB). Mengandungi garisan ruangan nama pesilat.</p>
+                <p className="mt-0.5 text-[11px] text-slate-500">Sokongan semua saiz fail PDF (Tiada had saiz). Mengandungi garisan ruangan nama pesilat.</p>
                 {file && (
                   <span className="mt-1.5 text-[11px] font-semibold text-slate-800 bg-slate-200 px-2.5 py-0.5 rounded-md">
-                    {(file.size / 1024).toFixed(1)} KB • Sedia dimuat naik
+                    {file.size >= 1024 * 1024 ? `${(file.size / (1024 * 1024)).toFixed(2)} MB` : `${(file.size / 1024).toFixed(1)} KB`} • Sedia dimuat naik
                   </span>
                 )}
                 <input
@@ -691,10 +765,10 @@ function UploadTemplateModal({ open, onClose, onSaved }) {
                     <div className="text-xs sm:text-sm font-bold text-slate-900 truncate max-w-full">
                       {file ? file.name : 'Pilih fail PDF lengkap (mengandungi muka 1 & muka 2)'}
                     </div>
-                    <p className="mt-0.5 text-[11px] text-slate-500">Fail PDF tunggal yang mengandungi kedua-dua muka surat depan dan belakang.</p>
+                    <p className="mt-0.5 text-[11px] text-slate-500">Sokongan semua saiz fail PDF (Tiada had saiz). Mengandungi kedua-dua muka surat depan dan belakang.</p>
                     {file && (
                       <span className="mt-1.5 text-[11px] font-semibold text-slate-800 bg-slate-200 px-2.5 py-0.5 rounded-md">
-                        {(file.size / 1024).toFixed(1)} KB • Sedia dimuat naik
+                        {file.size >= 1024 * 1024 ? `${(file.size / (1024 * 1024)).toFixed(2)} MB` : `${(file.size / 1024).toFixed(1)} KB`} • Sedia dimuat naik
                       </span>
                     )}
                     <input
@@ -714,10 +788,10 @@ function UploadTemplateModal({ open, onClose, onSaved }) {
                       <div className="text-xs font-bold text-slate-900 truncate max-w-full">
                         {filePage1 ? filePage1.name : 'Pilih fail Halaman 1'}
                       </div>
-                      <p className="text-[10px] text-slate-400 mt-0.5">Muka hadapan sijil (ada ruangan nama)</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">Muka hadapan sijil (tiada had saiz)</p>
                       {filePage1 && (
                         <span className="mt-1 text-[10px] font-semibold text-slate-800 bg-slate-200 px-2 py-0.5 rounded">
-                          {(filePage1.size / 1024).toFixed(1)} KB
+                          {filePage1.size >= 1024 * 1024 ? `${(filePage1.size / (1024 * 1024)).toFixed(2)} MB` : `${(filePage1.size / 1024).toFixed(1)} KB`}
                         </span>
                       )}
                       <input
@@ -736,10 +810,10 @@ function UploadTemplateModal({ open, onClose, onSaved }) {
                       <div className="text-xs font-bold text-slate-900 truncate max-w-full">
                         {filePage2 ? filePage2.name : 'Pilih fail Halaman 2'}
                       </div>
-                      <p className="text-[10px] text-slate-400 mt-0.5">Silabus / maklumat belakang sijil</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">Silabus / sukatan belakang sijil (tiada had saiz)</p>
                       {filePage2 && (
                         <span className="mt-1 text-[10px] font-semibold text-slate-800 bg-slate-200 px-2 py-0.5 rounded">
-                          {(filePage2.size / 1024).toFixed(1)} KB
+                          {filePage2.size >= 1024 * 1024 ? `${(filePage2.size / (1024 * 1024)).toFixed(2)} MB` : `${(filePage2.size / 1024).toFixed(1)} KB`}
                         </span>
                       )}
                       <input
