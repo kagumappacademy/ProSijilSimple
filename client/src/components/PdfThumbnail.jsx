@@ -38,7 +38,7 @@ async function getPdfBuffer(url) {
 export async function renderPdfBlobToDataUrl(blobOrArrayBuffer, pageNum = 1, scale = 1.3) {
   try {
     const data = blobOrArrayBuffer instanceof ArrayBuffer
-      ? new Uint8Array(blobOrArrayBuffer)
+      ? new Uint8Array(blobOrArrayBuffer.slice(0))
       : new Uint8Array(await blobOrArrayBuffer.arrayBuffer());
 
     const loadingTask = pdfjsLib.getDocument({
@@ -147,7 +147,8 @@ export function PdfThumbnail({
         if (!active) return;
 
         const loadingTask = pdfjsLib.getDocument({
-          data: new Uint8Array(arrayBuffer),
+          // PDF.js transfers its input buffer to a worker. Keep the cached original intact.
+          data: new Uint8Array(arrayBuffer.slice(0)),
           cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
           cMapPacked: true,
         });

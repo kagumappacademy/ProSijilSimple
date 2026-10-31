@@ -87,6 +87,12 @@ Sistem menerima tajuk kolum `nama_penuh`, `no_kp_atau_id`, `peringkat`, `cawanga
 4. Letak reverse proxy HTTPS (Nginx / Caddy) di depan port 4000.
 5. **Backup volume `prosijil_data` secara berkala**, termasuk SQLite dan folder uploads.
 
+## Penyimpanan templat PDF
+
+Fail templat disimpan bersama rekod pangkalan data sebagai `file_base64`, tanpa tempoh luput. Dalam pemasangan Turso, muat naik hanya dilaporkan berjaya selepas PDF disimpan dan simpanannya disahkan di awan. Penyegerakan metadata tidak memadam atau menggantikan PDF yang sudah tersimpan. Templat hanya dipadam melalui tindakan admin; rekod pemadaman menghalang cache pelayan lama daripada memasukkannya semula.
+
+Hosting Vercel memerlukan `TURSO_DATABASE_URL` dan kelayakan akses yang sah kerana fail sementara pelayan tidak kekal. Pemasangan SQLite tempatan memerlukan direktori `DATA_DIR` pada cakera atau volume kekal. Sandarkan pangkalan data secara berkala. Fail lama yang masih mempunyai salinan cache/cakera akan disalin semula ke storan awan apabila dibaca; jika semua salinan asal sudah hilang, admin perlu memuat naik semula PDF asal.
+
 ## Fail penting
 
 - `docs/STRUKTUR_DAN_FUNGSI.md`: struktur, API dan penerangan modul
@@ -101,6 +107,6 @@ Sistem menerima tajuk kolum `nama_penuh`, `no_kp_atau_id`, `peringkat`, `cawanga
 - ID/No KP sebenar hanya ditunjukkan kepada admin, bukan pada paparan awam.
 - Sijil boleh dimuat turun menggunakan pautan token yang hanya dipaparkan selepas carian padanan tepat. Token panjang rawak unik bukan langkah privasi mutlak: sesiapa dengan pautan sijil boleh membukanya.
 - Untuk kegunaan organisasi sebenar, sediakan notis privasi, kebenaran ibu bapa yang berkaitan dan dasar akses/data/backup. Pertimbangkan lapisan pengesahan tambahan sebelum memaparkan sijil kanak-kanak secara awam.
-- Tidak termasuk sistem e-mel atau penyimpanan cloud. Untuk hosting Vercel + Turso/Supabase, perlu migrasi API, database dan file storage (bukan terus deploy ZIP tanpa pindaan).
+- Sistem e-mel tidak disertakan. Untuk hosting Vercel, tetapkan pangkalan data Turso bagi penyimpanan rekod dan PDF kekal; lihat bahagian penyimpanan templat di atas.
 
 **Panduan tambahan:** `docs/STRUKTUR_DAN_FUNGSI.md`.

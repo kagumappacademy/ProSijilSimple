@@ -51,6 +51,9 @@ CREATE TABLE IF NOT EXISTS template_sijil (
 CREATE TABLE IF NOT EXISTS settings (
  key TEXT PRIMARY KEY, value TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS template_sijil_deleted (
+ id INTEGER PRIMARY KEY, deleted_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 CREATE TABLE IF NOT EXISTS admin_activity (
  id INTEGER PRIMARY KEY AUTOINCREMENT,
  type TEXT NOT NULL,

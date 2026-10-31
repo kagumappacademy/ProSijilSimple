@@ -60,3 +60,10 @@ test('Push preserves remote-only certificates and PDFs absent from the local cac
  assert.equal((await remote.execute('SELECT COUNT(*) AS n FROM sijil')).rows[0].n,2);
  assert.equal((await remote.execute({sql:'SELECT file_base64 FROM sijil WHERE public_token=?',args:[record.token]})).rows[0].file_base64,record.fileBase64);
 });
+
+test('Sync never publishes a metadata-only template without its PDF',async()=>{
+ const result=db.prepare("INSERT INTO template_sijil(nama_template,peringkat,file_name) VALUES('Metadata sahaja','Awan Putih','missing.pdf')").run();
+ await pushLocalToTurso(remote);
+ const stored=await remote.execute({sql:'SELECT count(*) AS n FROM template_sijil WHERE id=?',args:[Number(result.lastInsertRowid)]});
+ assert.equal(stored.rows[0].n,0);
+});
