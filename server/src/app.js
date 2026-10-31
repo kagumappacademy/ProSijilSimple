@@ -50,8 +50,8 @@ app.use('/api', (req, res, next) => {
 });
 const authLimit = rateLimit({windowMs:15*60*1000,limit:12,standardHeaders:'draft-7',legacyHeaders:false,message:{error:'Terlalu banyak percubaan. Cuba semula dalam 15 minit.'}});
 const searchLimit = rateLimit({windowMs:60*1000,limit:35,standardHeaders:'draft-7',legacyHeaders:false,message:{error:'Terlalu banyak carian. Cuba semula sebentar lagi.'}});
-const upload = multer({storage:multer.memoryStorage(),limits:{fileSize:10*1024*1024,files:1}});
-const uploadTemplate = multer({storage:multer.memoryStorage(),limits:{fileSize:10*1024*1024,files:3}});
+const upload = multer({storage:multer.memoryStorage(),limits:{fileSize:10*1024*1024,fieldSize:10*1024*1024,files:1}});
+const uploadTemplate = multer({storage:multer.memoryStorage(),limits:{fileSize:10*1024*1024,fieldSize:10*1024*1024,files:3}});
 const today = () => new Date().toISOString().slice(0,10);
 const fail = (res,message,status=400) => res.status(status).json({error:message});
 const cleanId = v => Number.isSafeInteger(Number(v)) && Number(v) > 0 ? Number(v) : null;
@@ -1285,9 +1285,14 @@ if(fs.existsSync(dist)){
 }
 app.use((req,res)=>res.status(404).json({error:'Laluan tidak ditemui.'}));
 app.use((err,req,res,_next)=>{
- if(err instanceof multer.MulterError)return fail(res,err.code==='LIMIT_FILE_SIZE'?'Fail melebihi 10MB.':'Fail tidak boleh dimuat naik.');
+ if(err instanceof multer.MulterError) {
+   let msg = 'Fail tidak boleh dimuat naik.';
+   if(err.code === 'LIMIT_FILE_SIZE') msg = 'Saiz fail PDF melebihi had (Maksima 10MB).';
+   else if(err.code === 'LIMIT_FIELD_VALUE') msg = 'Data borang templat terlalu besar.';
+   return fail(res, msg);
+ }
  console.error('[ProSijil]',err);
  if(res.headersSent)return;
- return fail(res,'Ralat pelayan. Cuba semula.',500);
+ return fail(res, err.message || 'Ralat pelayan. Cuba semula.', 500);
 });
 export default app;

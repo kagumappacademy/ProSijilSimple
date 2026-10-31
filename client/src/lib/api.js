@@ -6,7 +6,26 @@ export async function api(url,{body,...options}={}) {
  }catch{throw new Error('Tidak dapat menghubungi pelayan. Pastikan API sedang berjalan.');}
  const type=response.headers.get('content-type')||'';
  const data=type.includes('json')?await response.json():await response.text();
- if(!response.ok)throw new Error(data?.error||'Permintaan gagal.');
+ if(!response.ok) {
+  let errorMsg = '';
+  if (typeof data === 'object' && data?.error) {
+    errorMsg = data.error;
+  } else if (typeof data === 'string' && data.trim()) {
+    const clean = data.trim();
+    if (clean.includes('FUNCTION_PAYLOAD_TOO_LARGE') || response.status === 413) {
+      errorMsg = 'Saiz fail templat melebihi had pelayan (Maksima 4MB). Sila gunakan fail PDF yang lebih kecil.';
+    } else if (response.status === 504 || clean.includes('GATEWAY_TIMEOUT')) {
+      errorMsg = 'Sambungan ke pelayan tamat masa. Sila cuba sebentar lagi.';
+    } else if (!clean.startsWith('<')) {
+      errorMsg = clean;
+    } else {
+      errorMsg = `Ralat pelayan (${response.status}: ${response.statusText || 'Ralat'}).`;
+    }
+  } else {
+    errorMsg = `Permintaan gagal (${response.status}).`;
+  }
+  throw new Error(errorMsg);
+ }
  return data;
 }
 export const fmtDate=(s)=>{

@@ -333,6 +333,44 @@ function DraggableCertificateTextPositioner({
   );
 }
 
+// Helper untuk menghasilkan imej thumbnail termampat (15-25KB) dari dataUrl
+async function createSmallThumbnail(dataUrl, maxDim = 320, quality = 0.65) {
+  if (!dataUrl) return null;
+  return new Promise((resolve) => {
+    try {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          let w = img.width || 320;
+          let h = img.height || 450;
+          if (w > maxDim || h > maxDim) {
+            if (w > h) {
+              h = Math.round((h * maxDim) / w);
+              w = maxDim;
+            } else {
+              w = Math.round((w * maxDim) / h);
+              h = maxDim;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+          const compressed = canvas.toDataURL('image/jpeg', quality);
+          resolve(compressed);
+        } catch (_) {
+          resolve(null);
+        }
+      };
+      img.onerror = () => resolve(null);
+      img.src = dataUrl;
+    } catch (_) {
+      resolve(null);
+    }
+  });
+}
+
 function UploadTemplateModal({ open, onClose, onSaved }) {
   const [step, setStep] = useState(1); // 1 = Fail & Maklumat, 2 = Reka Bentuk & Posisi
   const [file, setFile] = useState(null);
@@ -406,7 +444,7 @@ function UploadTemplateModal({ open, onClose, onSaved }) {
     if (pageCount === 1) {
       if (!file) return toast.error('Sila pilih fail PDF templat 1 muka surat.');
       if (!file.name.toLowerCase().endsWith('.pdf')) return toast.error('Fail mestilah format .pdf.');
-      if (file.size > 4.2 * 1024 * 1024) return toast.error('Saiz fail melebihi had maksima 4.2MB.');
+      if (file.size > 4.0 * 1024 * 1024) return toast.error('Saiz fail melebihi had 4.0MB. Sila mampatkan fail PDF dahulu.');
     } else {
       if (uploadMode2P === 'split') {
         if (!filePage1) return toast.error('Sila pilih fail PDF untuk Halaman 1 (Muka Hadapan).');
@@ -414,9 +452,13 @@ function UploadTemplateModal({ open, onClose, onSaved }) {
         if (!filePage1.name.toLowerCase().endsWith('.pdf') || !filePage2.name.toLowerCase().endsWith('.pdf')) {
           return toast.error('Kedua-dua fail mestilah dalam format .pdf.');
         }
+        if ((filePage1.size + filePage2.size) > 4.0 * 1024 * 1024) {
+          return toast.error('Jumlah saiz fail melebihi had 4.0MB. Sila mampatkan fail PDF dahulu.');
+        }
       } else {
         if (!file) return toast.error('Sila pilih fail PDF templat 2 muka surat.');
         if (!file.name.toLowerCase().endsWith('.pdf')) return toast.error('Fail mestilah format .pdf.');
+        if (file.size > 4.0 * 1024 * 1024) return toast.error('Saiz fail melebihi had 4.0MB. Sila mampatkan fail PDF dahulu.');
       }
     }
 
@@ -443,35 +485,43 @@ function UploadTemplateModal({ open, onClose, onSaved }) {
   async function submitFinal(e) {
     if (e) e.preventDefault();
 
-    const form = new FormData();
-    form.append('page_count', String(pageCount));
-    if (pageCount === 2 && uploadMode2P === 'split') {
-      form.append('file_page1', filePage1);
-      form.append('file_page2', filePage2);
-    } else {
-      form.append('file', file);
-    }
-    form.append('nama_template', nama.trim());
-    form.append('kategori', kategori);
-    form.append('peringkat', kategori === 'kenaikan_tali_pinggang' ? peringkat.trim() : 'Semua Peringkat');
-    form.append('keterangan', keterangan.trim());
-
-    if (page1PreviewUrl) {
-      form.append('thumbnail', page1PreviewUrl);
-    }
-
-    const layoutConfig = {
-      fontSize,
-      fontFamily,
-      colorHex,
-      nameLayout,
-      xPercent,
-      yPercent,
-    };
-    form.append('layout_config', JSON.stringify(layoutConfig));
-
     setBusy(true);
     try {
+      const form = new FormData();
+      form.append('page_count', String(pageCount));
+      if (pageCount === 2 && uploadMode2P === 'split') {
+        form.append('file_page1', filePage1);
+        form.append('file_page2', filePage2);
+      } else {
+        form.append('file', file);
+      }
+      form.append('nama_template', nama.trim());
+      form.append('kategori', kategori);
+      form.append('peringkat', kategori === 'kenaikan_tali_pinggang' ? peringkat.trim() : 'Semua Peringkat');
+      form.append('keterangan', keterangan.trim());
+
+      // Hasilkan thumbnail kecil termampat (15-25KB sahaja) supaya saiz muatan ringan & pantas
+      if (page1PreviewUrl) {
+        try {
+          const smallThumb = await createSmallThumbnail(page1PreviewUrl, 320, 0.65);
+          if (smallThumb) {
+            form.append('thumbnail', smallThumb);
+          }
+        } catch (_) {
+          // Jika mampatan gagal, abaikan thumbnail agar tidak menghalang muat naik PDF utama
+        }
+      }
+
+      const layoutConfig = {
+        fontSize,
+        fontFamily,
+        colorHex,
+        nameLayout,
+        xPercent,
+        yPercent,
+      };
+      form.append('layout_config', JSON.stringify(layoutConfig));
+
       await api('/admin/templates', { method: 'POST', body: form });
       toast.success(
         pageCount === 2
@@ -481,7 +531,7 @@ function UploadTemplateModal({ open, onClose, onSaved }) {
       onSaved();
       onClose();
     } catch (err) {
-      toast.error(err.message);
+      toast.error(err.message || 'Gagal memuat naik templat sijil.');
     } finally {
       setBusy(false);
     }
