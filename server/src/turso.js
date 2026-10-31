@@ -119,6 +119,9 @@ export async function initTursoSchema(client) {
   try {
     await turso.execute('ALTER TABLE template_sijil ADD COLUMN thumbnail_base64 TEXT;');
   } catch (_) {}
+  try {
+    await turso.execute('ALTER TABLE template_sijil ADD COLUMN layout_config TEXT;');
+  } catch (_) {}
   try { await turso.execute('ALTER TABLE admin_activity ADD COLUMN students_before INTEGER;'); } catch (_) {}
   try { await turso.execute('ALTER TABLE admin_activity ADD COLUMN students_after INTEGER;'); } catch (_) {}
   try { await turso.execute('ALTER TABLE admin_activity ADD COLUMN certs_before INTEGER;'); } catch (_) {}

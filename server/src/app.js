@@ -846,6 +846,10 @@ app.post('/api/admin/templates',requireAdmin,uploadTemplate.fields([{ name: 'fil
     const { isTursoConfigured, getTursoClient } = await import('./turso.js');
     if (isTursoConfigured()) {
       const turso = getTursoClient();
+
+      // Pastikan lajur layout_config wujud di Turso (migrasi automatik)
+      try { await turso.execute('ALTER TABLE template_sijil ADD COLUMN layout_config TEXT;'); } catch (_) {}
+
       const tursoRes = await turso.execute({
         sql: "INSERT INTO template_sijil (nama_template, peringkat, keterangan, file_path, file_name, file_size, file_base64, kategori, page_count, thumbnail_base64, layout_config, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now')) RETURNING id",
         args: [nama, peringkat, keterangan || null, file_path, file_name, finalBytes.length, file_base64, kategori, actualPageCount, thumbnail, layout_config]
@@ -858,8 +862,8 @@ app.post('/api/admin/templates',requireAdmin,uploadTemplate.fields([{ name: 'fil
       console.log('[Turso] Templat berjaya disegerakkan ke Turso Cloud:', nama, 'ID:', newId, 'Muka Surat:', actualPageCount);
     }
   } catch (err) {
-    console.error('[Turso Template Insert Error]', err);
-    return fail(res, 'Gagal menyimpan templat ke Turso Cloud: ' + err.message, 500);
+    // Jangan gagalkan keseluruhan operasi — simpan ke SQLite sahaja sebagai sandaran
+    console.warn('[Turso Template Insert Warning]', err.message, '— menyimpan ke SQLite tempatan sahaja.');
   }
 
   // 2. Simpan juga ke SQLite tempatan (cache)
