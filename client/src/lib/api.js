@@ -24,7 +24,9 @@ export async function api(url,{body,...options}={}) {
   } else {
     errorMsg = `Permintaan gagal (${response.status}).`;
   }
-  throw new Error(errorMsg);
+  const error = new Error(errorMsg);
+  error.status = response.status;
+  throw error;
  }
  return data;
 }

@@ -128,3 +128,80 @@ test('Upload template, batch generate certificate with Lora font, verify and dow
  const delRes = await call('/api/admin/templates/' + templateId, { method: 'DELETE', cookie });
  assert.equal(delRes.res.status, 200);
 });
+
+test('Bulk generation survives a lost response, preserves exact counts and downloadable PDFs', async()=>{
+ const { PDFDocument } = await import('pdf-lib');
+ const { generateCertificateBatches } = await import('../../client/src/lib/generateBatch.js');
+ const doc = await PDFDocument.create();
+ doc.addPage([595,842]);
+ const pdfBytes = await doc.save();
+ const templateName = 'Sijil Penyertaan Pukal';
+ db.prepare('INSERT INTO template_sijil(nama_template,peringkat,file_name,file_base64,kategori) VALUES(?,?,?,?,?)')
+   .run(templateName,'Semua Peringkat','pukal.pdf',Buffer.from(pdfBytes).toString('base64'),'penyertaan');
+ const insertStudent = db.prepare('INSERT INTO pesilat(nama_penuh,no_kp_atau_id,peringkat,cawangan) VALUES(?,?,?,?)');
+ const ids = Array.from({length:12},(_,index)=>Number(insertStudent.run(`Pesilat Pukal ${index}`,`BULK-${index}`,'Awan Kuning',index%2?'Kulai':'Skudai').lastInsertRowid));
+ let loseFirstResponse = true;
+ const requestSizes = [];
+ const progress = [];
+ const result = await generateCertificateBatches({
+   ids,templateName,issueDate:'2026-10-31',requestId:'regression-lost-response',
+   onProgress: count=>progress.push(count),
+   api: async (url, options)=>{
+     requestSizes.push(options.body.pesilat_ids.length);
+     const response = await call('/api'+url,{...options,cookie});
+     assert.equal(response.res.status,200);
+     if(loseFirstResponse){loseFirstResponse=false;throw new Error('Connection lost after save');}
+     return response.data;
+   },
+ });
+ assert.equal(result.successCount,12);
+ assert.equal(result.failedCount,0);
+ assert.deepEqual(requestSizes,[5,5,5,2]);
+ assert.deepEqual(progress,[5,10,12]);
+ assert.equal(new Set(result.generatedTokens.map(item=>item.token)).size,12);
+ const list = await call('/api/admin/certificates?all=1',{cookie});
+ const bulkRows = list.data.rows.filter(row=>row.nama_sijil===templateName);
+ assert.equal(bulkRows.length,12);
+ assert.equal(list.data.total,list.data.rows.length);
+ assert.equal(list.res.headers.get('cache-control'),'no-store');
+ assert.ok(list.data.rows.every(row=>!('file_base64' in row) && !('file_path' in row)));
+ for(const row of [bulkRows[0],bulkRows.at(-1)]){
+   const stored = db.prepare('SELECT file_base64,file_path FROM sijil WHERE id=?').get(row.id);
+   assert.ok(stored.file_base64);
+   assert.equal(stored.file_path,null);
+   const download = await call('/api/public/certificates/'+row.public_token+'/download');
+   assert.equal(download.res.status,200);
+   assert.equal((await PDFDocument.load(download.data)).getPageCount(),1);
+ }
+ const filtered = await call('/api/admin/certificates?all=1&category=penyertaan&branch=Kulai',{cookie});
+ assert.equal(filtered.data.total,6);
+ assert.equal(filtered.data.rows.length,6);
+});
+
+test('Bulk generation reports unknown students and deduplicates recipient IDs',async()=>{
+ const response = await call('/api/admin/templates/generate-batch',{method:'POST',cookie,
+   body:{pesilat_ids:[sid,sid,999999],nama_template:'Sijil Penyertaan Pukal',request_id:'deduplicate',tarikh_isu:'2026-10-31'}});
+ assert.equal(response.res.status,200);
+ assert.equal(response.data.total,2);
+ assert.equal(response.data.successCount,1);
+ assert.equal(response.data.failedCount,1);
+ assert.equal(response.data.failed[0].id,999999);
+});
+
+test('Interrupted bulk generation retains confirmed results and identifies unconfirmed recipients',async()=>{
+ const { generateCertificateBatches } = await import('../../client/src/lib/generateBatch.js');
+ let calls=0;
+ await assert.rejects(generateCertificateBatches({
+   ids:[1,2,3,4,5,6,7],templateName:'Sijil',issueDate:'2026-10-31',requestId:'interrupted',
+   api:async()=>{
+     if(++calls>1)throw new Error('Gateway timeout');
+     return {successCount:5,failed:[],generatedTokens:[1,2,3,4,5].map(studentId=>({studentId,token:`token-${studentId}`}))};
+   },
+ }),error=>{
+   assert.equal(error.result.successCount,5);
+   assert.equal(error.result.generatedTokens.length,5);
+   assert.deepEqual(error.result.failed.map(row=>row.id),[6,7]);
+   return true;
+ });
+ assert.equal(calls,3);
+});

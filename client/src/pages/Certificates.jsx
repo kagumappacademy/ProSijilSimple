@@ -1,4 +1,5 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Award,
   Plus,
@@ -224,9 +225,13 @@ function CertificateForm({ open, onClose, onSaved }) {
 
 export function Certificates() {
   const { t, lang } = useLang();
+  const [searchParams] = useSearchParams();
   const [data, setData] = useState(null);
   const [q, setQ] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('semua'); // 'semua', 'kenaikan_tali_pinggang', 'pencapaian', 'penghargaan', 'penyertaan'
+  const [selectedCategory, setSelectedCategory] = useState(() =>
+    CERT_CATEGORIES.find(category => category.id === searchParams.get('category'))?.id || 'kenaikan_tali_pinggang');
+  const requestVersion = useRef(0);
+  const [loadError, setLoadError] = useState('');
   const [selectedCula, setSelectedCula] = useState('semua'); // 'semua', 'merah', 'kuning', 'hijau', 'hitam'
   const [selectedBranch, setSelectedBranch] = useState('');
   const [selectedLevel, setSelectedLevel] = useState('');
@@ -244,6 +249,10 @@ export function Certificates() {
   useEffect(() => {
     setSelectedIds(new Set());
   }, [q, selectedCategory, selectedCula, selectedBranch, selectedLevel]);
+
+  useEffect(() => {
+    setSelectedLevel('');
+  }, [selectedCula]);
 
   const toggleSelect = useCallback((id) => {
     setSelectedIds((prev) => {
@@ -312,35 +321,38 @@ export function Certificates() {
   const { setRefreshing: setGlobalRefreshing } = useSync();
   const [refreshing, setRefreshing] = useState(false);
 
-  // Load all certificates matching filters for clean grouping
+  // Load one metadata dataset so changing category/branch/rank cannot erase other counts.
   const load = useCallback((isManual = false) => {
+    const version = ++requestVersion.current;
     setGlobalRefreshing(true);
     if (isManual) setRefreshing(true);
     const params = new URLSearchParams({ all: '1' });
     if (q) params.set('q', q);
-    if (selectedBranch) params.set('branch', selectedBranch);
-    if (selectedLevel) params.set('level', selectedLevel);
-    if (selectedCategory && selectedCategory !== 'semua') {
-      params.set('category', selectedCategory);
-    }
 
     return api('/admin/certificates?' + params.toString())
       .then((res) => {
+        if (version !== requestVersion.current) return;
         setData(res);
+        setLoadError('');
         if (isManual) toast.success(lang === 'eng' ? 'Certificates refreshed!' : 'Senarai sijil berjaya dikemaskini!');
       })
       .catch((e) => {
+        if (version !== requestVersion.current) return;
+        setLoadError(e.message);
         if (isManual) toast.error(e.message);
       })
       .finally(() => {
         if (isManual) setRefreshing(false);
         setGlobalRefreshing(false);
       });
-  }, [q, selectedBranch, selectedLevel, selectedCategory, lang, setGlobalRefreshing]);
+  }, [q, lang, setGlobalRefreshing]);
 
   useEffect(() => {
     const timer = setTimeout(() => load(false), 200);
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      requestVersion.current++;
+    };
   }, [load]);
 
   // Auto-refresh every 15 seconds
@@ -368,10 +380,20 @@ export function Certificates() {
     }
   }
 
-  // Pre-calculate branches and their certificate counts
+  // Count each branch before applying its own filter, within the active category/cula.
+  const branchFilterRows = useMemo(() => (data?.rows || []).filter(cert => {
+    const category = getCertCategory(cert);
+    return category === selectedCategory &&
+      (category !== 'kenaikan_tali_pinggang' || selectedCula === 'semua' || getCulaCategory(cert.peringkat) === selectedCula);
+  }), [data?.rows, selectedCategory, selectedCula]);
+
   const branchList = useMemo(() => {
-    return data?.branches || [];
-  }, [data?.branches]);
+    const counts = new Map();
+    for (const cert of branchFilterRows) {
+      if (cert.cawangan) counts.set(cert.cawangan, (counts.get(cert.cawangan) || 0) + 1);
+    }
+    return Array.from(counts, ([name, count]) => ({ name, count })).sort((a, b) => a.name.localeCompare(b.name));
+  }, [branchFilterRows]);
 
   // Kiraan mengikut Kategori Jenis Sijil
   const categoryCounts = useMemo(() => {
@@ -406,6 +428,8 @@ export function Certificates() {
     const tree = {};
 
     for (const cert of data.rows) {
+      if (selectedBranch && cert.cawangan !== selectedBranch) continue;
+      if (selectedLevel && cert.peringkat !== selectedLevel) continue;
       const cat = getCertCategory(cert);
       if (selectedCategory !== 'semua' && cat !== selectedCategory) continue;
 
@@ -431,7 +455,7 @@ export function Certificates() {
     }
 
     return tree;
-  }, [data?.rows, selectedCategory, selectedCula, lang]);
+  }, [data?.rows, selectedCategory, selectedCula, selectedBranch, selectedLevel, lang]);
 
   // Available peringkat within the currently selected cawangan (for sub-filter tabs)
   const availableLevelsForBranch = useMemo(() => {
@@ -509,6 +533,12 @@ export function Certificates() {
         }
       />
 
+      {loadError && (
+        <div role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+          {lang === 'eng' ? 'Unable to refresh certificate records: ' : 'Gagal memuat semula rekod sijil: '}{loadError}
+        </div>
+      )}
+
       <Panel className="flex flex-col">
         {/* Top Control Bar: Carian, Penapis & Togol Paparan */}
         <div className="border-b border-slate-100 p-3 sm:px-4 sm:py-3 space-y-3">
@@ -518,7 +548,7 @@ export function Certificates() {
               <div className="text-xs sm:text-sm font-extrabold text-slate-950">
                 {lang === 'eng' ? 'Certificate Records Center' : 'Pusat Rekod Sijil'}
               </div>
-              <Chip color="red">{tableRows.length} daripada {data?.total || 0} Sijil</Chip>
+              <Chip color="red">{data ? `${tableRows.length} daripada ${data.total} Sijil` : 'Memuatkan sijil...'}</Chip>
             </div>
 
             {/* View Switch & Quick Select All */}
@@ -581,24 +611,6 @@ export function Certificates() {
 
           {/* Level 0: Kategori Utama Jenis Sijil (Sijil Kenaikan Tali Pinggang, Pencapaian, Penghargaan, Penyertaan) */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none pt-0.5 border-b border-slate-100/80">
-            <button
-              type="button"
-              onClick={() => {
-                setSelectedCategory('semua');
-                setSelectedCula('semua');
-              }}
-              className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition ${
-                selectedCategory === 'semua'
-                  ? 'bg-red-700 text-white shadow-xs'
-                  : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
-              }`}
-            >
-              <span>Semua Jenis Sijil</span>
-              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${selectedCategory === 'semua' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}`}>
-                {categoryCounts.semua}
-              </span>
-            </button>
-
             {CERT_CATEGORIES.map((cat) => {
               const active = selectedCategory === cat.id;
               const count = categoryCounts[cat.id] || 0;
@@ -608,7 +620,8 @@ export function Certificates() {
                   type="button"
                   onClick={() => {
                     setSelectedCategory(cat.id);
-                    if (cat.id !== 'kenaikan_tali_pinggang') setSelectedCula('semua');
+                    setSelectedCula('semua');
+                    setSelectedLevel('');
                   }}
                   className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition ${
                     active
@@ -697,7 +710,7 @@ export function Certificates() {
                     !selectedBranch ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
                   }`}
                 >
-                  {tableRows.length}
+                  {branchFilterRows.length}
                 </span>
               </button>
 

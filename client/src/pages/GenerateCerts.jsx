@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Sparkles,
@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api, fmtDate } from '../lib/api';
+import { generateCertificateBatches } from '../lib/generateBatch';
 import { PageIntro, Panel, Button, Input, Chip, Loading, Empty, SearchField } from '../components/UI';
 import { PdfThumbnail } from '../components/PdfThumbnail';
 import { LargeTemplatePreviewModal } from './Templates';
@@ -74,6 +75,9 @@ export function GenerateCerts() {
 
   const [loading, setLoading] = useState(true);
   const [generating, setGenerating] = useState(false);
+  const generatingRef = useRef(false);
+  const generationRequest = useRef(null);
+  const [generationProgress, setGenerationProgress] = useState(0);
   const [refreshingTemplates, setRefreshingTemplates] = useState(false);
   const [previewTarget, setPreviewTarget] = useState(null);
   const [result, setResult] = useState(null);
@@ -83,6 +87,7 @@ export function GenerateCerts() {
 
   // Scroll to step content
   const goToStep = (step) => {
+    if (generatingRef.current) return;
     setCurrentStep(step);
     window.scrollTo({ top: 80, behavior: 'smooth' });
   };
@@ -99,9 +104,7 @@ export function GenerateCerts() {
       setAllTemplates(res.templates || []);
       const keys = Object.keys(groups);
       if (keys.length > 0) {
-        if (!selectedTemplateName || !keys.includes(selectedTemplateName)) {
-          setSelectedTemplateName(keys[0]);
-        }
+        setSelectedTemplateName(current => keys.includes(current) ? current : keys[0]);
       } else {
         setSelectedTemplateName('');
       }
@@ -114,7 +117,7 @@ export function GenerateCerts() {
       if (isManualRefresh) setRefreshingTemplates(false);
       setGlobalRefreshing(false);
     }
-  }, [selectedTemplateName, lang, setGlobalRefreshing]);
+  }, [lang, setGlobalRefreshing]);
 
   // Load students
   const loadStudents = useCallback(async (isInitial = false) => {
@@ -156,8 +159,13 @@ export function GenerateCerts() {
   // Initial load and auto-refresh every 15 seconds
   useEffect(() => {
     loadTemplates(false);
-    loadStudents(true);
+  }, [loadTemplates]);
 
+  useEffect(() => {
+    loadStudents(true);
+  }, [loadStudents]);
+
+  useEffect(() => {
     const interval = setInterval(() => {
       // Background silent auto-refresh every 15s (only if not actively generating certs)
       if (!generating) {
@@ -387,6 +395,7 @@ export function GenerateCerts() {
 
   // Handle batch generation in Step 3
   async function handleGenerate() {
+    if (generatingRef.current) return;
     if (idsToGenerate.length === 0) {
       return toast.error('Sila pilih sekurang-kurangnya seorang pesilat untuk dijana sijil.');
     }
@@ -394,18 +403,20 @@ export function GenerateCerts() {
       return toast.error('Sila pilih nama templat sijil terlebih dahulu.');
     }
 
+    generatingRef.current = true;
     setGenerating(true);
+    setGenerationProgress(0);
     setResult(null);
     setGenError(null);
 
     try {
-      const res = await api('/admin/templates/generate-batch', {
-        method: 'POST',
-        body: {
-          pesilat_ids: idsToGenerate,
-          nama_template: selectedTemplateName,
-          tarikh_isu: issueDate,
-        },
+      const signature = JSON.stringify([selectedTemplateName, issueDate]);
+      if (generationRequest.current?.signature !== signature) {
+        generationRequest.current = { signature, id: crypto.randomUUID() };
+      }
+      const res = await generateCertificateBatches({
+        api, ids: idsToGenerate, templateName: selectedTemplateName, issueDate,
+        requestId: generationRequest.current.id, onProgress: setGenerationProgress,
       });
       setResult(res);
       if (res.successCount > 0) {
@@ -413,12 +424,19 @@ export function GenerateCerts() {
         loadStudents();
       }
       if (res.failedCount > 0) {
-        toast.warning(`${res.failedCount} pesilat dilangkau kerana tiada templat sepadan.`);
+        toast.warning(`${res.failedCount} sijil gagal dijana atau disimpan. Sila semak sebab yang dipaparkan.`);
       }
     } catch (err) {
+      if (err.result) {
+        setResult({ ...err.result, failed: err.result.failed.map(failure => {
+          const student = selectedStudentsList.find(item => item.id === failure.id);
+          return { nama: student?.nama_penuh, peringkat: student?.peringkat, ...failure };
+        }) });
+      }
       setGenError(err.message || 'Ralat janaan sijil');
       toast.error('Ralat janaan sijil: ' + err.message);
     } finally {
+      generatingRef.current = false;
       setGenerating(false);
     }
   }
@@ -463,6 +481,7 @@ export function GenerateCerts() {
 
   // Restart wizard for a fresh batch
   function handleResetNewBatch() {
+    generationRequest.current = null;
     setResult(null);
     setGenError(null);
     goToStep(1);
@@ -1605,7 +1624,7 @@ export function GenerateCerts() {
                 >
                   <FileCheck size={16} />{' '}
                   {generating
-                    ? t('btnGenerating')
+                    ? `${t('btnGenerating')} (${generationProgress}/${idsToGenerate.length})`
                     : `${t('btnGenerateNow')} (${idsToGenerate.length})`}
                 </Button>
               </div>
@@ -1667,8 +1686,8 @@ export function GenerateCerts() {
                   </div>
                   <p className="text-[11.5px] text-amber-800 mb-2 font-medium">
                     {lang === 'eng'
-                      ? 'The following students were skipped because the matching PDF template was missing. Click "Jana Semula" above to return to Step 2 with these students pre-selected after you upload the template.'
-                      : 'Pesilat di bawah tidak dapat dijana kerana fail templat PDF bagi peringkat berkenaan tiada atau belum dimuat naik. Klik butang "Jana Semula Pesilat Dilangkau" di atas untuk kembali ke Langkah 2 dengan nama-nama pesilat ini sudah siap ditandakan dan data sistem disegarkan.'}
+                      ? 'Review the reason shown for each student. Retry to process these students again; previously saved certificates will not be duplicated.'
+                      : 'Semak sebab kegagalan bagi setiap pesilat di bawah. Klik jana semula untuk mencuba lagi. Sijil yang sudah disimpan bagi janaan ini tidak akan digandakan.'}
                   </p>
                   <ul className="space-y-1 pl-4 list-disc text-[11px] text-slate-800">
                     {result.failed.map((f, i) => (
@@ -1726,7 +1745,7 @@ export function GenerateCerts() {
               {/* Bottom Actions for Completed Generation */}
               <div className="flex flex-wrap items-center gap-2.5 pt-2">
                 <Link
-                  to="/admin/sijil"
+                  to={`/admin/sijil?category=${getCertCategory(rawTemplatesForName[0])}`}
                   className="inline-flex items-center gap-1.5 rounded-xl bg-red-700 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-red-800 shadow-sm"
                 >
                   <Award size={15} /> {t('btnViewNewCerts')} <ArrowRight size={14} />

@@ -13,6 +13,7 @@ import { dataDir, portalUrl, production, projectRoot } from './config.js';
 import { decodeCsv, csvSafe } from './csv.js';
 import { createCertificatePdf, uploadedToPdf } from './pdf.js';
 import { generateCertificatePdf } from './certificateGenerator.js';
+import { saveCertificate, getStoredCertificate, deleteStoredCertificates } from './certificateStore.js';
 import { PDFDocument } from 'pdf-lib';
 import { trim, validatePesilat, validDate } from './validation.js';
 
@@ -148,21 +149,41 @@ app.get('/api/public/search',searchLimit,(req,res)=>{
  res.setHeader('Cache-Control','no-store');
  res.json({results:result});
 });
-function readCertificate(token) {
+async function readCertificate(token) {
+ const { isTursoConfigured, getTursoClient } = await import('./turso.js');
+ if(isTursoConfigured()){
+  const result=await getTursoClient().execute({
+   sql:'SELECT s.id,s.pesilat_id,s.nama_sijil,s.tarikh_isu,s.jenis,s.file_path,s.file_type,s.public_token,s.kategori,p.nama_penuh,p.no_kp_atau_id,p.peringkat,p.cawangan,p.tarikh_daftar FROM sijil s JOIN pesilat p ON p.id=s.pesilat_id WHERE s.public_token=?',
+   args:[token]
+  });
+  return result.rows[0];
+ }
  const certificate=db.prepare(`SELECT s.*,p.nama_penuh,p.no_kp_atau_id,p.peringkat,p.cawangan,p.tarikh_daftar FROM sijil s JOIN pesilat p ON p.id=s.pesilat_id WHERE s.public_token=?`).get(token);
  return certificate;
 }
-app.get('/api/public/verify/:token',searchLimit,(req,res)=>{
- const row=readCertificate(req.params.token);
+app.get('/api/public/verify/:token',searchLimit,async(req,res,next)=>{
+ try {
+ const row=await readCertificate(req.params.token);
  if(!row)return fail(res,'Sijil tidak ditemui atau tidak lagi sah.',404);
  return res.json({valid:true,certificate:{id:row.id,nama_sijil:row.nama_sijil,tarikh_isu:row.tarikh_isu,nama_penuh:row.nama_penuh,no_kp_atau_id:row.no_kp_atau_id,peringkat:row.peringkat,cawangan:row.cawangan,tarikh_daftar:row.tarikh_daftar}});
+ } catch(error) { next(error); }
 });
 app.get('/api/public/certificates/:token/download',searchLimit,async (req,res,next)=>{
  try {
- const row=readCertificate(req.params.token);
+ const row=await readCertificate(req.params.token);
  if(!row)return fail(res,'Sijil tidak ditemui.',404);
  const student={nama_penuh:row.nama_penuh,peringkat:row.peringkat,cawangan:row.cawangan};
  if(row.jenis==='generated')return createCertificatePdf(res,student,row,getSettings(),req.query.preview!=='1');
+
+ // A cold instance only has metadata. Retrieve the saved PDF before using a template fallback.
+ if(!row.file_base64 && (!row.file_path || !fs.existsSync(row.file_path))){
+  const { isTursoConfigured, getTursoClient } = await import('./turso.js');
+  if(isTursoConfigured()){
+   const saved=await getTursoClient().execute({sql:'SELECT file_base64 FROM sijil WHERE public_token=?',args:[row.public_token]});
+   row.file_base64=saved.rows[0]?.file_base64 || null;
+   if(row.file_base64)db.prepare('UPDATE sijil SET file_base64=? WHERE public_token=?').run(row.file_base64,row.public_token);
+  }
+ }
 
  // 1. Direct base64 in certificate record
  if(row.file_base64){
@@ -486,7 +507,8 @@ app.post('/api/admin/students/import',requireAdmin,upload.single('file'),async (
  }catch(e){return fail(res,e.message);}
 });
 
-app.get('/api/admin/certificates',requireAdmin,(req,res)=>{
+app.get('/api/admin/certificates',requireAdmin,async(req,res,next)=>{
+ try {
  const q=trim(req.query.q,160);
  const branch=trim(req.query.branch,80);
  const level=trim(req.query.level,100);
@@ -525,14 +547,23 @@ app.get('/api/admin/certificates',requireAdmin,(req,res)=>{
  }
  const filter=conditions.length ? ' WHERE ' + conditions.join(' AND ') : '';
  const from=' FROM sijil s JOIN pesilat p ON p.id=s.pesilat_id';
- const total=db.prepare('SELECT count(*) AS n'+from+filter).get(...params).n;
  const offset=fetchAll?0:(page-1)*limit;
- const rows=db.prepare('SELECT s.*,p.nama_penuh,p.no_kp_atau_id,p.peringkat,p.cawangan'+from+filter+' ORDER BY p.cawangan, p.peringkat, s.id DESC LIMIT ? OFFSET ?').all(...params,limit,offset).map(r=>({...r,file_path:undefined}));
-
- const branches=db.prepare("SELECT p.cawangan AS name, count(s.id) AS count FROM sijil s JOIN pesilat p ON p.id=s.pesilat_id WHERE p.cawangan IS NOT NULL AND p.cawangan != '' GROUP BY p.cawangan ORDER BY p.cawangan").all();
- const levels=db.prepare("SELECT p.peringkat AS name, count(s.id) AS count FROM sijil s JOIN pesilat p ON p.id=s.pesilat_id WHERE p.peringkat IS NOT NULL AND p.peringkat != '' GROUP BY p.peringkat ORDER BY p.peringkat").all();
-
+ // Keep PDFs out of list responses; bulk PDF data can exceed the serverless response limit.
+ const statements = [
+  { sql: 'SELECT count(*) AS n'+from+filter, args: params },
+  { sql: 'SELECT s.id,s.pesilat_id,s.nama_sijil,s.tarikh_isu,s.jenis,s.file_type,s.public_token,s.kategori,s.created_at,p.nama_penuh,p.no_kp_atau_id,p.peringkat,p.cawangan'+from+filter+' ORDER BY p.cawangan, p.peringkat, s.id DESC'+(fetchAll?'':' LIMIT ? OFFSET ?'), args: fetchAll?params:[...params,limit,offset] },
+  { sql: "SELECT p.cawangan AS name, count(s.id) AS count FROM sijil s JOIN pesilat p ON p.id=s.pesilat_id WHERE p.cawangan IS NOT NULL AND p.cawangan != '' GROUP BY p.cawangan ORDER BY p.cawangan", args: [] },
+  { sql: "SELECT p.peringkat AS name, count(s.id) AS count FROM sijil s JOIN pesilat p ON p.id=s.pesilat_id WHERE p.peringkat IS NOT NULL AND p.peringkat != '' GROUP BY p.peringkat ORDER BY p.peringkat", args: [] },
+ ];
+ const { isTursoConfigured, getTursoClient } = await import('./turso.js');
+ const results = isTursoConfigured()
+  ? (await getTursoClient().batch(statements, 'read')).map(result => result.rows)
+  : statements.map(({sql,args}) => db.prepare(sql).all(...args));
+ const total=Number(results[0][0].n);
+ const [,rows,branches,levels]=results;
+ res.set('Cache-Control', 'no-store');
  res.json({rows,total,page,pages:Math.max(1,Math.ceil(total/limit)),branches,levels});
+ } catch (error) { next(error); }
 });
 app.post('/api/admin/certificates',requireAdmin,upload.single('file'),async (req,res,next)=>{
  const id=cleanId(req.body?.pesilat_id);
@@ -558,23 +589,9 @@ app.post('/api/admin/certificates',requireAdmin,upload.single('file'),async (req
  try{
  const countsBefore = getSystemCounts();
  const token=crypto.randomUUID();
- const result=db.prepare('INSERT INTO sijil (pesilat_id,nama_sijil,tarikh_isu,jenis,file_path,file_type,public_token,file_base64,kategori) VALUES (?,?,?,?,?,?,?,?,?)').run(id,title,tarikh,jenis,file_path,file_type,token,file_base64,kategori);
- const newCertId = Number(result.lastInsertRowid);
-
- // Simpan terus ke Turso Cloud jika bersambung
- try {
-  const { isTursoConfigured, getTursoClient } = await import('./turso.js');
-  if (isTursoConfigured()) {
-   const turso = getTursoClient();
-   await turso.execute({
-    sql: "INSERT OR REPLACE INTO sijil (id, pesilat_id, nama_sijil, tarikh_isu, jenis, file_path, file_type, public_token, file_base64, kategori, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))",
-    args: [newCertId, id, title, tarikh, jenis, file_path, file_type, token, file_base64, kategori]
-   });
-   console.log('[Turso] Sijil baharu disimpan ke Turso Cloud:', newCertId);
-  }
- } catch(err) {
-  console.warn('[Turso Sync Warning]', err.message);
- }
+ const newCertId = await saveCertificate({studentId:id,namaSijil:title,tarikh,jenis,
+  fileType:file_type,fileBase64:file_base64,token,kategori});
+ if(file_path)db.prepare('UPDATE sijil SET file_path=? WHERE id=?').run(file_path,newCertId);
 
  const studentRow = db.prepare('SELECT nama_penuh FROM pesilat WHERE id=?').get(id);
  const certLabel = jenis === 'uploaded' ? 'Sijil Dimuat Naik' : 'Sijil Dikeluarkan';
@@ -586,7 +603,7 @@ app.post('/api/admin/certificates',requireAdmin,upload.single('file'),async (req
 app.put('/api/admin/certificates/:id',requireAdmin,upload.single('file'),async (req,res,next)=>{
  try {
  const id=cleanId(req.params.id);if(!id)return fail(res,'ID tidak sah.');
- const current=db.prepare('SELECT * FROM sijil WHERE id=?').get(id);
+ const current=await getStoredCertificate(id);
  if(!current)return fail(res,'Sijil tidak ditemui.',404);
  const countsBefore = getSystemCounts();
  const title=trim(req.body?.nama_sijil,130)||current.nama_sijil;
@@ -608,15 +625,9 @@ app.put('/api/admin/certificates/:id',requireAdmin,upload.single('file'),async (
   file_base64=bytes.toString('base64');
   const newPath=path.join(dataDir,'uploads',crypto.randomUUID()+({'application/pdf':'.pdf','image/png':'.png','image/jpeg':'.jpg'}[file_type]));
   try{fs.writeFileSync(newPath,bytes,{flag:'wx'});}catch(_){}
-  if(current.file_path&&fs.existsSync(current.file_path)){
-   try{fs.rmSync(current.file_path,{force:true});}catch(_){}
-  }
   file_path=newPath;
  }
- db.prepare('UPDATE sijil SET nama_sijil=?,tarikh_isu=?,jenis=?,file_path=?,file_type=?,file_base64=?,kategori=? WHERE id=?')
-   .run(title,tarikh,jenis,file_path,file_type,file_base64,kategori,id);
 
- try {
   const { isTursoConfigured, getTursoClient } = await import('./turso.js');
   if (isTursoConfigured()) {
    const turso = getTursoClient();
@@ -625,8 +636,10 @@ app.put('/api/admin/certificates/:id',requireAdmin,upload.single('file'),async (
     args: [title, tarikh, jenis, file_path, file_type, file_base64, kategori, id]
    });
   }
- } catch(err) {
-  console.warn('[Turso Sync Warning]', err.message);
+ db.prepare('UPDATE sijil SET nama_sijil=?,tarikh_isu=?,jenis=?,file_path=?,file_type=?,file_base64=?,kategori=? WHERE id=?')
+   .run(title,tarikh,jenis,file_path,file_type,file_base64,kategori,id);
+ if(req.file && current.file_path && current.file_path!==file_path){
+  try{fs.rmSync(current.file_path,{force:true});}catch(_){}
  }
 
  logActivity('certificate', 'update', 'Sijil Dikemaskini', `${title}`, '/admin/sijil', { countsBefore, countsAfter: getSystemCounts() });
@@ -637,20 +650,10 @@ app.put('/api/admin/certificates/:id',requireAdmin,upload.single('file'),async (
 app.delete('/api/admin/certificates/:id',requireAdmin,async (req,res,next)=>{
  try {
  const id=cleanId(req.params.id);if(!id)return fail(res,'ID tidak sah.');
- const row=db.prepare('SELECT nama_sijil, public_token, file_path FROM sijil WHERE id=?').get(id);if(!row)return fail(res,'Sijil tidak ditemui.',404);
  const countsBefore = getSystemCounts();
- db.prepare('DELETE FROM sijil WHERE id=?').run(id);
+ const [row]=await deleteStoredCertificates([id]);
+ if(!row)return fail(res,'Sijil tidak ditemui.',404);
  if(row.file_path){try{fs.rmSync(row.file_path,{force:true});}catch(_){}}
-
- try {
-  const { isTursoConfigured, getTursoClient } = await import('./turso.js');
-  if (isTursoConfigured()) {
-   const turso = getTursoClient();
-   await turso.execute({ sql: 'DELETE FROM sijil WHERE id=?', args: [id] });
-  }
- } catch(err) {
-  console.warn('[Turso Delete Warning]', err.message);
- }
 
  logActivity('certificate', 'delete', 'Sijil Dipadam', `${row.nama_sijil || 'Sijil'} (${row.public_token || id})`, '/admin/sijil', { countsBefore, countsAfter: getSystemCounts() });
 
@@ -663,30 +666,10 @@ app.post('/api/admin/certificates/batch-delete',requireAdmin,async (req,res,next
  if(!ids.length)return fail(res,'Sila pilih sekurang-kurangnya satu sijil.');
  const countsBefore = getSystemCounts();
 
- const placeholders=ids.map(()=>'?').join(',');
- const rows=db.prepare(`SELECT id, file_path FROM sijil WHERE id IN (${placeholders})`).all(...ids);
-
- db.exec('BEGIN');
- try {
-  db.prepare(`DELETE FROM sijil WHERE id IN (${placeholders})`).run(...ids);
-  db.exec('COMMIT');
- } catch(err){
-  db.exec('ROLLBACK');
-  throw err;
- }
+ const rows=await deleteStoredCertificates(ids);
 
  for(const r of rows){
   if(r.file_path){try{fs.rmSync(r.file_path,{force:true});}catch(_){}}
- }
-
- try {
-  const { isTursoConfigured, getTursoClient } = await import('./turso.js');
-  if (isTursoConfigured()) {
-   const turso = getTursoClient();
-   await turso.execute({ sql: `DELETE FROM sijil WHERE id IN (${placeholders})`, args: ids });
-  }
- } catch(err) {
-  console.warn('[Turso Batch Delete Warning]', err.message);
  }
 
  logActivity('certificate', 'delete', 'Padam Sijil Pukal', `${rows.length} sijil telah dipadam`, '/admin/sijil', { countsBefore, countsAfter: getSystemCounts() });
@@ -1089,8 +1072,10 @@ app.post('/api/admin/templates/test-preview',requireAdmin,async(req,res,next)=>{
 app.post('/api/admin/templates/generate-batch',requireAdmin,async(req,res,next)=>{
  try{
   const countsBefore = getSystemCounts();
-  const ids=Array.isArray(req.body?.pesilat_ids)?req.body.pesilat_ids.map(cleanId).filter(Boolean):[];
+  const ids=Array.isArray(req.body?.pesilat_ids)?[...new Set(req.body.pesilat_ids.map(cleanId).filter(Boolean))]:[];
   if(!ids.length)return fail(res,'Sila pilih sekurang-kurangnya seorang pesilat.');
+  if(ids.length>25)return fail(res,'Maksimum 25 pesilat bagi setiap kelompok janaan.');
+  const requestId=trim(req.body?.request_id,100);
   const namaTemplate=trim(req.body?.nama_template,160);
   if(!namaTemplate)return fail(res,'Sila pilih atau masukkan nama templat sijil.');
   const tarikh=trim(req.body?.tarikh_isu,10)||today();
@@ -1112,10 +1097,10 @@ app.post('/api/admin/templates/generate-batch',requireAdmin,async(req,res,next)=
   const students=db.prepare(`SELECT * FROM pesilat WHERE id IN (${placeholders})`).all(...ids);
 
   let successCount=0;
-  const failed=[];
+  const foundIds=new Set(students.map(student=>student.id));
+  const failed=ids.filter(id=>!foundIds.has(id)).map(id=>({id,reason:'Pesilat tidak ditemui. Sila muat semula senarai pesilat.'}));
   const generatedTokens=[];
   const templateCache=new Map();
-  const toInsert=[];
 
   const norm = s => String(s || '').trim().toLowerCase().replace(/^ujian\s+/i, '').replace(/\s+/g, ' ');
 
@@ -1171,23 +1156,23 @@ app.post('/api/admin/templates/generate-batch',requireAdmin,async(req,res,next)=
    }
 
    try{
-    const token=crypto.randomUUID();
-    const outputPath=path.join(dataDir,'uploads',token+'.pdf');
-    await generateCertificatePdf({
+    // Retrying the same batch must reuse its token, including after a lost HTTP response.
+    const token=requestId
+      ? crypto.createHash('sha256').update(`${req.admin.id}:${requestId}:${student.id}`).digest('hex')
+      : crypto.randomUUID();
+    const generated=await generateCertificatePdf({
      templateBytes:tplBytes,
      studentName:student.nama_penuh,
-     layoutConfig:matchedTemplate.layout_config,
-     outputPath
+     layoutConfig:matchedTemplate.layout_config
     });
 
-    toInsert.push({
+    await saveCertificate({
      studentId:student.id,
      namaSijil:matchedTemplate.nama_template,
      tarikh,
-     outputPath,
+     fileBase64:Buffer.from(generated.bytes).toString('base64'),
      token,
-     kategori: matchedTemplate.kategori || 'kenaikan_tali_pinggang',
-     layoutConfig: matchedTemplate.layout_config || null
+     kategori: matchedTemplate.kategori || 'kenaikan_tali_pinggang'
     });
     successCount++;
     generatedTokens.push({studentId:student.id,nama:student.nama_penuh,token});
@@ -1196,38 +1181,13 @@ app.post('/api/admin/templates/generate-batch',requireAdmin,async(req,res,next)=
    }
   }
 
-  if(toInsert.length>0){
-   const insertStmt=db.prepare('INSERT INTO sijil (pesilat_id,nama_sijil,tarikh_isu,jenis,file_path,file_type,public_token,kategori,layout_config) VALUES (?,?,?,?,?,?,?,?,?)');
-   db.exec('BEGIN');
-   try{
-    for(const item of toInsert){
-     insertStmt.run(item.studentId,item.namaSijil,item.tarikh,'uploaded',item.outputPath,'application/pdf',item.token,item.kategori,item.layoutConfig);
-    }
-    db.exec('COMMIT');
-
-    // Catat aktiviti janaan sebelum penyegerakan Turso
-    const tplName = (toInsert[0]?.namaSijil) || 'Templat Sijil';
+  if(successCount>0){
+    const tplName = namaTemplate;
     const detailMsg = failed.length > 0
       ? `${successCount} sijil berjaya dijana, ${failed.length} dilangkau (${tplName})`
       : `${successCount} sijil dijana (${tplName})`;
     logActivity('certificate', 'generate_batch', 'Janaan Sijil Pukal', detailMsg, '/admin/sijil', { countsBefore, countsAfter: getSystemCounts() });
 
-    try {
-      const { isTursoConfigured, pushLocalToTurso } = await import('./turso.js');
-      if (isTursoConfigured()) {
-        await pushLocalToTurso();
-        console.log('[Turso] Sijil generate-batch dan log aktiviti disegerakkan ke Turso Cloud');
-      }
-    } catch(err) {
-      console.warn('[Turso Batch Sync Warning]', err.message);
-    }
-   }catch(err){
-    db.exec('ROLLBACK');
-    for(const item of toInsert){
-     try{fs.rmSync(item.outputPath,{force:true});}catch(_){}
-    }
-    throw err;
-   }
   } else if (failed.length > 0) {
    logActivity('certificate', 'generate_batch', 'Janaan Sijil Dilangkau', `${failed.length} pesilat dilangkau (${failed[0]?.reason || 'Tiada templat sepadan: ' + namaTemplate})`, '/admin/jana-sijil', { countsBefore, countsAfter: getSystemCounts() });
   }
