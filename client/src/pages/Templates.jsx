@@ -30,6 +30,7 @@ import {
   RotateCcw,
   AlignCenter,
   Loader2,
+  ChevronDown,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api, fmtDate } from '../lib/api';
@@ -342,6 +343,7 @@ function UploadTemplateModal({ open, onClose, onSaved }) {
   const [kategori, setKategori] = useState('kenaikan_tali_pinggang');
   const [nama, setNama] = useState('Sijil Ujian Kenaikan Tali Pinggang (Penggal 1/2026)');
   const [peringkat, setPeringkat] = useState('Ujian Awan Putih Cula Merah 1');
+  const [isCustomPeringkat, setIsCustomPeringkat] = useState(false);
   const [keterangan, setKeterangan] = useState('');
   const [busy, setBusy] = useState(false);
 
@@ -359,6 +361,7 @@ function UploadTemplateModal({ open, onClose, onSaved }) {
   // Sync default name & rank suggestions when category changes
   const handleCategoryChange = (newCat) => {
     setKategori(newCat);
+    setIsCustomPeringkat(false);
     if (newCat === 'kenaikan_tali_pinggang') {
       setNama('Sijil Ujian Kenaikan Tali Pinggang (Penggal 1/2026)');
       setPeringkat('Ujian Awan Putih Cula Merah 1');
@@ -385,6 +388,7 @@ function UploadTemplateModal({ open, onClose, onSaved }) {
       setKategori('kenaikan_tali_pinggang');
       setNama('Sijil Ujian Kenaikan Tali Pinggang (Penggal 1/2026)');
       setPeringkat('Ujian Awan Putih Cula Merah 1');
+      setIsCustomPeringkat(false);
       setKeterangan('');
       setPage1PreviewUrl(null);
       setFontSize(20);
@@ -731,27 +735,76 @@ function UploadTemplateModal({ open, onClose, onSaved }) {
             onChange={(e) => setNama(e.target.value)}
           />
 
-          {/* Padanan Peringkat / Warna Cula Pesilat - Hanya untuk Sijil Kenaikan Tali Pinggang */}
+          {/* Padanan Peringkat / Warna Cula Pesilat (Pilihan Dropdown / Scroll Down) */}
           {kategori === 'kenaikan_tali_pinggang' && (
             <div>
-              <label className="mb-1.5 block text-xs font-bold text-slate-600">
+              <label className="mb-1.5 block text-xs font-bold text-slate-700">
                 Padanan Peringkat / Warna Cula Pesilat *
               </label>
               <div className="relative">
-                <input
-                  list="template-rank-presets"
-                  value={peringkat}
-                  onChange={(e) => setPeringkat(e.target.value)}
-                  placeholder="Pilih atau taip peringkat..."
-                  className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs sm:text-sm text-slate-900 outline-none focus:border-red-600 focus:ring-4 focus:ring-red-100"
+                <select
+                  value={isCustomPeringkat ? '__custom__' : peringkat}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === '__custom__') {
+                      setIsCustomPeringkat(true);
+                      setPeringkat('');
+                    } else {
+                      setIsCustomPeringkat(false);
+                      setPeringkat(val);
+                    }
+                  }}
+                  className="w-full appearance-none rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 pr-10 text-xs sm:text-sm font-semibold text-slate-900 outline-none focus:border-red-600 focus:ring-4 focus:ring-red-100 transition shadow-2xs cursor-pointer"
                   required
-                />
-                <datalist id="template-rank-presets">
-                  {currentPresets.map((lvl) => (
-                    <option key={lvl} value={lvl} />
-                  ))}
-                </datalist>
+                >
+                  <option value="" disabled>-- Sila Pilih Peringkat / Warna Cula --</option>
+                  <optgroup label="🔴 Cula Merah">
+                    <option value="Ujian Awan Putih Cula Merah 1">Ujian Awan Putih Cula Merah 1</option>
+                    <option value="Ujian Awan Putih Cula Merah 2">Ujian Awan Putih Cula Merah 2</option>
+                    <option value="Ujian Awan Putih Cula Merah 3">Ujian Awan Putih Cula Merah 3</option>
+                  </optgroup>
+                  <optgroup label="🟡 Cula Kuning">
+                    <option value="Ujian Awan Putih Cula Kuning 1">Ujian Awan Putih Cula Kuning 1</option>
+                    <option value="Ujian Awan Putih Cula Kuning 2">Ujian Awan Putih Cula Kuning 2</option>
+                    <option value="Ujian Awan Putih Cula Kuning 3">Ujian Awan Putih Cula Kuning 3</option>
+                  </optgroup>
+                  <optgroup label="🟢 Cula Hijau">
+                    <option value="Ujian Awan Putih Cula Hijau 1">Ujian Awan Putih Cula Hijau 1</option>
+                    <option value="Ujian Awan Putih Cula Hijau 2">Ujian Awan Putih Cula Hijau 2</option>
+                    <option value="Ujian Awan Putih Cula Hijau 3">Ujian Awan Putih Cula Hijau 3</option>
+                  </optgroup>
+                  <optgroup label="⚫ Cula Hitam">
+                    <option value="Ujian Awan Putih Cula Hitam 1">Ujian Awan Putih Cula Hitam 1</option>
+                    <option value="Ujian Awan Putih Cula Hitam 2">Ujian Awan Putih Cula Hitam 2</option>
+                    <option value="Ujian Awan Putih Cula Hitam 3">Ujian Awan Putih Cula Hitam 3</option>
+                  </optgroup>
+                  <optgroup label="⭐ Pilihan Khas">
+                    <option value="Semua Peringkat">Semua Peringkat (Templat Umum)</option>
+                    <option value="__custom__">Lain-lain / Taip Peringkat Sendiri...</option>
+                  </optgroup>
+                </select>
+                <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3.5 text-slate-500">
+                  <ChevronDown size={16} />
+                </div>
               </div>
+
+              {isCustomPeringkat && (
+                <div className="mt-2 animate-in fade-in duration-150">
+                  <input
+                    type="text"
+                    value={peringkat}
+                    onChange={(e) => setPeringkat(e.target.value)}
+                    placeholder="Contoh: Ujian Pendekar Muda / Peringkat Khas..."
+                    className="w-full rounded-xl border border-red-300 bg-red-50/40 px-3.5 py-2 text-xs sm:text-sm text-slate-900 outline-none focus:border-red-600 focus:ring-4 focus:ring-red-100"
+                    autoFocus
+                    required
+                  />
+                  <p className="mt-1 text-[11px] text-slate-500">
+                    Taip nama peringkat khas yang sepadan dengan rekod pesilat.
+                  </p>
+                </div>
+              )}
+
               <p className="mt-1 text-[11px] text-slate-400">
                 Sistem memadankan templat ini mengikut warna cula dan peringkat bengkung pesilat.
               </p>
