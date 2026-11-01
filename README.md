@@ -107,6 +107,14 @@ Muat naik melalui portal dihadkan kepada jumlah 4MB bagi setiap permintaan, term
 
 Operasi pesilat, dashboard, carian awam dan janaan menggunakan rekod awan terkini apabila Turso ditetapkan. Import CSV disimpan dalam kelompok kecil dengan ID yang diberikan pangkalan data awan, tanpa menolak seluruh cache lama ke awan. Jika import terhenti, hanya kelompok yang disahkan tersimpan dikira berjaya; muat naik semula CSV yang sama untuk menyambung dan melangkau rekod sedia ada. Ralat janaan manual dikembalikan melalui API, dan sijil JPG/PNG ditukar kepada PDF sebenar semasa dimuat turun, termasuk apabila fail cakera sementara sudah tiada.
 
+### Janaan keseluruhan 290 pesilat
+
+Butang janaan memproses semua pilihan dalam kelompok 5 pesilat. Kelompok yang terganggu tidak membatalkan pemprosesan pesilat berikutnya; pesilat yang gagal sementara dicuba semula. ID janaan disimpan dalam pelayar sehingga admin memilih janaan baharu, jadi sambungan semula menggunakan token sijil yang sama dan tidak menghasilkan pendua. Sebelum status lengkap dipaparkan, API menyemak setiap ID pesilat terpilih dan fail yang benar-benar tersimpan dalam pangkalan data utama. Peringkat tanpa templat perlu dilengkapkan sebelum memulakan janaan keseluruhan.
+
+Di Vercel, SQLite hanyalah cache metadata dalam memori dan tidak menulis ke cakera sementara. Apabila Turso digunakan, PDF sijil/templat tidak disalin ke cache SQLite; salinan kekal dibaca daripada Turso. PDF baharu hanya memasukkan aksara fon yang diperlukan bagi nama pesilat, bukannya keseluruhan fon. Perubahan ini mengelakkan pertumbuhan cache PDF/WAL semasa janaan pukal. Jika storan utama pembekal sendiri mencapai hadnya, sistem tetap memaparkan pesilat yang belum tersimpan dan tidak melaporkan janaan lengkap secara palsu.
+
+Ujian `server/tests/bulk-290.test.js` mengesahkan 290 penerima berbeza dan 290 PDF dua muka surat yang sah dengan had cache 1MB, termasuk sambungan terputus, simpanan sementara gagal, percubaan semula dan semakan ketiadaan pendua. Ujian menggunakan pangkalan data berasingan tanpa menyentuh data sebenar.
+
 ## Fail penting
 
 - `docs/STRUKTUR_DAN_FUNGSI.md`: struktur, API dan penerangan modul

@@ -148,7 +148,7 @@ for(const {cloud,nullableCloud} of [{cloud:false},{cloud:true},{cloud:true,nulla
      const localRow=db.prepare('SELECT file_base64,file_path FROM template_sijil WHERE id=?').get(data.id);
      if(remote)await pushLocalToTurso(remote);
      const stored=remote?(await remote.execute({sql:'SELECT file_base64 FROM template_sijil WHERE id=?',args:[data.id]})).rows[0]:localRow;
-     console.log(JSON.stringify({status:uploaded.status,preview:preview.status,bytes:downloaded.equals(bytes),local:localRow.file_base64===bytes.toString('base64'),durable:stored.file_base64===bytes.toString('base64'),pathValid:typeof localRow.file_path==='string',existing:db.prepare('SELECT file_path FROM template_sijil WHERE id=1').get().file_path===originalPath,original:fs.readFileSync(originalPath).equals(bytes)}));
+     console.log(JSON.stringify({status:uploaded.status,preview:preview.status,bytes:downloaded.equals(bytes),local:localRow.file_base64===(${cloud}?null:bytes.toString('base64')),durable:stored.file_base64===bytes.toString('base64'),pathValid:typeof localRow.file_path==='string',existing:db.prepare('SELECT file_path FROM template_sijil WHERE id=1').get().file_path===originalPath,original:fs.readFileSync(originalPath).equals(bytes)}));
     } finally {await new Promise(resolve=>server.close(resolve));remote?.close();db.close();}
    `,tmp,{NODE_ENV:cloud?'production':'test',TURSO_DATABASE_URL:cloud?'file::memory:':'',JWT_SECRET:'legacy_path_regression_secret_minimum_32_chars'});
    assert.deepEqual(result,{status:201,preview:200,bytes:true,local:true,durable:true,pathValid:true,existing:true,original:true});

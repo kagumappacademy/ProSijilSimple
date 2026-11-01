@@ -199,6 +199,7 @@ test('Only admin deletion removes a template and a stale instance cannot resurre
  assert.equal(db.prepare("SELECT count(*) AS n FROM sqlite_master WHERE name='template_sijil_deleted'").get().n,0);
  assert.equal((await remote.execute("SELECT count(*) AS n FROM sqlite_master WHERE name='template_sijil_deleted'")).rows[0].n,0);
  const stale=db.prepare('SELECT * FROM template_sijil WHERE id=?').get(uploadedTemplateId);
+ stale.file_base64=bytes.toString('base64'); // An old deployment may still retain a full PDF cache.
  const deleted=await call(`/api/admin/templates/${uploadedTemplateId}`,undefined,'DELETE');
  assert.equal(deleted.res.status,200);
  // Simulate another instance retaining the previous record, including all its PDF bytes.

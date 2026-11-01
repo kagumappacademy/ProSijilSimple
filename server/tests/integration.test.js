@@ -174,7 +174,7 @@ test('Bulk generation survives a lost response, preserves exact counts and downl
  });
  assert.equal(result.successCount,12);
  assert.equal(result.failedCount,0);
- assert.deepEqual(requestSizes,[5,5,5,2]);
+ assert.deepEqual(requestSizes,[5,5,5,2,12]);
  assert.deepEqual(progress,[5,10,12]);
  assert.equal(new Set(result.generatedTokens.map(item=>item.token)).size,12);
  const list = await call('/api/admin/certificates?all=1',{cookie});
@@ -211,6 +211,7 @@ test('Interrupted bulk generation retains confirmed results and identifies uncon
  let calls=0;
  await assert.rejects(generateCertificateBatches({
    ids:[1,2,3,4,5,6,7],templateName:'Sijil',issueDate:'2026-10-31',requestId:'interrupted',
+   sleep:async()=>{},
    api:async()=>{
      if(++calls>1)throw new Error('Gateway timeout');
      return {successCount:5,failed:[],generatedTokens:[1,2,3,4,5].map(studentId=>({studentId,token:`token-${studentId}`}))};
@@ -221,5 +222,5 @@ test('Interrupted bulk generation retains confirmed results and identifies uncon
    assert.deepEqual(error.result.failed.map(row=>row.id),[6,7]);
    return true;
  });
- assert.equal(calls,3);
+ assert.equal(calls,10);
 });

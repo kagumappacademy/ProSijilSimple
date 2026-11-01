@@ -13,7 +13,7 @@ import { portalUrl, production, projectRoot } from './config.js';
 import { decodeCsv, csvSafe } from './csv.js';
 import { uploadedToPdf } from './pdf.js';
 import { generateCertificatePdf } from './certificateGenerator.js';
-import { saveCertificate, getStoredCertificate, deleteStoredCertificates, updateStoredCertificate, ensureCertificateFile } from './certificateStore.js';
+import { saveCertificate, getStoredCertificate, deleteStoredCertificates, updateStoredCertificate, ensureCertificateFile, generationToken, getGenerationStatus } from './certificateStore.js';
 import { saveTemplate, getStoredTemplate, getTemplateMetadata, listStoredTemplates, deleteStoredTemplate, updateTemplateMetadata } from './templateStore.js';
 import { PDFDocument } from 'pdf-lib';
 import { readRows, getStoredStudent, saveStudent, deleteStudent, insertStudentBatch } from './studentStore.js';
@@ -764,6 +764,15 @@ app.post('/api/admin/templates/test-preview',requireAdmin,async(req,res,next)=>{
  }catch(e){next(e);}
 });
 
+app.post('/api/admin/templates/generation-status',requireAdmin,async(req,res,next)=>{
+ try {
+  const ids=Array.isArray(req.body?.pesilat_ids)?[...new Set(req.body.pesilat_ids.map(cleanId).filter(Boolean))]:[];
+  const requestId=trim(req.body?.request_id,100);
+  if(!requestId || !ids.length || ids.length>500)return fail(res,'ID janaan dan senarai pesilat yang sah diperlukan (maksimum 500).');
+  res.set('Cache-Control','no-store');
+  res.json(await getGenerationStatus(req.admin.id,requestId,ids));
+ }catch(error){next(error);}
+});
 app.post('/api/admin/templates/generate-batch',requireAdmin,async(req,res,next)=>{
  try{
   const countsBefore = getSystemCounts();
@@ -776,6 +785,9 @@ app.post('/api/admin/templates/generate-batch',requireAdmin,async(req,res,next)=
   const tarikh=trim(req.body?.tarikh_isu,10)||today();
   if(!validDate(tarikh))return fail(res,'Tarikh sijil tidak sah.');
 
+  const confirmed=requestId ? await getGenerationStatus(req.admin.id,requestId,ids) : {generatedTokens:[]};
+  const existing=new Map(confirmed.generatedTokens.map(row=>[row.studentId,row]));
+  if(existing.size===ids.length)return res.json({...confirmed});
   const templates=await listStoredTemplates({name:namaTemplate});
   if(!templates.length)return fail(res,'Tiada templat dijumpai untuk tajuk sijil ini.');
 
@@ -784,13 +796,16 @@ app.post('/api/admin/templates/generate-batch',requireAdmin,async(req,res,next)=
 
   let successCount=0;
   const foundIds=new Set(students.map(student=>student.id));
-  const failed=ids.filter(id=>!foundIds.has(id)).map(id=>({id,reason:'Pesilat tidak ditemui. Sila muat semula senarai pesilat.'}));
+  const failed=ids.filter(id=>!foundIds.has(id)).map(id=>({id,reason:'Pesilat tidak ditemui. Sila muat semula senarai pesilat.',retryable:false}));
   const generatedTokens=[];
   const templateCache=new Map();
 
   const norm = s => String(s || '').trim().toLowerCase().replace(/^ujian\s+/i, '').replace(/\s+/g, ' ');
 
   for(const student of students){
+   if(existing.has(student.id)){
+    successCount++;generatedTokens.push({...existing.get(student.id),nama:student.nama_penuh});continue;
+   }
    let matchedTemplate=templates.find(t=>norm(t.peringkat)===norm(student.peringkat) || t.peringkat.trim().toLowerCase()===student.peringkat.trim().toLowerCase());
    if(!matchedTemplate){
     matchedTemplate=templates.find(t=>t.peringkat.trim().toLowerCase()==='semua peringkat');
@@ -800,7 +815,7 @@ app.post('/api/admin/templates/generate-batch',requireAdmin,async(req,res,next)=
    }
 
    if(!matchedTemplate){
-    failed.push({id:student.id,nama:student.nama_penuh,peringkat:student.peringkat,reason:`Tiada templat PDF untuk peringkat "${student.peringkat}"`});
+    failed.push({id:student.id,nama:student.nama_penuh,peringkat:student.peringkat,retryable:false,reason:`Tiada templat PDF untuk peringkat "${student.peringkat}"`});
     continue;
    }
 
@@ -827,7 +842,7 @@ app.post('/api/admin/templates/generate-batch',requireAdmin,async(req,res,next)=
    try{
     // Retrying the same batch must reuse its token, including after a lost HTTP response.
     const token=requestId
-      ? crypto.createHash('sha256').update(`${req.admin.id}:${requestId}:${student.id}`).digest('hex')
+      ? generationToken(req.admin.id,requestId,student.id)
       : crypto.randomUUID();
     const generated=await generateCertificatePdf({
      templateBytes:tplBytes,
@@ -846,7 +861,7 @@ app.post('/api/admin/templates/generate-batch',requireAdmin,async(req,res,next)=
     successCount++;
     generatedTokens.push({studentId:student.id,nama:student.nama_penuh,token});
    }catch(err){
-    failed.push({id:student.id,nama:student.nama_penuh,peringkat:student.peringkat,reason:err.message});
+    failed.push({id:student.id,nama:student.nama_penuh,peringkat:student.peringkat,reason:err.message,retryable:!(/SQLITE_FULL|database or disk is full/i.test(err.message))});
    }
   }
 

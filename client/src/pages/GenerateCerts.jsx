@@ -402,6 +402,9 @@ export function GenerateCerts() {
     if (!selectedTemplateName) {
       return toast.error('Sila pilih nama templat sijil terlebih dahulu.');
     }
+    if(matchingStats.unmatched>0){
+      return toast.error(`${matchingStats.unmatched} pesilat belum mempunyai templat sepadan. Lengkapkan templat semua peringkat sebelum memulakan janaan keseluruhan.`);
+    }
 
     generatingRef.current = true;
     setGenerating(true);
@@ -412,7 +415,10 @@ export function GenerateCerts() {
     try {
       const signature = JSON.stringify([selectedTemplateName, issueDate]);
       if (generationRequest.current?.signature !== signature) {
-        generationRequest.current = { signature, id: crypto.randomUUID() };
+        let storedId;
+        try{storedId=localStorage.getItem('prosijil-generation:'+signature);}catch{}
+        generationRequest.current = { signature, id: storedId || crypto.randomUUID() };
+        try{localStorage.setItem('prosijil-generation:'+signature,generationRequest.current.id);}catch{}
       }
       const res = await generateCertificateBatches({
         api, ids: idsToGenerate, templateName: selectedTemplateName, issueDate,
@@ -420,7 +426,7 @@ export function GenerateCerts() {
       });
       setResult(res);
       if (res.successCount > 0) {
-        toast.success(`Berjaya menjana ${res.successCount} sijil digital!`);
+        if(res.failedCount===0 && res.verified)toast.success(`Disahkan lengkap: ${res.successCount}/${res.total} sijil berjaya disimpan.`);
         loadStudents();
       }
       if (res.failedCount > 0) {
@@ -481,6 +487,9 @@ export function GenerateCerts() {
 
   // Restart wizard for a fresh batch
   function handleResetNewBatch() {
+    if(generationRequest.current){
+      try{localStorage.removeItem('prosijil-generation:'+generationRequest.current.signature);}catch{}
+    }
     generationRequest.current = null;
     setResult(null);
     setGenError(null);
@@ -1534,7 +1543,7 @@ export function GenerateCerts() {
                       </span>
                     ) : (
                       <span className="font-bold text-amber-800 flex items-center gap-1">
-                        <AlertCircle size={13} /> {matchingStats.unmatched} pesilat akan dilangkau (tiada templat).
+                        <AlertCircle size={13} /> Lengkapkan templat untuk {matchingStats.unmatched} pesilat sebelum janaan keseluruhan.
                       </span>
                     )}
                   </div>
@@ -1619,7 +1628,7 @@ export function GenerateCerts() {
                 <Button
                   onClick={handleGenerate}
                   loading={generating}
-                  disabled={idsToGenerate.length === 0 || templateNames.length === 0}
+                  disabled={idsToGenerate.length === 0 || templateNames.length === 0 || matchingStats.unmatched>0}
                   className="!px-6 !py-2.5 text-xs sm:text-sm font-extrabold shadow-lg order-1 sm:order-2 justify-center cursor-pointer bg-red-700 hover:bg-red-800"
                 >
                   <FileCheck size={16} />{' '}
@@ -1631,14 +1640,17 @@ export function GenerateCerts() {
             </Panel>
           ) : (
             /* Bahagian 3B: Keputusan Janaan Sijil (Selesai & Muat Turun) */
-            <Panel className="border-emerald-200 bg-emerald-50/40 p-4 sm:p-6">
+            <Panel className={`${result.failedCount===0 && result.verified?'border-emerald-200 bg-emerald-50/40':'border-amber-200 bg-amber-50/40'} p-4 sm:p-6`}>
               <div className="flex items-center gap-3 mb-4">
-                <div className="grid h-11 w-11 place-items-center rounded-2xl bg-emerald-600 text-white shrink-0 shadow-sm">
-                  <CheckCircle2 size={24} />
+                <div className={`grid h-11 w-11 place-items-center rounded-2xl ${result.failedCount===0 && result.verified?'bg-emerald-600':'bg-amber-600'} text-white shrink-0 shadow-sm`}>
+                  {result.failedCount===0 && result.verified?<CheckCircle2 size={24} />:<AlertCircle size={24} />}
                 </div>
                 <div>
                   <h3 className="text-base sm:text-lg font-extrabold text-slate-950">
-                    {t('genCompleteTitle')}
+                    {result.failedCount===0 && result.verified
+                      ? `Disahkan lengkap: ${result.successCount}/${result.total}`
+                      : !result.verified && result.failedCount===0 ? 'Pengesahan akhir belum selesai'
+                      : `Belum lengkap: ${result.successCount}/${result.total} disahkan tersimpan`}
                   </h3>
                   <p className="text-xs text-slate-600 mt-0.5">
                     {lang === 'eng' ? (

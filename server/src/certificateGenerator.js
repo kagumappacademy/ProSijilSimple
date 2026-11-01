@@ -59,16 +59,16 @@ export async function generateCertificatePdf({
   const xRatio = hasCustomPos ? (Number(cfg.xPercent) / 100) : centerXRatio;
   const yRatio = hasCustomPos ? (1 - (Number(cfg.yPercent) / 100)) : 0.5718;
 
-  const fontBytes = getFontBytes();
-  const loraFont = await pdfDoc.embedFont(fontBytes);
-
-  let selectedFont = loraFont;
+  let selectedFont;
   if (finalFontFamily === 'Helvetica' || finalFontFamily === 'Sans') {
     selectedFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
   } else if (finalFontFamily === 'Times Roman' || finalFontFamily === 'Times-Roman' || finalFontFamily === 'Serif') {
     selectedFont = await pdfDoc.embedFont(StandardFonts.TimesRomanBold);
   } else if (finalFontFamily === 'Courier') {
     selectedFont = await pdfDoc.embedFont(StandardFonts.CourierBold);
+  } else {
+    // Embed only glyphs used in this name, not the entire variable font per PDF.
+    selectedFont = await pdfDoc.embedFont(getFontBytes(), {subset:true});
   }
 
   const pageCount = pdfDoc.getPageCount();

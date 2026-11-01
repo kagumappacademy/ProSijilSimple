@@ -1,12 +1,29 @@
 import { db, getSettings } from './db.js';
 import fs from 'node:fs';
+import crypto from 'node:crypto';
 import { isVercel } from './config.js';
 import { getTursoClient, isTursoConfigured, ensureTursoSchema } from './turso.js';
-import { getStoredStudent } from './studentStore.js';
+import { getStoredStudent, readRows } from './studentStore.js';
 import { createCertificatePdfBytes } from './pdf.js';
 
 const columns = 'pesilat_id,nama_sijil,tarikh_isu,jenis,file_path,file_type,public_token,file_base64,kategori';
 const storageError = message => Object.assign(new Error(message), {status:503});
+
+export const generationToken=(adminId,requestId,studentId)=>crypto.createHash('sha256')
+  .update(`${adminId}:${requestId}:${studentId}`).digest('hex');
+
+export async function getGenerationStatus(adminId,requestId,ids) {
+  const tokens=ids.map(id=>generationToken(adminId,requestId,id));
+  if(!tokens.length)return {total:0,successCount:0,failedCount:0,failed:[],generatedTokens:[],verified:true};
+  const rows=await readRows(`SELECT s.pesilat_id,s.public_token,p.nama_penuh FROM sijil s JOIN pesilat p ON p.id=s.pesilat_id
+    WHERE s.public_token IN (${tokens.map(()=>'?').join(',')}) AND length(s.file_base64)>0`,tokens);
+  const saved=new Map(rows.map(row=>[Number(row.pesilat_id),row]));
+  const generatedTokens=ids.filter((id,index)=>saved.get(id)?.public_token===tokens[index])
+    .map(id=>({studentId:id,token:saved.get(id).public_token,nama:saved.get(id).nama_penuh}));
+  const found=new Set(generatedTokens.map(row=>row.studentId));
+  const failed=ids.filter(id=>!found.has(id)).map(id=>({id,reason:'Simpanan sijil belum dapat disahkan.',retryable:true}));
+  return {total:ids.length,successCount:generatedTokens.length,failedCount:failed.length,failed,generatedTokens,verified:true};
+}
 
 async function certificateClient() {
   if (isTursoConfigured()) {
@@ -22,7 +39,8 @@ async function cacheCertificate(row) {
     if (isTursoConfigured()) await getStoredStudent(row.pesilat_id);
     db.prepare(`INSERT INTO sijil(id,${columns}) VALUES(?,?,?,?,?,?,?,?,?,?)
       ON CONFLICT(id) DO UPDATE SET ${columns.split(',').map(column=>`${column}=excluded.${column}`).join(',')}`)
-      .run(row.id,...columns.split(',').map(column=>row[column] ?? (column==='file_path'?'':null)));
+      .run(row.id,...columns.split(',').map(column=>
+        column==='file_base64' && isTursoConfigured() ? null : row[column] ?? (column==='file_path'?'':null)));
   } catch(error) { console.warn('[Certificate Cache]',error.message); }
 }
 

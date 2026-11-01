@@ -1,12 +1,16 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
-import { dataDir } from './config.js';
+import { dataDir, isVercel } from './config.js';
 
-fs.mkdirSync(dataDir, { recursive: true });
-fs.mkdirSync(path.join(dataDir, 'uploads'), { recursive: true });
-fs.mkdirSync(path.join(dataDir, 'templates'), { recursive: true });
-export const db = new DatabaseSync(path.join(dataDir, 'prosijil.sqlite'));
+if(!isVercel){
+ fs.mkdirSync(dataDir, { recursive: true });
+ fs.mkdirSync(path.join(dataDir, 'uploads'), { recursive: true });
+ fs.mkdirSync(path.join(dataDir, 'templates'), { recursive: true });
+}
+// On Vercel this is only a disposable metadata cache; Turso owns durable data.
+// Keeping it off /tmp prevents old SQLite/WAL files exhausting the shared disk.
+export const db = new DatabaseSync(isVercel ? ':memory:' : path.join(dataDir, 'prosijil.sqlite'));
 db.exec('PRAGMA foreign_keys = ON; PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;');
 db.exec(`
 CREATE TABLE IF NOT EXISTS admin_users (

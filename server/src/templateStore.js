@@ -22,7 +22,8 @@ function cacheTemplate(row) {
   const columns = `${metadata},file_base64,file_path`.split(',');
   db.prepare(`INSERT INTO template_sijil (${columns.join(',')}) VALUES (${columns.map(() => '?').join(',')})
     ON CONFLICT(id) DO UPDATE SET ${columns.slice(1).map(column => `${column}=excluded.${column}`).join(',')}`)
-    .run(...columns.map(column => row[column] ?? (column === 'file_path' ? '' : null)));
+    .run(...columns.map(column => column==='file_base64' && isTursoConfigured()
+      ? null : row[column] ?? (column === 'file_path' ? '' : null)));
 }
 
 export async function listStoredTemplates({ name, category } = {}) {

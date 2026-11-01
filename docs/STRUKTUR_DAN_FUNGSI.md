@@ -41,6 +41,8 @@
 | `server/src/certificateStore.js` | Simpan/kemas kini fail sijil kekal dan pulihkan fail lama |
 | `server/src/templateStore.js` | Simpan fail templat dan layout kekal |
 | `server/src/turso.js` | Migrasi skema dan penyegerakan dengan awan sebagai sumber utama |
+| `client/src/lib/generateBatch.js` | Kelompok janaan, percubaan semula dan pengesahan setiap penerima |
+| `server/tests/bulk-290.test.js` | Ujian 290 sijil dengan cache terhad dan gangguan sambungan |
 | `server/scripts/create-admin.js` | CLI cipta admin tanpa default password |
 | `server/scripts/demo-seed.js` | Contoh data (pilihan sahaja) |
 | `server/tests/integration.test.js` | Ujian API & fungsi asas |
@@ -85,6 +87,8 @@ SQLite akan mencipta jadual pada kali pertama API/skrip admin dijalankan. `pesil
 | GET, POST | `/api/admin/templates` | Admin |
 | PUT, DELETE | `/api/admin/templates/:id` | Admin |
 | POST | `/api/admin/templates/:id/layout` | Admin |
+| POST | `/api/admin/templates/generate-batch` | Admin, maksimum 25 penerima setiap permintaan |
+| POST | `/api/admin/templates/generation-status` | Admin, pengesahan maksimum 500 penerima setiap permintaan |
 | GET, PUT | `/api/admin/settings` | Admin |
 
 ## Had & perhatian sebelum go-live
