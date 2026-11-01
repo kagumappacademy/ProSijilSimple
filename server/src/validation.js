@@ -7,7 +7,7 @@ export function validatePesilat(body) {
  const peringkat = trim(body.peringkat,90) || 'Belum ditetapkan';
  const cawangan = trim(body.cawangan,160) || 'Tidak dinyatakan';
  const tarikh_daftar = trim(body.tarikh_daftar,10) || new Date().toISOString().slice(0,10);
- if (nama_penuh.length < 2) throw new Error('Nama penuh perlu sekurang-kurangnya 2 aksara.');
- if (!validDate(tarikh_daftar)) throw new Error('Tarikh daftar tidak sah.');
+ if (nama_penuh.length < 2) throw Object.assign(new Error('Nama penuh perlu sekurang-kurangnya 2 aksara.'), {status:400});
+ if (!validDate(tarikh_daftar)) throw Object.assign(new Error('Tarikh daftar tidak sah.'), {status:400});
  return { nama_penuh, no_kp_atau_id, peringkat, cawangan, tarikh_daftar };
 }

@@ -87,11 +87,25 @@ Sistem menerima tajuk kolum `nama_penuh`, `no_kp_atau_id`, `peringkat`, `cawanga
 4. Letak reverse proxy HTTPS (Nginx / Caddy) di depan port 4000.
 5. **Backup volume `prosijil_data` secara berkala**, termasuk SQLite dan folder uploads.
 
-## Penyimpanan templat PDF
+## Penyimpanan kekal sijil dan templat PDF
 
-Fail templat disimpan bersama rekod pangkalan data sebagai `file_base64`, tanpa tempoh luput. Dalam pemasangan Turso, muat naik hanya dilaporkan berjaya selepas PDF disimpan dan simpanannya disahkan di awan. Penyegerakan metadata tidak memadam atau menggantikan PDF yang sudah tersimpan. Templat hanya dipadam melalui tindakan admin; rekod pemadaman menghalang cache pelayan lama daripada memasukkannya semula.
+Fail sijil PDF/JPG/PNG dan templat disimpan bersama rekod pangkalan data sebagai `file_base64`, tanpa tempoh luput. Fail baharu tidak bergantung pada folder sementara pelayan. Muat naik dan penggantian fail hanya dilaporkan berjaya selepas simpanan pangkalan data disahkan. Kemas kini metadata sijil uploaded mengekalkan fail sedia ada; kegagalan simpanan fail baharu mengekalkan versi terakhir yang berjaya disimpan. Muat turun sentiasa membaca versi utama, walaupun cache atau cakera masih mempunyai salinan lama.
+
+Sijil janaan manual juga disimpan sebagai PDF tetap semasa dicipta. Perubahan tetapan organisasi tidak mengubah PDF yang telah dikeluarkan. Jika admin mengemas kini sijil jenis generated, PDF baharu dijana dan disimpan. Sijil lama yang hanya mempunyai metadata generated akan disimpan sebagai PDF ketika kali pertama dimuat turun.
+
+Jadual `template_sijil_deleted` tidak lagi digunakan dan dibuang secara automatik semasa inisialisasi SQLite/Turso selepas restart atau redeploy. Pemadaman berlaku terus pada rekod utama; cache disesuaikan dengan rekod yang masih wujud di awan. Penyegerakan biasa tidak mencipta semula rekod yang tiada di awan atau menggantikan fail/layout terkini dengan cache lama.
 
 Hosting Vercel memerlukan `TURSO_DATABASE_URL` dan kelayakan akses yang sah kerana fail sementara pelayan tidak kekal. Pemasangan SQLite tempatan memerlukan direktori `DATA_DIR` pada cakera atau volume kekal. Sandarkan pangkalan data secara berkala. Fail lama yang masih mempunyai salinan cache/cakera akan disalin semula ke storan awan apabila dibaca; jika semua salinan asal sudah hilang, admin perlu memuat naik semula PDF asal.
+
+Untuk pembangunan tempatan tanpa Turso, biarkan kedua-dua pemboleh ubah Turso kosong seperti dalam `.env.example`. Untuk hosting Vercel, masukkan URL dan token sebenar dalam tetapan environment hosting sebelum deployment. Jadual baharu dan lajur storan PDF lama akan disediakan secara automatik apabila sambungan digunakan.
+
+Pangkalan data lama yang mewajibkan `template_sijil.file_path` juga disokong: templat yang disimpan dalam `file_base64` menggunakan rentetan kosong untuk `file_path`. Muat naik dan penyegerakan tidak memerlukan fail sementara atau pemadaman jadual lama. Selepas mengemas kini kod, redeploy pelayan untuk membetulkan ralat `NOT NULL constraint failed: template_sijil.file_path` pada laman online.
+
+`npm run turso:push` kini hanya memulihkan fail kosong pada rekod awan yang masih wujud. Untuk migrasi awal yang disengajakan daripada SQLite tempatan, gunakan `npm run turso:push -- --import-new`; mod ini boleh memasukkan rekod tempatan yang tiada di awan. Ia tidak dijalankan oleh penyegerakan automatik dan tidak menggantikan rekod/fail awan sedia ada.
+
+Muat naik melalui portal dihadkan kepada jumlah 4MB bagi setiap permintaan, termasuk kedua-dua PDF dan thumbnail. PDF templat besar akan cuba dioptimumkan sebelum saiz akhir diperiksa; jika masih terlalu besar, kecilkan PDF asal. Fail PDF rosak, kosong atau berkunci akan ditolak dengan mesej yang jelas.
+
+Operasi pesilat, dashboard, carian awam dan janaan menggunakan rekod awan terkini apabila Turso ditetapkan. Import CSV disimpan dalam kelompok kecil dengan ID yang diberikan pangkalan data awan, tanpa menolak seluruh cache lama ke awan. Jika import terhenti, hanya kelompok yang disahkan tersimpan dikira berjaya; muat naik semula CSV yang sama untuk menyambung dan melangkau rekod sedia ada. Ralat janaan manual dikembalikan melalui API, dan sijil JPG/PNG ditukar kepada PDF sebenar semasa dimuat turun, termasuk apabila fail cakera sementara sudah tiada.
 
 ## Fail penting
 

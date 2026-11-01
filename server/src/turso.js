@@ -37,12 +37,8 @@ export function getTursoClient() {
   return sharedClient;
 }
 
-export const TEMPLATE_DELETION_SCHEMA = `CREATE TABLE IF NOT EXISTS template_sijil_deleted (
-  id INTEGER PRIMARY KEY, deleted_at TEXT NOT NULL DEFAULT (datetime('now'))
-)`;
-
 export const TURSO_SCHEMA_STATEMENTS = [
-  TEMPLATE_DELETION_SCHEMA,
+  'DROP TABLE IF EXISTS template_sijil_deleted',
   `CREATE TABLE IF NOT EXISTS admin_users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT NOT NULL UNIQUE COLLATE NOCASE,
@@ -117,24 +113,31 @@ export const TURSO_SCHEMA_STATEMENTS = [
  */
 export async function initTursoSchema(client) {
   const turso = client || getTursoClient();
-  for (const statement of TURSO_SCHEMA_STATEMENTS) {
-    await turso.execute(statement);
+  for (const statement of TURSO_SCHEMA_STATEMENTS) await turso.execute(statement);
+  // Ignore migration errors only when another instance added the column.
+  const migrations = {
+    sijil: {file_base64:'TEXT',kategori:"TEXT DEFAULT 'kenaikan_tali_pinggang'"},
+    template_sijil: {file_base64:'TEXT',kategori:"TEXT DEFAULT 'kenaikan_tali_pinggang'",page_count:'INTEGER DEFAULT 1',thumbnail_base64:'TEXT',layout_config:'TEXT'},
+    admin_activity: {students_before:'INTEGER',students_after:'INTEGER',certs_before:'INTEGER',certs_after:'INTEGER',templates_before:'INTEGER',templates_after:'INTEGER'},
+  };
+  for (const [table,columns] of Object.entries(migrations)) {
+    const existing = await turso.execute('PRAGMA table_info('+table+')');
+    for (const [column,type] of Object.entries(columns)) {
+      if (existing.rows.some(row => row.name === column)) continue;
+      try { await turso.execute('ALTER TABLE '+table+' ADD COLUMN '+column+' '+type); }
+      catch (error) {
+        const current = await turso.execute('PRAGMA table_info('+table+')');
+        if (!current.rows.some(row => row.name === column)) throw error;
+      }
+    }
   }
-  try {
-    await turso.execute('ALTER TABLE template_sijil ADD COLUMN page_count INTEGER DEFAULT 1;');
-  } catch (_) {}
-  try {
-    await turso.execute('ALTER TABLE template_sijil ADD COLUMN thumbnail_base64 TEXT;');
-  } catch (_) {}
-  try {
-    await turso.execute('ALTER TABLE template_sijil ADD COLUMN layout_config TEXT;');
-  } catch (_) {}
-  try { await turso.execute('ALTER TABLE admin_activity ADD COLUMN students_before INTEGER;'); } catch (_) {}
-  try { await turso.execute('ALTER TABLE admin_activity ADD COLUMN students_after INTEGER;'); } catch (_) {}
-  try { await turso.execute('ALTER TABLE admin_activity ADD COLUMN certs_before INTEGER;'); } catch (_) {}
-  try { await turso.execute('ALTER TABLE admin_activity ADD COLUMN certs_after INTEGER;'); } catch (_) {}
-  try { await turso.execute('ALTER TABLE admin_activity ADD COLUMN templates_before INTEGER;'); } catch (_) {}
-  try { await turso.execute('ALTER TABLE admin_activity ADD COLUMN templates_after INTEGER;'); } catch (_) {}
+}
+
+let schemaReady;
+export async function ensureTursoSchema() {
+  if (!isTursoConfigured()) return;
+  schemaReady ||= initTursoSchema().catch(error => { schemaReady = null; throw error; });
+  await schemaReady;
 }
 
 /**
@@ -192,121 +195,68 @@ export async function testTursoConnection() {
  * Helper to execute an array of statements in chunks using turso.batch()
  */
 async function batchExecute(turso, statements, chunkSize = 50) {
+  let affected=0;
   for (let i = 0; i < statements.length; i += chunkSize) {
     const chunk = statements.slice(i, i + chunkSize);
     if (chunk.length > 0) {
-      await turso.batch(chunk, 'write');
+      const results=await turso.batch(chunk, 'write');
+      affected+=results.reduce((sum,result)=>sum+Number(result.rowsAffected),0);
     }
   }
+  return affected;
 }
 
 /**
  * Migrates/Pushes all data from local SQLite database (prosijil.sqlite) to Turso.
  */
-export async function pushLocalToTurso(client) {
-  const turso = client || getTursoClient();
+export async function pushLocalToTurso(client, { importNewRecords = false } = {}) {
+  const turso=client || getTursoClient();
   await initTursoSchema(turso);
-
-  const stats = {
-    admin_users: 0,
-    pesilat: 0,
-    sijil: 0,
-    template_sijil: 0,
-    settings: 0,
-  };
-
-  // 1. Settings
-  const localSettings = db.prepare('SELECT key, value FROM settings').all();
-  const settingsStmts = localSettings.map((row) => ({
-    sql: 'INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value',
-    args: [row.key, row.value],
-  }));
-  await batchExecute(turso, settingsStmts);
-  stats.settings = localSettings.length;
-
-  // 2. Admin Users
-  const localAdmins = db.prepare('SELECT id, username, password_hash, created_at FROM admin_users').all();
-  const adminStmts = localAdmins.map((row) => ({
-    sql: 'INSERT OR REPLACE INTO admin_users (id, username, password_hash, created_at) VALUES (?, ?, ?, ?)',
-    args: [row.id, row.username, row.password_hash, row.created_at],
-  }));
-  await batchExecute(turso, adminStmts);
-  stats.admin_users = localAdmins.length;
-
-  // 3. Pesilat
-  const localPesilat = db.prepare('SELECT id, nama_penuh, no_kp_atau_id, peringkat, cawangan, tarikh_daftar, created_at, updated_at FROM pesilat').all();
-  const pesilatStmts = localPesilat.map((row) => ({
-    sql: `INSERT INTO pesilat (id, nama_penuh, no_kp_atau_id, peringkat, cawangan, tarikh_daftar, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      ON CONFLICT(id) DO UPDATE SET nama_penuh=excluded.nama_penuh,no_kp_atau_id=excluded.no_kp_atau_id,
-      peringkat=excluded.peringkat,cawangan=excluded.cawangan,tarikh_daftar=excluded.tarikh_daftar,
-      created_at=excluded.created_at,updated_at=excluded.updated_at`,
-    args: [row.id, row.nama_penuh, row.no_kp_atau_id, row.peringkat, row.cawangan, row.tarikh_daftar, row.created_at, row.updated_at],
-  }));
-  await batchExecute(turso, pesilatStmts);
-  stats.pesilat = localPesilat.length;
-
-  // 4. Sijil
-  const localSijil = db.prepare('SELECT id, pesilat_id, nama_sijil, tarikh_isu, jenis, file_path, file_type, public_token, file_base64, kategori, created_at FROM sijil').all();
-  const sijilStmts = localSijil.map((row) => ({
-    sql: `INSERT INTO sijil (id, pesilat_id, nama_sijil, tarikh_isu, jenis, file_path, file_type, public_token, file_base64, kategori, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      ON CONFLICT(id) DO UPDATE SET pesilat_id=excluded.pesilat_id,nama_sijil=excluded.nama_sijil,
-      tarikh_isu=excluded.tarikh_isu,jenis=excluded.jenis,file_path=excluded.file_path,file_type=excluded.file_type,
-      public_token=excluded.public_token,file_base64=COALESCE(excluded.file_base64,sijil.file_base64),
-      kategori=excluded.kategori,created_at=excluded.created_at`,
-    args: [row.id, row.pesilat_id, row.nama_sijil, row.tarikh_isu, row.jenis, row.file_path, row.file_type, row.public_token, row.file_base64 || null, row.kategori || 'kenaikan_tali_pinggang', row.created_at],
-  }));
-  await batchExecute(turso, sijilStmts);
-  stats.sijil = localSijil.length;
-
-  // 5. Template Sijil (tolak secara individu untuk mengelakkan had saiz payload batch Turso)
-  const localTemplates = db.prepare('SELECT id, nama_template, peringkat, keterangan, file_path, file_name, file_size, file_base64, kategori, page_count, thumbnail_base64, layout_config, created_at FROM template_sijil').all();
-  for (const row of localTemplates) {
-    try {
-      const fileBase64 = row.file_base64 || (row.file_path && fs.existsSync(row.file_path)
-        ? fs.readFileSync(row.file_path).toString('base64') : null);
-      // A metadata-only cache must never create a cloud template without its PDF.
-      if (!fileBase64) continue;
-      await turso.execute({
-        sql: `INSERT INTO template_sijil (id, nama_template, peringkat, keterangan, file_path, file_name, file_size, file_base64, kategori, page_count, thumbnail_base64, layout_config, created_at)
-          SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ? WHERE NOT EXISTS (SELECT 1 FROM template_sijil_deleted WHERE id=?)
-          ON CONFLICT(id) DO UPDATE SET
-            file_base64=COALESCE(NULLIF(template_sijil.file_base64,''),excluded.file_base64),
-            thumbnail_base64=COALESCE(template_sijil.thumbnail_base64,excluded.thumbnail_base64)`,
-        args: [row.id, row.nama_template, row.peringkat, row.keterangan || null, null, row.file_name, row.file_size || 0, fileBase64, row.kategori || 'kenaikan_tali_pinggang', row.page_count || 1, row.thumbnail_base64 || null, row.layout_config || null, row.created_at, row.id],
+  const stats={admin_users:0,pesilat:0,sijil:0,template_sijil:0,settings:0};
+  // Normal sync only repairs missing file bytes on records that still exist.
+  // Importing new records is an explicit CLI migration, never a background task.
+  if(importNewRecords) {
+    const settings=db.prepare('SELECT key,value FROM settings').all();
+    const admins=db.prepare('SELECT username,password_hash,created_at FROM admin_users').all();
+    const students=db.prepare('SELECT nama_penuh,no_kp_atau_id,peringkat,cawangan,tarikh_daftar,created_at,updated_at FROM pesilat').all();
+    stats.settings=await batchExecute(turso,settings.map(row=>({sql:'INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO NOTHING',args:[row.key,row.value]})));
+    stats.admin_users=await batchExecute(turso,admins.map(row=>({sql:'INSERT INTO admin_users(username,password_hash,created_at) VALUES(?,?,?) ON CONFLICT(username) DO NOTHING',args:[row.username,row.password_hash,row.created_at]})));
+    stats.pesilat=await batchExecute(turso,students.map(row=>({sql:'INSERT INTO pesilat(nama_penuh,no_kp_atau_id,peringkat,cawangan,tarikh_daftar,created_at,updated_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT(no_kp_atau_id) DO NOTHING',args:[row.nama_penuh,row.no_kp_atau_id,row.peringkat,row.cawangan,row.tarikh_daftar,row.created_at,row.updated_at]})));
+  }
+  for(const row of db.prepare('SELECT s.*,p.no_kp_atau_id FROM sijil s JOIN pesilat p ON p.id=s.pesilat_id').all()) {
+    const bytes=row.file_base64 || (row.file_path && fs.existsSync(row.file_path)?fs.readFileSync(row.file_path).toString('base64'):null);
+    if(row.jenis==='uploaded'&&!bytes)continue;
+    if(importNewRecords) {
+      const inserted=await turso.execute({
+        sql: 'INSERT INTO sijil(pesilat_id,nama_sijil,tarikh_isu,jenis,file_path,file_type,public_token,file_base64,kategori,created_at) SELECT id,?,?,?,?,?,?,?,?,? FROM pesilat WHERE no_kp_atau_id=? ON CONFLICT(public_token) DO NOTHING',
+        args:[row.nama_sijil,row.tarikh_isu,row.jenis,'',row.file_type,row.public_token,bytes,row.kategori || 'kenaikan_tali_pinggang',row.created_at,row.no_kp_atau_id],
       });
-      stats.template_sijil++;
-    } catch (tplErr) {
-      console.warn(`[Turso Push Template ${row.id} Warning]:`, tplErr.message);
+      stats.sijil+=Number(inserted.rowsAffected);
+    }
+    if(bytes) {
+      const repaired=await turso.execute({
+        sql: "UPDATE sijil SET file_base64=? WHERE public_token=? AND jenis=? AND file_type IS ? AND (file_base64 IS NULL OR file_base64='')",
+        args:[bytes,row.public_token,row.jenis,row.file_type],
+      });
+      stats.sijil+=Number(repaired.rowsAffected);
     }
   }
-
-  // 6. Admin Activity (Simpan ke Turso Cloud supaya aktiviti terkini kekal)
-  try {
-    const localActivities = db.prepare('SELECT id, type, action, title, detail, target_url, students_before, students_after, certs_before, certs_after, templates_before, templates_after, created_at FROM admin_activity ORDER BY id DESC LIMIT 150').all();
-    if (localActivities.length > 0) {
-      const actStmts = localActivities.map((row) => ({
-        sql: `INSERT OR REPLACE INTO admin_activity (
-          id, type, action, title, detail, target_url,
-          students_before, students_after,
-          certs_before, certs_after,
-          templates_before, templates_after,
-          created_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        args: [
-          row.id, row.type, row.action, row.title, row.detail || null, row.target_url || null,
-          row.students_before ?? null, row.students_after ?? null,
-          row.certs_before ?? null, row.certs_after ?? null,
-          row.templates_before ?? null, row.templates_after ?? null,
-          row.created_at
-        ]
-      }));
-      await batchExecute(turso, actStmts);
-      stats.admin_activity = localActivities.length;
+  for(const row of db.prepare('SELECT * FROM template_sijil').all()) {
+    const bytes=row.file_base64 || (row.file_path && fs.existsSync(row.file_path)?fs.readFileSync(row.file_path).toString('base64'):null);
+    if(!bytes)continue;
+    if(importNewRecords) {
+      const inserted=await turso.execute({
+        sql: 'INSERT INTO template_sijil(nama_template,peringkat,keterangan,file_path,file_name,file_size,file_base64,kategori,page_count,thumbnail_base64,layout_config,created_at) SELECT ?,?,?,?,?,?,?,?,?,?,?,? WHERE NOT EXISTS (SELECT 1 FROM template_sijil WHERE nama_template=? AND peringkat=? AND file_name=? AND created_at=?)',
+        args:[row.nama_template,row.peringkat,row.keterangan,'',row.file_name,row.file_size,bytes,row.kategori || 'kenaikan_tali_pinggang',row.page_count || 1,row.thumbnail_base64,row.layout_config,row.created_at,row.nama_template,row.peringkat,row.file_name,row.created_at],
+      });
+      stats.template_sijil+=Number(inserted.rowsAffected);
     }
-  } catch (actErr) {
-    console.warn('[Turso Push Activity Warning]:', actErr.message);
+    const repaired=await turso.execute({
+      sql: "UPDATE template_sijil SET file_base64=? WHERE id=? AND nama_template=? AND peringkat=? AND file_name=? AND file_size=? AND (file_base64 IS NULL OR file_base64='')",
+      args:[bytes,row.id,row.nama_template,row.peringkat,row.file_name,row.file_size],
+    });
+    stats.template_sijil+=Number(repaired.rowsAffected);
   }
-
   return stats;
 }
 
@@ -315,6 +265,7 @@ export async function pushLocalToTurso(client) {
  */
 export async function pullTursoToLocal(client) {
   const turso = client || getTursoClient();
+  if (!client) await ensureTursoSchema();
 
   const stats = {
     admin_users: 0,
@@ -330,7 +281,6 @@ export async function pullTursoToLocal(client) {
   const remoteAdmins = await turso.execute('SELECT id, username, password_hash, created_at FROM admin_users');
   const remotePesilat = await turso.execute('SELECT id, nama_penuh, no_kp_atau_id, peringkat, cawangan, tarikh_daftar, created_at, updated_at FROM pesilat');
   const remoteSijil = await turso.execute('SELECT id, pesilat_id, nama_sijil, tarikh_isu, jenis, file_path, file_type, public_token, kategori, created_at FROM sijil');
-  await turso.execute(TEMPLATE_DELETION_SCHEMA);
   let remoteTemplates;
   try {
     remoteTemplates = await turso.execute('SELECT id, nama_template, peringkat, keterangan, file_path, file_name, file_size, kategori, page_count, thumbnail_base64, layout_config, created_at FROM template_sijil');
@@ -342,7 +292,6 @@ export async function pullTursoToLocal(client) {
     }
   }
   let remoteActivities = { rows: [] };
-  const remoteDeletedTemplates = await turso.execute('SELECT id,deleted_at FROM template_sijil_deleted');
   try {
     remoteActivities = await turso.execute('SELECT id, type, action, title, detail, target_url, students_before, students_after, certs_before, certs_after, templates_before, templates_after, created_at FROM admin_activity ORDER BY id DESC LIMIT 150');
   } catch (err) {
@@ -416,10 +365,11 @@ export async function pullTursoToLocal(client) {
         created_at=excluded.created_at
     `);
     for (const row of remoteTemplates.rows) {
-      tplStmt.run(row.id, row.nama_template, row.peringkat, row.keterangan, row.file_path, row.file_name, row.file_size, row.kategori || 'kenaikan_tali_pinggang', row.page_count ?? 1, row.thumbnail_base64 || null, row.layout_config || null, row.created_at);
+      tplStmt.run(row.id, row.nama_template, row.peringkat, row.keterangan, row.file_path ?? '', row.file_name, row.file_size, row.kategori || 'kenaikan_tali_pinggang', row.page_count ?? 1, row.thumbnail_base64 || null, row.layout_config || null, row.created_at);
       stats.template_sijil++;
     }
-    applyTemplateDeletions(remoteDeletedTemplates.rows);
+    pruneFileCache('template_sijil',remoteTemplates.rows);
+    pruneFileCache('sijil',remoteSijil.rows);
 
     // 6. Admin Activity (Muat turun aktiviti terkini dari Turso Cloud ke SQLite)
     try {
@@ -462,8 +412,8 @@ export async function pullTursoToLocal(client) {
  */
 export async function pullTemplatesFromTurso() {
   if (!isTursoConfigured()) return 0;
+  await ensureTursoSchema();
   const turso = getTursoClient();
-  await turso.execute(TEMPLATE_DELETION_SCHEMA);
   let remoteTemplates;
   try {
     remoteTemplates = await turso.execute('SELECT id, nama_template, peringkat, keterangan, file_path, file_name, file_size, kategori, page_count, thumbnail_base64, layout_config, created_at FROM template_sijil');
@@ -490,21 +440,18 @@ export async function pullTemplatesFromTurso() {
       layout_config=COALESCE(excluded.layout_config, template_sijil.layout_config),
       created_at=excluded.created_at
   `);
-  const remoteDeletedTemplates = await turso.execute('SELECT id,deleted_at FROM template_sijil_deleted');
   for (const row of remoteTemplates.rows) {
-    tplStmt.run(row.id, row.nama_template, row.peringkat, row.keterangan, row.file_path, row.file_name, row.file_size, row.kategori || 'kenaikan_tali_pinggang', row.page_count ?? 1, row.thumbnail_base64 || null, row.layout_config || null, row.created_at);
+    tplStmt.run(row.id, row.nama_template, row.peringkat, row.keterangan, row.file_path ?? '', row.file_name, row.file_size, row.kategori || 'kenaikan_tali_pinggang', row.page_count ?? 1, row.thumbnail_base64 || null, row.layout_config || null, row.created_at);
   }
-  applyTemplateDeletions(remoteDeletedTemplates.rows);
+  pruneFileCache('template_sijil',remoteTemplates.rows);
   return remoteTemplates.rows.length;
 }
 
-function applyTemplateDeletions(rows) {
-  const remember = db.prepare('INSERT OR IGNORE INTO template_sijil_deleted(id,deleted_at) VALUES(?,?)');
-  const remove = db.prepare('DELETE FROM template_sijil WHERE id=?');
-  for (const row of rows) {
-    remember.run(row.id,row.deleted_at);
-    remove.run(row.id);
-  }
+function pruneFileCache(table, remoteRows) {
+  if(!['template_sijil','sijil'].includes(table))throw new Error('Jadual cache tidak sah.');
+  const ids=new Set(remoteRows.map(row=>Number(row.id)));
+  const remove=db.prepare('DELETE FROM '+table+' WHERE id=?');
+  for(const row of db.prepare('SELECT id FROM '+table).all())if(!ids.has(Number(row.id)))remove.run(row.id);
 }
 
 /**

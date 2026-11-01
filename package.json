@@ -15,7 +15,7 @@
     "demo:seed": "npm run demo:seed -w server",
     "test": "npm run test -w server",
     "turso:check": "npm run turso:check -w server",
-    "turso:push": "npm run turso:push -w server",
+    "turso:push": "npm run turso:push -w server --",
     "turso:pull": "npm run turso:pull -w server"
   },
   "dependencies": {

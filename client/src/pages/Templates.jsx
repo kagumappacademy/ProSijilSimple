@@ -374,7 +374,7 @@ async function createSmallThumbnail(dataUrl, maxDim = 320, quality = 0.65) {
 }
 
 // Fungsi pengoptimuman pintar PDF di pelayar jika saiz melebihi 3.2MB
-// Menjadikan muat naik "tiada had saiz" berjalan lancar tanpa gagal di pelayan
+// Kecilkan PDF sebelum semakan saiz muatan akhir.
 async function optimizePdfIfNeeded(file, maxTargetBytes = 3.2 * 1024 * 1024) {
   if (!file) return file;
   if (file.size <= maxTargetBytes) return file;
@@ -499,7 +499,7 @@ function UploadTemplateModal({ open, onClose, onSaved }) {
     }
   }, [open]);
 
-  // Peralihan dari Langkah 1 ke Langkah 2: Jana Pratonton Halaman 1 (Tiada had saiz)
+  // Peralihan dari Langkah 1 ke Langkah 2: Jana Pratonton Halaman 1.
   async function handleGoToStep2() {
     if (pageCount === 1) {
       if (!file) return toast.error('Sila pilih fail PDF templat 1 muka surat.');
@@ -539,21 +539,22 @@ function UploadTemplateModal({ open, onClose, onSaved }) {
 
   async function submitFinal(e) {
     if (e) e.preventDefault();
+    if (busy) return;
 
     setBusy(true);
     try {
       // Optimumkan fail PDF di browser secara pintar jika saiz fail besar (> 3.2MB)
-      // supaya mana-mana saiz fail boleh dimuat naik dengan pantas tanpa sebarang halangan
+      // Had dikira semula selepas pengoptimuman, termasuk kedua-dua fail dan thumbnail.
       let uploadFile = file;
       let uploadPage1 = filePage1;
       let uploadPage2 = filePage2;
 
       if (pageCount === 2 && uploadMode2P === 'split') {
         if (uploadPage1 && uploadPage1.size > 2.0 * 1024 * 1024) {
-          uploadPage1 = await optimizePdfIfNeeded(uploadPage1);
+          uploadPage1 = await optimizePdfIfNeeded(uploadPage1, 2.0 * 1024 * 1024);
         }
         if (uploadPage2 && uploadPage2.size > 2.0 * 1024 * 1024) {
-          uploadPage2 = await optimizePdfIfNeeded(uploadPage2);
+          uploadPage2 = await optimizePdfIfNeeded(uploadPage2, 2.0 * 1024 * 1024);
         }
       } else {
         if (uploadFile && uploadFile.size > 3.2 * 1024 * 1024) {
@@ -595,6 +596,13 @@ function UploadTemplateModal({ open, onClose, onSaved }) {
         yPercent,
       };
       form.append('layout_config', JSON.stringify(layoutConfig));
+
+      // Reserve room for multipart boundaries below the hosting request limit.
+      const payloadBytes = [...form.values()].reduce((sum, value) => sum +
+        (value instanceof Blob ? value.size : new TextEncoder().encode(value).length), 0);
+      if (payloadBytes > 4 * 1024 * 1024) {
+        throw new Error('Jumlah saiz PDF masih melebihi 4MB selepas dioptimumkan. Sila kecilkan fail PDF dan cuba semula.');
+      }
 
       await api('/admin/templates', { method: 'POST', body: form });
       toast.success(
@@ -718,7 +726,7 @@ function UploadTemplateModal({ open, onClose, onSaved }) {
                 <div className="text-xs sm:text-sm font-bold text-slate-900 truncate max-w-full">
                   {file ? file.name : 'Pilih fail PDF templat 1 muka surat'}
                 </div>
-                <p className="mt-0.5 text-[11px] text-slate-500">Sokongan semua saiz fail PDF (Tiada had saiz). Mengandungi garisan ruangan nama pesilat.</p>
+                <p className="mt-0.5 text-[11px] text-slate-500">PDF akan dioptimumkan jika besar. Jumlah muat naik maksimum 4MB.</p>
                 {file && (
                   <span className="mt-1.5 text-[11px] font-semibold text-slate-800 bg-slate-200 px-2.5 py-0.5 rounded-md">
                     {file.size >= 1024 * 1024 ? `${(file.size / (1024 * 1024)).toFixed(2)} MB` : `${(file.size / 1024).toFixed(1)} KB`} • Sedia dimuat naik
@@ -765,7 +773,7 @@ function UploadTemplateModal({ open, onClose, onSaved }) {
                     <div className="text-xs sm:text-sm font-bold text-slate-900 truncate max-w-full">
                       {file ? file.name : 'Pilih fail PDF lengkap (mengandungi muka 1 & muka 2)'}
                     </div>
-                    <p className="mt-0.5 text-[11px] text-slate-500">Sokongan semua saiz fail PDF (Tiada had saiz). Mengandungi kedua-dua muka surat depan dan belakang.</p>
+                    <p className="mt-0.5 text-[11px] text-slate-500">PDF depan dan belakang. Jumlah muat naik maksimum 4MB selepas pengoptimuman.</p>
                     {file && (
                       <span className="mt-1.5 text-[11px] font-semibold text-slate-800 bg-slate-200 px-2.5 py-0.5 rounded-md">
                         {file.size >= 1024 * 1024 ? `${(file.size / (1024 * 1024)).toFixed(2)} MB` : `${(file.size / 1024).toFixed(1)} KB`} • Sedia dimuat naik
@@ -788,7 +796,7 @@ function UploadTemplateModal({ open, onClose, onSaved }) {
                       <div className="text-xs font-bold text-slate-900 truncate max-w-full">
                         {filePage1 ? filePage1.name : 'Pilih fail Halaman 1'}
                       </div>
-                      <p className="text-[10px] text-slate-400 mt-0.5">Muka hadapan sijil (tiada had saiz)</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">Muka hadapan sijil (jumlah kedua-dua fail maksimum 4MB)</p>
                       {filePage1 && (
                         <span className="mt-1 text-[10px] font-semibold text-slate-800 bg-slate-200 px-2 py-0.5 rounded">
                           {filePage1.size >= 1024 * 1024 ? `${(filePage1.size / (1024 * 1024)).toFixed(2)} MB` : `${(filePage1.size / 1024).toFixed(1)} KB`}
@@ -810,7 +818,7 @@ function UploadTemplateModal({ open, onClose, onSaved }) {
                       <div className="text-xs font-bold text-slate-900 truncate max-w-full">
                         {filePage2 ? filePage2.name : 'Pilih fail Halaman 2'}
                       </div>
-                      <p className="text-[10px] text-slate-400 mt-0.5">Silabus / sukatan belakang sijil (tiada had saiz)</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">Silabus / sukatan belakang sijil (jumlah kedua-dua fail maksimum 4MB)</p>
                       {filePage2 && (
                         <span className="mt-1 text-[10px] font-semibold text-slate-800 bg-slate-200 px-2 py-0.5 rounded">
                           {filePage2.size >= 1024 * 1024 ? `${(filePage2.size / (1024 * 1024)).toFixed(2)} MB` : `${(filePage2.size / 1024).toFixed(1)} KB`}

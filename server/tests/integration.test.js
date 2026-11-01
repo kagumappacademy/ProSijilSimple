@@ -31,6 +31,7 @@ let cookie='', token='', sid=0;
 
 test('Health & login protected',async()=>{
  const health=await call('/api/health');assert.equal(health.res.status,200);
+ assert.equal(health.data.storage_version,2);assert.equal(health.res.headers.get('cache-control'),'no-store');
  const forbidden=await call('/api/admin/dashboard');assert.equal(forbidden.res.status,401);
  const wrong=await call('/api/auth/login',{method:'POST',body:{username:'admin-test',password:'wrong'}});assert.equal(wrong.res.status,401);
  const login=await call('/api/auth/login',{method:'POST',body:{username:'admin-test',password:'KataLaluanSangatKuat!2026'}});
@@ -42,6 +43,23 @@ test('Student CRUD',async()=>{
  const updated=await call('/api/admin/students/'+sid,{method:'PUT',cookie,body:{peringkat:'Awan Kuning'}});
  assert.equal(updated.res.status,200);assert.equal(updated.data.peringkat,'Awan Kuning');
  const list=await call('/api/admin/students?q=Aiman',{cookie});assert.equal(list.data.total,1);
+});
+
+test('Damaged and empty template PDFs return a validation error without saving a record',async(t)=>{
+ t.mock.method(console,'error',()=>{});
+ const {PDFDocument}=await import('pdf-lib');
+ const empty=await PDFDocument.create();
+ const samples=[Buffer.from('%PDF-corrupt'),Buffer.from(await empty.save({addDefaultPage:false}))];
+ const before=db.prepare('SELECT count(*) AS n FROM template_sijil').get().n;
+ for(const bytes of samples){
+  const form=new FormData();
+  form.set('file',new Blob([bytes],{type:'application/pdf'}),'bad.pdf');
+  form.set('nama_template','Templat Rosak');form.set('peringkat','Semua Peringkat');
+  const result=await call('/api/admin/templates',{method:'POST',cookie,form});
+  assert.equal(result.res.status,400);
+  assert.match(result.data.error,/PDF tidak dapat dibaca/);
+ }
+ assert.equal(db.prepare('SELECT count(*) AS n FROM template_sijil').get().n,before);
 });
 test('CSV import accepts Nama Peserta/Nama Cawangan/Peringkat without ID',async()=>{
  const file=new FormData();file.append('file',new Blob(['Nama Peserta,Nama Cawangan,Peringkat\n"Nur Syafina Binti Zain","Kulai","Awan Putih"\n'],{type:'text/csv'}),'pesilat.csv');
@@ -168,7 +186,7 @@ test('Bulk generation survives a lost response, preserves exact counts and downl
  for(const row of [bulkRows[0],bulkRows.at(-1)]){
    const stored = db.prepare('SELECT file_base64,file_path FROM sijil WHERE id=?').get(row.id);
    assert.ok(stored.file_base64);
-   assert.equal(stored.file_path,null);
+   assert.equal(stored.file_path,'');
    const download = await call('/api/public/certificates/'+row.public_token+'/download');
    assert.equal(download.res.status,200);
    assert.equal((await PDFDocument.load(download.data)).getPageCount(),1);

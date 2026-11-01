@@ -67,3 +67,25 @@ test('Sync never publishes a metadata-only template without its PDF',async()=>{
  const stored=await remote.execute({sql:'SELECT count(*) AS n FROM template_sijil WHERE id=?',args:[Number(result.lastInsertRowid)]});
  assert.equal(stored.rows[0].n,0);
 });
+
+test('Deleted certificates cannot be resurrected by an old instance without a deletion-log table',async()=>{
+ const old=db.prepare('SELECT * FROM sijil WHERE public_token=?').get(record.token);
+ await remote.execute({sql:'DELETE FROM sijil WHERE public_token=?',args:[record.token]});
+ await pushLocalToTurso(remote);
+ assert.equal((await remote.execute({sql:'SELECT count(*) AS n FROM sijil WHERE public_token=?',args:[record.token]})).rows[0].n,0);
+ await pullTursoToLocal(remote);
+ assert.equal(db.prepare('SELECT count(*) AS n FROM sijil WHERE id=?').get(old.id).n,0);
+});
+
+test('Explicit migration creates new cloud records once without overwriting current cloud files',async()=>{
+ const migration=createClient({url:'file::memory:'});
+ try {
+  db.prepare("INSERT INTO template_sijil(nama_template,peringkat,file_name,file_base64) VALUES('Migrasi Manual','Semua Peringkat','migrate.pdf',?)").run(Buffer.from('%PDF-migrate').toString('base64'));
+  const first=await pushLocalToTurso(migration,{importNewRecords:true});
+  assert.equal(first.template_sijil,1);
+  assert.ok(first.pesilat>=1);
+  const again=await pushLocalToTurso(migration,{importNewRecords:true});
+  assert.equal(again.template_sijil,0);assert.equal(again.pesilat,0);
+  assert.equal((await migration.execute('SELECT count(*) AS n FROM template_sijil')).rows[0].n,1);
+ } finally {migration.close();}
+});

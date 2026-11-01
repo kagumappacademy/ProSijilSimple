@@ -122,7 +122,7 @@ test('Template upload persists PDF bytes before success and remains accessible w
  assert.equal(uploaded.res.status,201);
  uploadedTemplateId=uploaded.data.id;
  const stored=(await remote.execute({sql:'SELECT file_path,file_base64,file_size FROM template_sijil WHERE id=?',args:[uploadedTemplateId]})).rows[0];
- assert.equal(stored.file_path,null);
+ assert.equal(stored.file_path,'');
  assert.equal(stored.file_size,bytes.length);
  assert.deepEqual(Buffer.from(stored.file_base64,'base64'),bytes);
  db.prepare('DELETE FROM template_sijil').run();
@@ -168,14 +168,17 @@ test('Failed cloud template uploads and deletions never report success or lose t
   assert.equal(failed.res.status,500);
   assert.equal(db.prepare('SELECT count(*) AS n FROM template_sijil').get().n,localBefore);
  } finally {remote.execute=originalExecute;}
- const originalBatch=remote.batch;
- remote.batch=async()=>{throw new Error('Cloud deletion unavailable');};
+ const originalDelete=remote.execute;
+ remote.execute=async statement=>{
+  if(typeof statement==='object' && statement.sql.startsWith('DELETE FROM template_sijil'))throw new Error('Cloud deletion unavailable');
+  return originalDelete.call(remote,statement);
+ };
  try{
   const failed=await call(`/api/admin/templates/${uploadedTemplateId}`,undefined,'DELETE');
   assert.equal(failed.res.status,500);
-  assert.equal(db.prepare('SELECT count(*) AS n FROM template_sijil_deleted WHERE id=?').get(uploadedTemplateId).n,0);
+  assert.equal(db.prepare('SELECT count(*) AS n FROM template_sijil WHERE id=?').get(uploadedTemplateId).n,1);
   assert.deepEqual((await call(`/api/admin/templates/${uploadedTemplateId}/preview`)).data,bytes);
- } finally {remote.batch=originalBatch;}
+ } finally {remote.execute=originalDelete;}
 });
 
 test('Legacy PDFs are recovered from their own disk copy and copied into permanent cloud storage',async()=>{
@@ -193,6 +196,8 @@ test('Legacy PDFs are recovered from their own disk copy and copied into permane
 });
 
 test('Only admin deletion removes a template and a stale instance cannot resurrect it by syncing',async()=>{
+ assert.equal(db.prepare("SELECT count(*) AS n FROM sqlite_master WHERE name='template_sijil_deleted'").get().n,0);
+ assert.equal((await remote.execute("SELECT count(*) AS n FROM sqlite_master WHERE name='template_sijil_deleted'")).rows[0].n,0);
  const stale=db.prepare('SELECT * FROM template_sijil WHERE id=?').get(uploadedTemplateId);
  const deleted=await call(`/api/admin/templates/${uploadedTemplateId}`,undefined,'DELETE');
  assert.equal(deleted.res.status,200);
@@ -216,4 +221,219 @@ test('A missing legacy PDF never silently substitutes another rank template',asy
  assert.match(preview.data.error,/fail asal/);
  const existing=(await remote.execute({sql:'SELECT file_base64 FROM template_sijil WHERE id=?',args:[id]})).rows[0];
  assert.equal(existing.file_base64,null);
+});
+
+test('Student management and generation work across instances with empty recipient caches',async()=>{
+ await remote.execute("INSERT INTO pesilat(id,nama_penuh,no_kp_atau_id,peringkat,cawangan) VALUES(900,'Pesilat Instance Lain','OTHER-900','Awan Kuning','Johor')");
+ db.prepare('DELETE FROM pesilat WHERE id=900').run();
+ const listed=await call('/api/admin/students?q=OTHER-900');
+ assert.equal(listed.data.total,1);
+ const publicSearch=await call('/api/public/search?q=OTHER-900');
+ assert.equal(publicSearch.data.results.length,1);
+ const generated=await call('/api/admin/templates/generate-batch',{
+  pesilat_ids:[900],nama_template:'Penyertaan Awan',request_id:'empty-recipient-cache',
+ });
+ assert.equal(generated.res.status,200);
+ assert.equal(generated.data.successCount,1);
+ const token=generated.data.generatedTokens[0].token;
+ assert.equal((await call('/api/public/certificates/'+token+'/download')).res.status,200);
+ const publicCerts=await call('/api/public/search?q=OTHER-900');
+ assert.equal(publicCerts.data.results[0].certificates.length,1);
+ // Updating a parent must not cascade-delete its locally cached certificates.
+ const updated=await call('/api/admin/students/900',{cawangan:'Melaka'},'PUT');
+ assert.equal(updated.res.status,200);
+ assert.equal(db.prepare('SELECT count(*) AS n FROM sijil WHERE public_token=?').get(token).n,1);
+ db.prepare('DELETE FROM pesilat WHERE id=900').run();
+ const created=await call('/api/admin/certificates',{pesilat_id:900,nama_sijil:'Sijil Manual Awan'});
+ assert.equal(created.res.status,201);
+ const certs=await call('/api/admin/students/900/certificates');
+ assert.equal(certs.data.certificates.length,2);
+ db.prepare('DELETE FROM pesilat WHERE id=900').run();
+ const deleted=await call('/api/admin/students/900',undefined,'DELETE');
+ assert.equal(deleted.res.status,200);
+ assert.equal((await call('/api/public/verify/'+token)).res.status,404);
+ assert.equal((await call('/api/admin/students?q=OTHER-900')).data.total,0);
+});
+
+test('CSV import uses cloud IDs, skips cloud duplicates and never overwrites another instance data',async()=>{
+ await remote.execute("INSERT INTO pesilat(id,nama_penuh,no_kp_atau_id,peringkat,cawangan) VALUES(1200,'Rekod Instance Lain','REMOTE-1200','Awan Putih','Kulai')");
+ db.prepare('DELETE FROM pesilat WHERE id=1200').run();
+ const form=new FormData();
+ form.set('file',new Blob(['nama_penuh,no_kp_atau_id,cawangan\nPesilat Import Awan,IMPORT-CLOUD,Kulai\nRekod Pendua,REMOTE-1200,Kulai\n']), 'pesilat.csv');
+ const imported=await call('/api/admin/students/import',form);
+ assert.equal(imported.res.status,200);
+ assert.equal(imported.data.inserted,1);
+ assert.equal(imported.data.skipped,1);
+ const stored=(await remote.execute("SELECT * FROM pesilat WHERE no_kp_atau_id='IMPORT-CLOUD'")).rows[0];
+ assert.ok(stored.id>1200);
+ assert.equal(db.prepare("SELECT id FROM pesilat WHERE no_kp_atau_id='IMPORT-CLOUD'").get().id,stored.id);
+ assert.equal((await remote.execute('SELECT nama_penuh FROM pesilat WHERE id=1200')).rows[0].nama_penuh,'Rekod Instance Lain');
+ const retry=await call('/api/admin/students/import',form);
+ assert.equal(retry.data.inserted,0);
+ assert.equal(retry.data.skipped,2);
+});
+
+test('Cloud failure during student creation, CSV import or manual certificate creation returns an error without local success',async(t)=>{
+ t.mock.method(console,'error',()=>{});
+ const original=remote.execute;
+ const originalBatch=remote.batch;
+ remote.execute=async statement=>{
+  if(typeof statement==='object' && /^(INSERT INTO pesilat|INSERT INTO sijil)/.test(statement.sql))throw new Error('Cloud write unavailable');
+  return original.call(remote,statement);
+ };
+ remote.batch=async(statements,...args)=>{
+  if(statements.some(statement=>statement.sql.startsWith('INSERT INTO pesilat')))throw new Error('Cloud write unavailable');
+  return originalBatch.call(remote,statements,...args);
+ };
+ try {
+  const created=await call('/api/admin/students',{nama_penuh:'Gagal Awan',no_kp_atau_id:'FAIL-CREATE'});
+  assert.equal(created.res.status,500);
+  assert.equal(db.prepare("SELECT count(*) AS n FROM pesilat WHERE no_kp_atau_id='FAIL-CREATE'").get().n,0);
+  const form=new FormData();
+  form.set('file',new Blob(['nama_penuh,no_kp_atau_id\nGagal Import,FAIL-IMPORT\n']), 'pesilat.csv');
+  const imported=await call('/api/admin/students/import',form);
+  assert.equal(imported.res.status,503);
+  assert.equal(imported.data.inserted,0);
+  assert.equal(db.prepare("SELECT count(*) AS n FROM pesilat WHERE no_kp_atau_id='FAIL-IMPORT'").get().n,0);
+  const certificate=await call('/api/admin/certificates',{pesilat_id:1,nama_sijil:'Sijil Gagal Manual'});
+  assert.equal(certificate.res.status,500);
+  assert.match(certificate.data.error,/Cloud write unavailable/);
+  assert.equal(db.prepare("SELECT count(*) AS n FROM sijil WHERE nama_sijil='Sijil Gagal Manual'").get().n,0);
+  assert.equal((await call('/api/health')).res.status,200);
+ } finally {remote.execute=original;remote.batch=originalBatch;}
+});
+
+test('Adding a duplicate student returns a useful conflict and preserves their certificates',async(t)=>{
+ t.mock.method(console,'error',()=>{});
+ const duplicate=await call('/api/admin/students',{nama_penuh:'Nama Pendua',no_kp_atau_id:'CLOUD-1'});
+ assert.equal(duplicate.res.status,409);
+ assert.match(duplicate.data.error,/sudah digunakan/);
+ const invalid=await call('/api/admin/students',{nama_penuh:'A'});
+ assert.equal(invalid.res.status,400);
+});
+
+test('Image certificate downloads are real PDFs even after the upload disk and cache are cleared',async()=>{
+ const {default:jpeg}=await import('jpeg-js');
+ const jpg=jpeg.encode({data:Buffer.from([255,255,255,255]),width:1,height:1},80).data;
+ const form=new FormData();
+ form.set('file',new Blob([jpg],{type:'image/jpeg'}),'certificate.jpg');
+ form.set('pesilat_id','1');form.set('nama_sijil','Sijil Imej Awan');
+ const created=await call('/api/admin/certificates',form);
+ assert.equal(created.res.status,201);
+ const cached=db.prepare('SELECT file_path FROM sijil WHERE id=?').get(created.data.id);
+ assert.equal(cached.file_path,'');
+ assert.deepEqual(fs.readdirSync(path.join(tmp,'uploads')),[]);
+ db.prepare('DELETE FROM sijil WHERE id=?').run(created.data.id);
+ const downloaded=await call('/api/public/certificates/'+created.data.public_token+'/download');
+ assert.equal(downloaded.res.status,200);
+ assert.match(downloaded.res.headers.get('content-type'),/application\/pdf/);
+ assert.equal((await PDFDocument.load(downloaded.data)).getPageCount(),1);
+});
+
+test('Interrupted CSV batches keep confirmed progress and a retry imports only the remaining students',async()=>{
+ const csv='nama_penuh,no_kp_atau_id\n'+Array.from({length:60},(_,i)=>'Pesilat Kelompok '+i+',CHUNK-'+i).join('\n');
+ const form=new FormData();form.set('file',new Blob([csv]),'chunked.csv');
+ const original=remote.batch;
+ let writes=0;
+ remote.batch=async(statements,...args)=>{
+  if(statements.some(statement=>statement.sql.startsWith('INSERT INTO pesilat')) && ++writes===2)throw new Error('Disconnected');
+  return original.call(remote,statements,...args);
+ };
+ try {
+  const interrupted=await call('/api/admin/students/import',form);
+  assert.equal(interrupted.res.status,503);
+  assert.equal(interrupted.data.inserted,50);
+  assert.equal((await remote.execute("SELECT count(*) AS n FROM pesilat WHERE no_kp_atau_id LIKE 'CHUNK-%'")).rows[0].n,50);
+ } finally {remote.batch=original;}
+ const retried=await call('/api/admin/students/import',form);
+ assert.equal(retried.res.status,200);
+ assert.equal(retried.data.inserted,10);
+ assert.equal(retried.data.skipped,50);
+ assert.equal((await remote.execute("SELECT count(*) AS n FROM pesilat WHERE no_kp_atau_id LIKE 'CHUNK-%'")).rows[0].n,60);
+});
+
+test('Uploaded certificate replacements remain current after metadata edits, stale sync and cache loss',async(t)=>{
+ const create=new FormData();create.set('file',new Blob([bytes]),'old.pdf');
+ create.set('pesilat_id','1');create.set('nama_sijil','Sijil Sebelum Update');
+ const uploaded=await call('/api/admin/certificates',create);
+ assert.equal(uploaded.res.status,201);
+ const {id,public_token:token}=uploaded.data;
+ const updatedDoc=await PDFDocument.create();updatedDoc.addPage();updatedDoc.addPage();updatedDoc.setTitle('VERSI TERKINI');
+ const latestBytes=Buffer.from(await updatedDoc.save());
+ const replacement=new FormData();replacement.set('file',new Blob([latestBytes]),'new.pdf');replacement.set('nama_sijil','Sijil Selepas Update');
+ assert.equal((await call('/api/admin/certificates/'+id,replacement,'PUT')).res.status,200);
+ assert.equal((await call('/api/admin/certificates/'+id,{nama_sijil:'Metadata Terkini'},'PUT')).res.status,200);
+ // A disk file from another version must never take priority over durable bytes.
+ const stalePath=path.join(tmp,'stale-certificate.pdf');fs.writeFileSync(stalePath,bytes);
+ await remote.execute({sql:'UPDATE sijil SET file_path=? WHERE id=?',args:[stalePath,id]});
+ assert.deepEqual((await call('/api/public/certificates/'+token+'/download')).data,latestBytes);
+ db.prepare('UPDATE sijil SET nama_sijil=?,file_base64=?,file_path=? WHERE id=?').run('Nama Cache Lama',bytes.toString('base64'),stalePath,id);
+ await pushLocalToTurso(remote);
+ const stored=(await remote.execute({sql:'SELECT nama_sijil,file_base64 FROM sijil WHERE id=?',args:[id]})).rows[0];
+ assert.equal(stored.nama_sijil,'Metadata Terkini');
+ assert.deepEqual(Buffer.from(stored.file_base64,'base64'),latestBytes);
+ fs.unlinkSync(stalePath);db.prepare('DELETE FROM sijil WHERE id=?').run(id);
+ assert.deepEqual((await call('/api/public/certificates/'+token+'/download')).data,latestBytes);
+ // A rejected replacement leaves the last confirmed file usable.
+ t.mock.method(console,'error',()=>{});
+ const original=remote.execute;
+ remote.execute=async statement=>{
+  if(typeof statement==='object' && statement.sql.startsWith('UPDATE sijil SET'))throw new Error('Update unavailable');
+  return original.call(remote,statement);
+ };
+ try {
+  const failed=await call('/api/admin/certificates/'+id,replacement,'PUT');
+  assert.equal(failed.res.status,500);
+ } finally {remote.execute=original;}
+ assert.deepEqual((await call('/api/public/certificates/'+token+'/download')).data,latestBytes);
+});
+
+test('Template file and layout updates persist without allowing stale sync to revert them',async()=>{
+ const uploaded=await call('/api/admin/templates',templateForm());
+ const id=uploaded.data.id;
+ const doc=await PDFDocument.create();doc.addPage();doc.addPage();doc.setTitle('TEMPLAT BARU');
+ const newBytes=Buffer.from(await doc.save());
+ const replacement=templateForm();replacement.set('file',new Blob([newBytes]),'template-new.pdf');
+ const updated=await call('/api/admin/templates/'+id,replacement,'PUT');
+ assert.equal(updated.res.status,200);assert.equal(updated.data.id,id);
+ assert.equal((await call('/api/admin/templates/'+id+'/layout',{layout_config:{fontSize:29}},'POST')).res.status,200);
+ db.prepare('UPDATE template_sijil SET file_base64=?,layout_config=? WHERE id=?').run(bytes.toString('base64'),'{"fontSize":14}',id);
+ await pushLocalToTurso(remote);
+ db.prepare('DELETE FROM template_sijil WHERE id=?').run(id);
+ const preview=await call('/api/admin/templates/'+id+'/preview');
+ assert.deepEqual(preview.data,newBytes);
+ const stored=(await remote.execute({sql:'SELECT layout_config FROM template_sijil WHERE id=?',args:[id]})).rows[0];
+ assert.equal(JSON.parse(stored.layout_config).fontSize,29);
+});
+
+test('Legacy disk-only certificates are promoted to durable storage before a successful update',async()=>{
+ const originalPath=path.join(tmp,'legacy-certificate.pdf');fs.writeFileSync(originalPath,bytes);
+ const result=await remote.execute({sql:"INSERT INTO sijil(pesilat_id,nama_sijil,tarikh_isu,jenis,file_type,file_path,public_token) VALUES(1,'Legacy Certificate','2026-11-01','uploaded','application/pdf',?,'legacy-durable') RETURNING id",args:[originalPath]});
+ const id=Number(result.rows[0].id);
+ assert.equal((await call('/api/admin/certificates/'+id,{nama_sijil:'Legacy Kekal'},'PUT')).res.status,200);
+ fs.unlinkSync(originalPath);db.prepare('DELETE FROM sijil WHERE id=?').run(id);
+ const downloaded=await call('/api/public/certificates/legacy-durable/download');
+ assert.deepEqual(downloaded.data,bytes);
+ const current=(await remote.execute({sql:'SELECT file_base64,file_path FROM sijil WHERE id=?',args:[id]})).rows[0];
+ assert.equal(current.file_path,'');assert.equal(current.file_base64,bytes.toString('base64'));
+});
+
+test('Generated certificates are saved once and stay identical after organisation settings change',async()=>{
+ const created=await call('/api/admin/certificates',{pesilat_id:1,nama_sijil:'Sijil Janaan Kekal'});
+ assert.equal(created.res.status,201);
+ const id=created.data.id,token=created.data.public_token;
+ const initial=await call('/api/public/certificates/'+token+'/download');
+ const current=(await remote.execute({sql:'SELECT file_base64 FROM sijil WHERE id=?',args:[id]})).rows[0];
+ assert.deepEqual(Buffer.from(current.file_base64,'base64'),initial.data);
+ const oldSettings=db.prepare("SELECT value FROM settings WHERE key='nama_organisasi'").get().value;
+ try {
+  db.prepare("UPDATE settings SET value='Organisasi Berubah' WHERE key='nama_organisasi'").run();
+  assert.deepEqual((await call('/api/public/certificates/'+token+'/download')).data,initial.data);
+  const updated=await call('/api/admin/certificates/'+id,{nama_sijil:'Janaan Dikemaskini'},'PUT');
+  assert.equal(updated.res.status,200);
+  const latest=await call('/api/public/certificates/'+token+'/download');
+  assert.notDeepEqual(latest.data,initial.data);
+  db.prepare('DELETE FROM sijil WHERE id=?').run(id);
+  assert.deepEqual((await call('/api/public/certificates/'+token+'/download')).data,latest.data);
+ } finally {db.prepare("UPDATE settings SET value=? WHERE key='nama_organisasi'").run(oldSettings);}
 });

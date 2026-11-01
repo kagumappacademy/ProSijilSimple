@@ -15,11 +15,20 @@ export function createCertificatePdf(res, student, certificate, settings, downlo
  const safeName = rawName.replace(/[/\\?%*:|"<>]/g, '').replace(/\s+/g, ' ').trim() || 'Sijil';
  const filename = `${safeName}.pdf`;
  const asciiName = safeName.replace(/[^\x20-\x7E]/g, '_') || 'Sijil';
- res.type('application/pdf');
- res.setHeader('Content-Disposition', `${download ? 'attachment' : 'inline'}; filename="${asciiName}.pdf"; filename*=UTF-8''${encodeURIComponent(filename)}`);
- res.setHeader('Cache-Control', 'private, no-store');
+ if(res){
+  res.type('application/pdf');
+  res.setHeader('Content-Disposition', `${download ? 'attachment' : 'inline'}; filename="${asciiName}.pdf"; filename*=UTF-8''${encodeURIComponent(filename)}`);
+  res.setHeader('Cache-Control', 'private, no-store');
+ }
  const doc = new PDFDocument({size:'A4', layout:'landscape', margin:0, info:{Title:safeName, Author:settings.nama_organisasi, Subject:'Sijil Rasmi Pesilat'}});
- doc.pipe(res);
+ let result;
+ if(res)doc.pipe(res);
+ else result=new Promise((resolve,reject)=>{
+  const chunks=[];
+  doc.on('data',chunk=>chunks.push(chunk));
+  doc.on('end',()=>resolve(Buffer.concat(chunks)));
+  doc.on('error',reject);
+ });
  const W=841.89, H=595.28;
  doc.rect(0,0,W,H).fill('#FCFBF7');
  doc.lineWidth(3).strokeColor(DEEP).rect(19,19,W-38,H-38).stroke();
@@ -45,7 +54,9 @@ export function createCertificatePdf(res, student, certificate, settings, downlo
  doc.fillColor(GOLD).font('Times-Bold').fontSize(11).text('RASMI',636,457,{width:60,align:'center'});
  doc.fillColor(GREY).font('Helvetica').fontSize(7).text(`ID Sijil: ${certificate.public_token.slice(0,8).toUpperCase()} • Semak: ${portalUrl}/verify/${certificate.public_token}`,55,545,{width:W-110,align:'center'});
  doc.end();
+ return result;
 }
+export const createCertificatePdfBytes=(student,certificate,settings)=>createCertificatePdf(null,student,certificate,settings);
 export function uploadedToPdf(res, row, student, download=true) {
  const rawName = (student?.nama_penuh || 'Pesilat').trim();
  const safeName = rawName.replace(/[/\\?%*:|"<>]/g, '').replace(/\s+/g, ' ').trim() || 'Sijil';
@@ -54,11 +65,14 @@ export function uploadedToPdf(res, row, student, download=true) {
  res.type('application/pdf');
  res.setHeader('Content-Disposition', `${download ? 'attachment' : 'inline'}; filename="${asciiName}.pdf"; filename*=UTF-8''${encodeURIComponent(filename)}`);
  res.setHeader('Cache-Control', 'private, no-store');
- if (row.file_type === 'application/pdf') return fs.createReadStream(row.file_path).pipe(res);
+ const source=row.file_base64?Buffer.from(row.file_base64,'base64'):row.file_path;
+ if (row.file_type === 'application/pdf') {
+  return Buffer.isBuffer(source)?res.send(source):fs.createReadStream(source).pipe(res);
+ }
  const doc = new PDFDocument({size:'A4', margin:0, autoFirstPage:false});
  doc.pipe(res);
  doc.addPage();
  const availableWidth = doc.page.width - 36, availableHeight = doc.page.height - 36;
- doc.image(row.file_path,18,18,{fit:[availableWidth,availableHeight],align:'center',valign:'center'});
+ doc.image(source,18,18,{fit:[availableWidth,availableHeight],align:'center',valign:'center'});
  doc.end();
 }

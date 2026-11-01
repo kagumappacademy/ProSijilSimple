@@ -196,7 +196,7 @@ function CertificateForm({ open, onClose, onSaved }) {
           <div className="text-xs sm:text-sm font-bold text-slate-900">
             {file ? file.name : 'Lampirkan fail sijil sedia ada (pilihan)'}
           </div>
-          <p className="mt-1 text-[11px] text-slate-400">PDF, JPG atau PNG, maks 10MB. Jika kosong, PDF dijana secara automatik.</p>
+          <p className="mt-1 text-[11px] text-slate-400">PDF, JPG atau PNG, maks 4MB. Jika kosong, PDF dijana secara automatik.</p>
           <input
             aria-label="Fail sijil PDF JPG PNG"
             type="file"

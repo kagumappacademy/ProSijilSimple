@@ -25,8 +25,26 @@ CREATE TABLE IF NOT EXISTS sijil (
   file_path TEXT,
   file_type TEXT,
   public_token TEXT NOT NULL UNIQUE,
+  file_base64 TEXT,
+  kategori TEXT DEFAULT 'kenaikan_tali_pinggang',
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS template_sijil (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  nama_template TEXT NOT NULL,
+  peringkat TEXT NOT NULL,
+  keterangan TEXT,
+  file_path TEXT,
+  file_name TEXT NOT NULL,
+  file_size INTEGER DEFAULT 0,
+  file_base64 TEXT,
+  kategori TEXT DEFAULT 'kenaikan_tali_pinggang',
+  page_count INTEGER DEFAULT 1,
+  thumbnail_base64 TEXT,
+  layout_config TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE TABLE IF NOT EXISTS settings (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 CREATE INDEX IF NOT EXISTS idx_pesilat_nama ON pesilat(nama_penuh);
 CREATE INDEX IF NOT EXISTS idx_sijil_pesilat ON sijil(pesilat_id);
+CREATE INDEX IF NOT EXISTS idx_template_peringkat ON template_sijil(nama_template,peringkat);

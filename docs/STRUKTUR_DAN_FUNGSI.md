@@ -14,8 +14,8 @@
                      │ Multer, PDFKit             │
                      └─────┬──────────────┬───────┘
                            │              │
-                     SQLite lokal   Fail PDF/JPG/PNG
-                     (server/data)   (server/data/uploads)
+                     SQLite lokal   Turso (jika dikonfigurasi)
+                     (server/data)   Rekod + fail file_base64
 ```
 
 ## Folder penting
@@ -38,6 +38,9 @@
 | `server/src/auth.js` | JWT session dalam HTTP-only cookie |
 | `server/src/csv.js` | Peta nama kolum CSV dan escape export |
 | `server/src/pdf.js` | Reka bentuk PDF sijil (A4 landscape) |
+| `server/src/certificateStore.js` | Simpan/kemas kini fail sijil kekal dan pulihkan fail lama |
+| `server/src/templateStore.js` | Simpan fail templat dan layout kekal |
+| `server/src/turso.js` | Migrasi skema dan penyegerakan dengan awan sebagai sumber utama |
 | `server/scripts/create-admin.js` | CLI cipta admin tanpa default password |
 | `server/scripts/demo-seed.js` | Contoh data (pilihan sahaja) |
 | `server/tests/integration.test.js` | Ujian API & fungsi asas |
@@ -46,7 +49,8 @@
 
 - `admin_users(id, username, password_hash, created_at)`
 - `pesilat(id, nama_penuh, no_kp_atau_id, peringkat, cawangan, tarikh_daftar, created_at, updated_at)`
-- `sijil(id, pesilat_id, nama_sijil, tarikh_isu, jenis, file_path, file_type, public_token, created_at)`
+- `sijil(id, pesilat_id, nama_sijil, tarikh_isu, jenis, file_path, file_type, public_token, file_base64, kategori, created_at)`
+- `template_sijil(id, nama_template, peringkat, file_name, file_size, file_base64, kategori, page_count, thumbnail_base64, layout_config, created_at)`
 - `settings(key, value)`
 
 SQLite akan mencipta jadual pada kali pertama API/skrip admin dijalankan. `pesilat_id` memautkan sijil kepada pesilat dengan `ON DELETE CASCADE`.
@@ -55,7 +59,7 @@ SQLite akan mencipta jadual pada kali pertama API/skrip admin dijalankan. `pesil
 
 1. Admin memasukkan pelajar atau mengimport CSV.
 2. Jika No KP/ID tidak ada, sistem menjana `PS-XXXXXXXX`.
-3. Admin memilih pesilat, nama dan tarikh sijil. Jika tiada fail, PDF sijil dijana ketika dimuat turun.
+3. Admin memilih pesilat, nama dan tarikh sijil. Fail uploaded disimpan dalam pangkalan data; jika tiada fail, PDF dijana dan disimpan ketika sijil dicipta. Kemas kini fail menggantikan versi utama selepas simpanan berjaya.
 4. Ibu bapa membuat carian **nama penuh tepat** atau **ID tepat**. Carian sebahagian nama tidak dipaparkan bagi mengehadkan pendedahan maklumat pesilat.
 5. Hasil memaparkan profil ringkas dan setiap sijil boleh dimuat turun PDF.
 6. Pautan `/verify/:token` membolehkan kesahihan sijil disemak. Padam sijil akan membatalkan pautan.
@@ -77,7 +81,10 @@ SQLite akan mencipta jadual pada kali pertama API/skrip admin dijalankan. `pesil
 | POST | `/api/admin/students/import` | Admin |
 | GET | `/api/admin/students/export` | Admin |
 | GET, POST | `/api/admin/certificates` | Admin |
-| DELETE | `/api/admin/certificates/:id` | Admin |
+| PUT, DELETE | `/api/admin/certificates/:id` | Admin |
+| GET, POST | `/api/admin/templates` | Admin |
+| PUT, DELETE | `/api/admin/templates/:id` | Admin |
+| POST | `/api/admin/templates/:id/layout` | Admin |
 | GET, PUT | `/api/admin/settings` | Admin |
 
 ## Had & perhatian sebelum go-live
@@ -85,5 +92,5 @@ SQLite akan mencipta jadual pada kali pertama API/skrip admin dijalankan. `pesil
 - Pangkalan data SQLite dan fail upload mesti berada pada **storan persisten** untuk production. Host yang memadam fail semasa redeploy (contoh Vercel Functions tanpa storage berasingan) tidak sesuai untuk setup SQLite lokal ini.
 - Sediakan HTTPS, backup berkala SQLite + folder uploads, monitoring dan dasar retensi data. Hadkan akses ke admin.
 - Tiada e-mel automatik, tandatangan kriptografi PDF atau integrasi pembayaran. Pautan pengesahan menyatakan rekod semasa dalam pangkalan data, **bukan** tandatangan PDF cryptographic.
-- Sijil yang dijana akan menggunakan butiran tetapan terkini; jika perlu membekukan versi pada tarikh keluaran, eksport dan simpan PDF akhir sebagai sijil uploaded.
+- Sijil yang telah dikeluarkan menyimpan PDF tetap. Perubahan tetapan tidak mengubahnya; kemas kini sijil generated melalui admin akan menjana dan menyimpan versi baharu.
 - Untuk privasi, jangan gunakan nombor KP sebenar dalam demo atau repositori awam.

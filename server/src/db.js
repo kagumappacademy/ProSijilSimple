@@ -51,9 +51,6 @@ CREATE TABLE IF NOT EXISTS template_sijil (
 CREATE TABLE IF NOT EXISTS settings (
  key TEXT PRIMARY KEY, value TEXT NOT NULL
 );
-CREATE TABLE IF NOT EXISTS template_sijil_deleted (
- id INTEGER PRIMARY KEY, deleted_at TEXT NOT NULL DEFAULT (datetime('now'))
-);
 CREATE TABLE IF NOT EXISTS admin_activity (
  id INTEGER PRIMARY KEY AUTOINCREMENT,
  type TEXT NOT NULL,
@@ -75,6 +72,9 @@ CREATE INDEX IF NOT EXISTS idx_template_peringkat ON template_sijil(nama_templat
 CREATE INDEX IF NOT EXISTS idx_activity_created ON admin_activity(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_activity_id ON admin_activity(id DESC);
 `);
+
+// Cloud records are authoritative; the retired deletion log is no longer used.
+db.exec('DROP TABLE IF EXISTS template_sijil_deleted');
 
 // Migrasi lajur tambahan jika jadual telah wujud sebelum ini
 try { db.exec('ALTER TABLE template_sijil ADD COLUMN file_base64 TEXT;'); } catch (_) {}
