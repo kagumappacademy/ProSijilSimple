@@ -268,7 +268,7 @@ export function PdfThumbnail({
         <>
           {loading && (
             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-slate-50/80 backdrop-blur-[1px] p-2 text-center select-none">
-              <BrandLoader size="xs" interactive={false} />
+              <BrandLoader size="xs" />
               <span className="mt-1.5 text-[8.5px] font-bold text-slate-400 tracking-tight">Memuatkan...</span>
             </div>
           )}

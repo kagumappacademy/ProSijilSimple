@@ -1,32 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { ShieldCheck } from 'lucide-react';
 
-export function BrandLoader({ size = 'md', interactive = true }) {
+export function BrandLoader({ size = 'md' }) {
   const [imageFailed, setImageFailed] = useState(false);
-  function tilt(event) {
-    if (!interactive || event.pointerType !== 'mouse' || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-    const bounds = event.currentTarget.getBoundingClientRect();
-    event.currentTarget.style.setProperty('--loader-tilt-x', `${((event.clientY - bounds.top) / bounds.height - 0.5) * -18}deg`);
-    event.currentTarget.style.setProperty('--loader-tilt-y', `${((event.clientX - bounds.left) / bounds.width - 0.5) * 18}deg`);
-  }
-  function resetTilt(event) {
-    event.currentTarget.style.setProperty('--loader-tilt-x', '0deg');
-    event.currentTarget.style.setProperty('--loader-tilt-y', '0deg');
-  }
-  return <div className={`brand-loader brand-loader--${size}`} aria-hidden="true"
-    onPointerMove={tilt} onPointerLeave={resetTilt} onPointerCancel={resetTilt}>
-    <div className="brand-loader__halo" />
-    <div className="brand-loader__orbit" />
-    <div className="brand-loader__arc" />
-    <div className="brand-loader__arc brand-loader__arc--inner" />
-    <div className="brand-loader__tilt">
-      <div className="brand-loader__coin">
-        {['front', 'back'].map(face => <div key={face} className={`brand-loader__face brand-loader__face--${face}`}>
-          {imageFailed ? <span className="brand-loader__fallback">P</span> : <img src="/logo-prosijil.png" alt="" draggable="false" onError={() => setImageFailed(true)} />}
-        </div>)}
-      </div>
+  return <div className={`brand-loader brand-loader--${size}`} aria-hidden="true">
+    <div className="brand-loader__rotor">
+      {['front', 'back'].map(face => <div key={face} className={`brand-loader__face brand-loader__face--${face}`}>
+        {imageFailed ? <span className="brand-loader__fallback">P</span> : <img src="/logo-prosijil.png" alt="" draggable="false" onError={() => setImageFailed(true)} />}
+      </div>)}
     </div>
-    <div className="brand-loader__shadow" />
   </div>;
 }
 
@@ -50,10 +32,6 @@ function LoadingOverlay({ label, children }) {
   </div>;
 }
 
-function LoadingRail({ complete = false }) {
-  return <div className={`loading-rail bg-slate-100 ${complete ? 'loading-rail--complete' : ''}`} aria-hidden="true"><span /></div>;
-}
-
 export function Loading({ text = 'Sedang memuatkan data...', subtext, size = 'md', fullScreen = false, className = '' }) {
   const content = <div role="status" aria-live="polite" aria-atomic="true" aria-busy="true" className={`loading-content loading-content--${size} ${className}`}>
     <BrandLoader size={size} />
@@ -61,8 +39,6 @@ export function Loading({ text = 'Sedang memuatkan data...', subtext, size = 'md
       <p className="loading-content__title text-slate-900">{text}</p>
       {subtext && <p className="loading-content__subtitle text-slate-500">{subtext}</p>}
     </div>
-    <div className="loading-dots text-red-700" aria-hidden="true"><span /><span /><span /></div>
-    <LoadingRail />
   </div>;
   return fullScreen ? <LoadingOverlay label={text}>{content}</LoadingOverlay> : content;
 }
@@ -86,7 +62,6 @@ export function AuthFeedback({ success, title, subtitle, badge }) {
         <h2 className="loading-content__title text-slate-900">{title}</h2>
         <p className="loading-content__subtitle text-slate-500">{subtitle}</p>
       </div>
-      <LoadingRail complete={success} />
     </div>
   </LoadingOverlay>;
 }

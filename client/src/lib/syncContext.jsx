@@ -29,7 +29,7 @@ export function SyncProvider({ children }) {
       {children}
       <div role="status" aria-live="polite" aria-hidden={!visible} aria-busy={activeCount > 0} data-visible={visible} className="sync-indicator select-none">
         <div className="flex items-center gap-2.5 rounded-2xl border border-slate-200/90 bg-white/95 px-3 py-2.5 shadow-lg shadow-slate-900/5 backdrop-blur-md">
-          <BrandLoader size="xs" interactive={false} />
+          <BrandLoader size="xs" />
           <div className="flex flex-col text-left">
             <span className="text-[11px] font-bold text-slate-800 leading-tight">
               {lang === 'eng' ? 'Updating your workspace' : 'Mengemas kini paparan'}
@@ -38,7 +38,6 @@ export function SyncProvider({ children }) {
               {lang === 'eng' ? 'Loading the latest records' : 'Memuatkan rekod terkini'}
             </span>
           </div>
-          <div className="sync-indicator__activity text-red-700" aria-hidden="true"><span /><span /><span /></div>
         </div>
       </div>
     </SyncContext.Provider>

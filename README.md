@@ -77,7 +77,7 @@ Ujian mengesahkan API, log masuk, CRUD pesilat, import CSV, penciptaan sijil, pe
 | Animasi & UX | Motion entrance, hover cards, efek ambient, loading state, modal, toast, skeleton-style elements, sidebar mobile |
 | Mobile | Layout responsif, jadual scroll, sidebar boleh dibuka di telefon |
 | Tema admin | Suis Light/Dark di bar atas admin; kekal semasa navigasi admin dan kembali Light apabila muat semula, keluar ke portal awam atau log keluar. Portal awam dan rupa PDF sijil tidak bertukar tema. |
-| Animasi loading | Logo ProSijil berpusing 3D dengan gelang orbit, respons gerakan tetikus dan indikator aktiviti. Log masuk memaparkan tanda berjaya hanya selepas pengesahan pelayan; animasi menghormati tetapan kurangkan gerakan. |
+| Animasi loading | Logo ProSijil tegak dan berpusing pada paksi Y dengan paparan minimal. Logo belakang kekal boleh dibaca, tema gelap menggunakan logo putih dan tetapan kurangkan gerakan dihormati. Log masuk memaparkan tanda berjaya hanya selepas pengesahan pelayan. |
 
 Dashboard membaca statistik daripada pangkalan data utama dalam satu transaksi bacaan. Semua peringkat dan cawangan dipaparkan, termasuk cawangan berdaftar yang belum mempunyai pesilat; variasi huruf besar/kecil dan ruang nama digabungkan. Jumlah kedua-dua pecahan mesti sama dengan jumlah pesilat. Pesilat tanpa cawangan diletakkan di bawah `Tidak dinyatakan` dan tidak menambah jumlah cawangan. Jumlah sijil merangkumi semua kategori yang masih dikaitkan dengan pesilat, selaras dengan senarai pengurusan sijil. Masa kemas kini dan ralat bacaan ditunjukkan; respons lama tidak boleh menggantikan data lebih baharu.
 

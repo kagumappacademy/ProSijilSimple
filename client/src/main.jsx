@@ -37,8 +37,8 @@ function App() {
     return (
       <Loading
         fullScreen
-        text="Memulakan Sistem ProSijil..."
-        subtext="Menyemak status keselamatan & data pangkalan..."
+        text="Memuatkan ProSijil..."
+        subtext="Sila tunggu sebentar."
         size="lg"
       />
     );
