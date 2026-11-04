@@ -1844,21 +1844,29 @@ export function Templates() {
           </div>
 
           {/* TAB 1: Kategori Utama Jenis Sijil (Sijil Kenaikan Tali Pinggang, Pencapaian, Penghargaan, Penyertaan) */}
-          <div className="flex flex-wrap items-center gap-1 bg-slate-100 p-1 rounded-lg w-fit mb-2">
+          <div
+            role="group"
+            aria-label={lang === 'eng' ? 'Certificate type' : 'Jenis sijil'}
+            className="grid grid-cols-1 gap-2 rounded-xl bg-slate-50 p-2 sm:flex sm:flex-wrap"
+          >
             <button
               type="button"
+              aria-pressed={filterCategory === 'semua'}
               onClick={() => {
                 setFilterCategory('semua');
                 setFilterCula('semua');
               }}
-              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+              className={`inline-flex min-h-11 min-w-0 items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 sm:justify-center ${
                 filterCategory === 'semua'
-                  ? 'bg-white text-slate-900 font-semibold shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900 font-medium'
+                  ? 'border-slate-900 bg-slate-900 text-white shadow-xs'
+                  : 'border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-100'
               }`}
             >
-              <span>Semua Jenis Sijil</span>
-              <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${filterCategory === 'semua' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}`}>
+              <span className="inline-flex min-w-0 items-center gap-2">
+                <Layers size={15} className="shrink-0" aria-hidden="true" />
+                <span>{lang === 'eng' ? 'All Certificate Types' : 'Semua Jenis Sijil'}</span>
+              </span>
+              <span className={`inline-flex min-w-6 shrink-0 items-center justify-center rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums ${filterCategory === 'semua' ? 'bg-white text-slate-900' : 'bg-slate-100 text-slate-700'}`}>
                 {categoryCounts.semua}
               </span>
             </button>
@@ -1870,19 +1878,22 @@ export function Templates() {
                 <button
                   key={cat.id}
                   type="button"
+                  aria-pressed={active}
                   onClick={() => {
                     setFilterCategory(cat.id);
                     if (cat.id !== 'kenaikan_tali_pinggang') setFilterCula('semua');
                   }}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                  className={`inline-flex min-h-11 min-w-0 items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 sm:justify-center ${
                     active
-                      ? cat.activeTabClass
-                      : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                      ? `${cat.badge} ring-1 ring-inset ring-current shadow-xs`
+                      : 'border-slate-300 bg-white text-slate-700 hover:border-slate-400 hover:bg-slate-100'
                   }`}
                 >
-                  <span>{cat.emoji}</span>
-                  <span>{cat.label}</span>
-                  <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-mono ${active ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'}`}>
+                  <span className="inline-flex min-w-0 items-center gap-2">
+                    <span aria-hidden="true" className="shrink-0">{cat.emoji}</span>
+                    <span className="min-w-0 break-words">{cat.label}</span>
+                  </span>
+                  <span className={`inline-flex min-w-6 shrink-0 items-center justify-center rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums ${active ? 'bg-white text-inherit' : 'bg-slate-100 text-slate-700'}`}>
                     {count}
                   </span>
                 </button>
