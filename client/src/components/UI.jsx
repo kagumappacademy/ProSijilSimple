@@ -1,6 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Loader2, X, Search, ChevronLeft, ChevronRight, Inbox, AlertTriangle } from 'lucide-react';
+export { Loading, LoadingProsijil, ProcessingModal } from './Loading';
 
 export function Logo({
   light = false,
@@ -70,6 +71,7 @@ export function Button({ children, variant = 'primary', loading = false, classNa
     <button
       {...props}
       disabled={loading || props.disabled}
+      aria-busy={loading || undefined}
       className={`inline-flex items-center justify-center gap-1.5 rounded-lg px-3.5 py-2 text-xs sm:text-sm font-semibold tracking-tight transition-colors duration-150 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer ${types[variant] || types.primary} ${className}`}
     >
       {loading ? <Loader2 size={14} className="animate-spin shrink-0" /> : null}
@@ -167,136 +169,6 @@ export function Empty({ title = 'Belum ada data', message = 'Rekod akan dipapark
       </div>
       <h3 className="font-semibold text-slate-900 text-xs sm:text-sm">{title}</h3>
       <p className="mt-1 max-w-xs text-xs text-slate-400 font-normal">{message}</p>
-    </div>
-  );
-}
-
-export function LoadingProsijil({
-  text = 'Sedang memuatkan data...',
-  subtext,
-  size = 'md', // 'sm', 'md', 'lg'
-}) {
-  const isSm = size === 'sm';
-  const isLg = size === 'lg';
-  const outerSize = isSm ? 'h-8 w-8' : isLg ? 'h-16 w-16' : 'h-11 w-11';
-  const innerSize = isSm ? 'h-5 w-5' : isLg ? 'h-10 w-10' : 'h-7 w-7';
-  const logoSize = isSm ? 'h-3 w-3' : isLg ? 'h-6 w-6' : 'h-4 w-4';
-
-  const content = (
-    <div className={`flex flex-col items-center justify-center text-center select-none py-10 px-4`}> 
-      <div className={`relative flex items-center justify-center ${outerSize}`}> 
-        <div
-          className="absolute inset-0 rounded-full border-2 border-slate-200 border-t-red-700 animate-spin"
-          style={{ animationDuration: '0.8s' }}
-        />
-        <div className={`relative z-10 flex items-center justify-center rounded-full bg-white shadow-2xs ${innerSize}`}> 
-          <img
-            src="/logo-prosijil.png"
-            alt="ProSijil"
-            className={`${logoSize} object-contain`}
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-            }}
-          />
-        </div>
-      </div>
-      <div className="mt-3 flex flex-col items-center max-w-xs">
-        <div className="text-xs sm:text-sm font-semibold text-slate-900">
-          {text}
-        </div>
-        {subtext && (
-          <p className="mt-0.5 text-xs text-slate-400 font-normal">
-            {subtext}
-          </p>
-        )}
-      </div>
-    </div>
-  );
-
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white/95 backdrop-blur-xs p-4">
-      <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-lg max-w-xs w-full text-center">
-        {content}
-      </div>
-    </div>
-  );
-}
-
-export function Loading({
-  text = 'Sedang memuatkan data...',
-  subtext,
-  size = 'md', // 'sm', 'md', 'lg'
-  fullScreen = false,
-  className = '',
-}) {
-  const isSm = size === 'sm';
-  const isLg = size === 'lg';
-
-  const outerSize = isSm ? 'h-8 w-8' : isLg ? 'h-16 w-16' : 'h-11 w-11';
-  const innerSize = isSm ? 'h-5 w-5' : isLg ? 'h-10 w-10' : 'h-7 w-7';
-  const logoSize = isSm ? 'h-3 w-3' : isLg ? 'h-6 w-6' : 'h-4 w-4';
-
-  const content = (
-    <div className={`flex flex-col items-center justify-center text-center select-none py-10 px-4 ${className}`}>
-      {/* Precision Circular Spinner (Nike / Apple style clean loader) */}
-      <div className={`relative flex items-center justify-center ${outerSize}`}>
-        <div
-          className="absolute inset-0 rounded-full border-2 border-slate-200 border-t-red-700 animate-spin"
-          style={{ animationDuration: '0.8s' }}
-        />
-        <div className={`relative z-10 flex items-center justify-center rounded-full bg-white shadow-2xs ${innerSize}`}>
-          <img
-            src="/logo-prosijil.png"
-            alt="ProSijil"
-            className={`${logoSize} object-contain`}
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-            }}
-          />
-        </div>
-      </div>
-
-      <div className="mt-3 flex flex-col items-center max-w-xs">
-        <div className="text-xs sm:text-sm font-semibold text-slate-900">
-          {text}
-        </div>
-        {subtext && (
-          <p className="mt-0.5 text-xs text-slate-400 font-normal">
-            {subtext}
-          </p>
-        )}
-      </div>
-    </div>
-  );
-
-  if (fullScreen) {
-    return (
-      <div className="fixed inset-0 z-[100] flex items-center justify-center bg-white/95 backdrop-blur-xs p-4">
-        <div className="rounded-xl border border-slate-200 bg-white p-6 shadow-lg max-w-xs w-full text-center">
-          {content}
-        </div>
-      </div>
-    );
-  }
-
-  return content;
-}
-
-export function ProcessingModal({
-  open = false,
-  title = 'Sedang Memproses Data...',
-  subtitle = 'Sila tunggu sebentar sementara sistem memproses data anda.',
-}) {
-  if (!open) return null;
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-xs"
-    >
-      <div className="w-full max-w-sm rounded-xl bg-white p-6 text-center shadow-xl border border-slate-200">
-        <Loading text={title} subtext={subtitle} size="md" />
-      </div>
     </div>
   );
 }

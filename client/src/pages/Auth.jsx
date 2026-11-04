@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, useReducedMotion } from 'framer-motion';
 import { ArrowLeft, ArrowRight, Eye, EyeOff, Lock, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
 import { Logo, Button, Input } from '../components/UI';
+import { AuthFeedback } from '../components/Loading';
 import { useLang, LanguageSwitcher, LiveClock } from '../lib/i18n';
 
 export function Login({ onLogin }) {
@@ -14,24 +15,55 @@ export function Login({ onLogin }) {
   const [password, setPassword] = useState('');
   const [show, setShow] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [confirmedUser, setConfirmedUser] = useState(null);
+  const submitting = useRef(false);
+  const requestRef = useRef(null);
+  const successTimer = useRef(null);
+  const errorToast = useRef(null);
+  const mounted = useRef(true);
+  const reduceMotion = useReducedMotion();
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      requestRef.current?.abort();
+      clearTimeout(successTimer.current);
+      if (errorToast.current !== null) toast.dismiss(errorToast.current);
+    };
+  }, []);
 
   async function submit(e) {
     e.preventDefault();
+    if (submitting.current) return;
+    if (errorToast.current !== null) { toast.dismiss(errorToast.current); errorToast.current = null; }
+    submitting.current = true;
     setBusy(true);
+    setConfirmedUser(null);
+    const controller = new AbortController();
+    requestRef.current = controller;
     try {
-      const r = await api('/auth/login', { method: 'POST', body: { username, password } });
-      onLogin(r.user);
-      toast.success(lang === 'eng' ? 'Login successful. Welcome back!' : 'Log masuk berjaya. Selamat kembali!');
-      nav('/admin');
+      const r = await api('/auth/login', { method: 'POST', body: { username, password }, signal: controller.signal });
+      if (!mounted.current) return;
+      if (!r?.user?.id) throw new Error(lang === 'eng' ? 'Unable to confirm the administrator session.' : 'Sesi pentadbir tidak dapat disahkan.');
+      setConfirmedUser(r.user);
+      // Show confirmed success briefly; never simulate authentication progress.
+      successTimer.current = setTimeout(() => {
+        if (!mounted.current) return;
+        onLogin(r.user);
+        toast.success(lang === 'eng' ? 'Login successful. Welcome back!' : 'Log masuk berjaya. Selamat kembali!');
+        nav('/admin');
+      }, reduceMotion ? 0 : 720);
     } catch (e) {
-      toast.error(e.message);
-    } finally {
+      if (!mounted.current || controller.signal.aborted) return;
+      errorToast.current = toast.error(e.message);
+      submitting.current = false;
       setBusy(false);
     }
   }
 
   return (
-    <div className="relative min-h-screen flex flex-col items-center justify-center p-4 sm:p-6 bg-slate-50 selection:bg-red-600 selection:text-white">
+    <>
+    <div inert={busy ? '' : undefined} className="relative min-h-screen flex flex-col items-center justify-center p-4 sm:p-6 bg-slate-50 selection:bg-red-600 selection:text-white">
       {/* Centered minimalist login container */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
@@ -132,5 +164,14 @@ export function Login({ onLogin }) {
         {t('authSystemSubtitle')}
       </div>
     </div>
+    {busy && <AuthFeedback
+      success={Boolean(confirmedUser)}
+      badge={confirmedUser ? (lang === 'eng' ? 'Access verified' : 'Akses disahkan') : 'AKADEMI PROSILAT'}
+      title={confirmedUser ? (lang === 'eng' ? 'Login successful' : 'Log Masuk Berjaya') : (lang === 'eng' ? 'Verifying administrator access' : 'Mengesahkan akses pentadbir')}
+      subtitle={confirmedUser
+        ? (lang === 'eng' ? `Welcome back, ${confirmedUser.username || 'Admin'}. Opening your dashboard…` : `Selamat kembali, ${confirmedUser.username || 'Pentadbir'}. Membuka dashboard anda…`)
+        : (lang === 'eng' ? 'Please wait while we verify your login details.' : 'Sila tunggu sebentar sementara butiran log masuk anda disemak.')}
+    />}
+    </>
   );
 }
