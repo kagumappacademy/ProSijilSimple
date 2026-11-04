@@ -128,3 +128,5 @@ Templat Sijil, Janaan Sijil dan Pengurusan Sijil diasingkan mengikut jenis sijil
 Pengurusan Sijil menyediakan paparan Templat & Batch dan penapis batch. Checkbox pada kepala batch memilih keseluruhan batch, termasuk rekod yang tidak kelihatan akibat tapisan cawangan, peringkat atau carian. Bilangan penuh, bilangan dipilih dan bilangan dipaparkan ditunjukkan. Pilihan individu dan status checkbox separa dipilih turut tersedia. Pemadaman pukal masih memerlukan pengesahan bilangan rekod.
 
 Rekod lama atau muat naik individu yang tiada batch_id dikumpulkan mengikut jenis, tajuk, tarikh sijil dan sumber serta dilabel Rekod tanpa ID batch. Sistem tidak mereka semula batch sejarah yang tidak pernah direkodkan. Migrasi SQLite/Turso menambah medan baharu secara automatik; penyegerakan metadata tidak boleh menulis balik salinan cache lama ke pangkalan data utama.
+
+Semakan sesi tanpa cookie admin, health check, butiran hubungan awam dan penghantaran laporan tidak menunggu penyegerakan penuh cache admin pada Vercel. Endpoint sokongan terus membaca atau menulis rekod pangkalan data utama; tiada kejayaan palsu daripada cache sementara.

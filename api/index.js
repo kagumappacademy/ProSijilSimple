@@ -26,9 +26,6 @@ async function ensureFreshTursoData(force = false) {
 
 export default async function handler(req, res) {
   try {
-    const force = req.query?.force_sync === '1';
-    await ensureFreshTursoData(force);
-
     // In Vercel serverless rewrites, req.url may be rewritten to '/api' or '/api/index.js'
     // Ensure Express receives the actual requested path
     if (req.url === '/api' || req.url === '/api/' || req.url === '/api/index.js' || req.url.startsWith('/api/index.js?')) {
@@ -37,6 +34,14 @@ export default async function handler(req, res) {
         req.url = actualPath;
       }
     }
+
+    const pathname = req.url.split('?')[0];
+    const anonymousSessionCheck = pathname === '/api/auth/me' &&
+      !/(?:^|;\s*)prosijil_admin=/.test(req.headers.cookie || '');
+    // These routes either need no database or read their own primary records.
+    // A full admin-cache refresh must not block opening the public portal.
+    const independent = anonymousSessionCheck || ['/api/health','/api/public/contact','/api/public/reports'].includes(pathname);
+    if (!independent) await ensureFreshTursoData(req.query?.force_sync === '1');
 
     return app(req, res);
   } catch (error) {
