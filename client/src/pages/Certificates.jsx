@@ -582,6 +582,7 @@ export function Certificates() {
                     setSelectedCategory(cat.id);
                     setSelectedTemplateKey('');setSelectedBatch('');
                     setSelectedCula('semua');
+                    setSelectedBranch('');
                     setSelectedLevel('');
                   }}
                   className={`shrink-0 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition ${
@@ -601,8 +602,8 @@ export function Certificates() {
           </div>
 
           {/* Level 0.5: Sub-Penapis Warna Cula (Untuk Sijil Kenaikan Tali Pinggang) */}
-          <TemplateCollections groups={collections} value={selectedTemplateKey} onChange={key=>{setSelectedTemplateKey(key);setSelectedBatch('');setSelectedBranch('');setSelectedLevel('');}}/>
-          <label className="block space-y-1 text-xs font-semibold text-slate-700"><span>{lang==='eng'?'Generation batch':'Batch janaan'}</span><select value={selectedBatch} onChange={event=>setSelectedBatch(event.target.value)} className="min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-xs text-slate-900"><option value="">{lang==='eng'?'All batches':'Semua batch'}</option>{batches.map(batch=><option key={batch.key} value={batch.key}>{certificateTemplateName(batch.rows[0])} &middot; {batch.id?'Batch '+batch.id.slice(0,10).toUpperCase():(lang==='eng'?'No batch ID':'Tanpa ID batch')} &middot; {fmtDate(batch.issueDate)} ({batch.rows.length})</option>)}</select></label>
+          <TemplateCollections groups={collections} value={selectedTemplateKey} onChange={key=>{setSelectedTemplateKey(key);setSelectedBatch('');setSelectedCula('semua');setSelectedBranch('');setSelectedLevel('');}}/>
+          <label className="block space-y-1 text-xs font-semibold text-slate-700"><span>{lang==='eng'?'Generation batch':'Batch janaan'}</span><select value={selectedBatch} onChange={event=>{setSelectedBatch(event.target.value);setSelectedCula('semua');setSelectedBranch('');setSelectedLevel('');}} className="min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-xs text-slate-900"><option value="">{lang==='eng'?'All batches':'Semua batch'}</option>{batches.map(batch=><option key={batch.key} value={batch.key}>{certificateTemplateName(batch.rows[0])} &middot; {batch.id?'Batch '+batch.id.slice(0,10).toUpperCase():(lang==='eng'?'No batch ID':'Tanpa ID batch')} &middot; {fmtDate(batch.issueDate)} ({batch.rows.length})</option>)}</select></label>
           {(selectedCategory === 'semua' || selectedCategory === 'kenaikan_tali_pinggang') && (
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none pt-0.5">
               <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mr-1 shrink-0 flex items-center gap-1">

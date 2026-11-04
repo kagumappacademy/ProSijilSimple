@@ -1896,7 +1896,7 @@ export function Templates() {
             })}
           </div>
 
-          <TemplateCollections groups={collections} value={selectedCollectionKey} onChange={setSelectedCollectionKey}/>
+          <TemplateCollections groups={collections} value={selectedCollectionKey} onChange={key=>{setSelectedCollectionKey(key);setFilterCula('semua');}}/>
 
           {/* TAB 2: Sub-Penapis Cula (Hanya dipaparkan untuk Sijil Kenaikan Tali Pinggang / Semua) */}
           {(filterCategory === 'semua' || filterCategory === 'kenaikan_tali_pinggang') && (
