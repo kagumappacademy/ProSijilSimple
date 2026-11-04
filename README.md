@@ -78,6 +78,8 @@ Ujian mengesahkan API, log masuk, CRUD pesilat, import CSV, penciptaan sijil, pe
 | Mobile | Layout responsif, jadual scroll, sidebar boleh dibuka di telefon |
 | Tema admin | Suis Light/Dark di bar atas admin; kekal semasa navigasi admin dan kembali Light apabila muat semula, keluar ke portal awam atau log keluar. Portal awam dan rupa PDF sijil tidak bertukar tema. |
 
+Dashboard membaca statistik daripada pangkalan data utama dalam satu transaksi bacaan. Semua peringkat dan cawangan dipaparkan, termasuk cawangan berdaftar yang belum mempunyai pesilat; variasi huruf besar/kecil dan ruang nama digabungkan. Jumlah kedua-dua pecahan mesti sama dengan jumlah pesilat. Pesilat tanpa cawangan diletakkan di bawah `Tidak dinyatakan` dan tidak menambah jumlah cawangan. Jumlah sijil merangkumi semua kategori yang masih dikaitkan dengan pesilat, selaras dengan senarai pengurusan sijil. Masa kemas kini dan ralat bacaan ditunjukkan; respons lama tidak boleh menggantikan data lebih baharu.
+
 ## Format CSV
 
 Untuk **pemilihan janaan sijil** di langkah 2, tampal satu nama penuh atau No. KP/ID setiap baris, atau pilih/seret fail TXT, CSV atau TSV (maksimum 1MB). CSV berbilang lajur menggunakan tajuk `nama_penuh`, `no_kp_atau_id`, `cawangan`; nama atau ID diperlukan, manakala cawangan boleh disertakan untuk membezakan nama sama. Pemadanan meliputi semua pesilat, tanpa mengira tapisan semasa, dan tidak menambah rekod pesilat baharu. Betulkan nama yang tidak ditemui dan tentukan rekod bagi nama yang mempunyai beberapa padanan sebelum menggunakan senarai. Pilihan lalai menggantikan pilihan sedia ada; pilihan tambah turut tersedia. Butang **Pratonton Pilihan** memaparkan semua pilihan dengan carian, butiran pesilat, status templat dan tindakan nyahpilih.

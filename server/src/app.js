@@ -20,6 +20,7 @@ import { readRows, getStoredStudent, saveStudent, deleteStudent, insertStudentBa
 import { trim, validatePesilat, validDate } from './validation.js';
 import {listBranches,saveBranch} from './branchStore.js';
 import {BRANCH_NAMES_SQL} from './branchSchema.js';
+import { readDashboard } from './dashboardStore.js';
 
 const app = express();
 app.disable('x-powered-by');
@@ -208,16 +209,9 @@ app.get('/api/public/certificates/:token/download',searchLimit,async(req,res,nex
 
 app.get('/api/admin/dashboard',requireAdmin,async(_req,res,next)=>{
  try {
- const [studentCounts,certificateCounts,branchCounts,byLevel,byBranch,recent]=await Promise.all([
-  readRows('SELECT count(*) AS n FROM pesilat'),
-  readRows('SELECT count(*) AS n FROM sijil'),
-  readRows(`SELECT count(*) AS n FROM (${BRANCH_NAMES_SQL})`),
-  readRows('SELECT peringkat as name,count(*) as total FROM pesilat GROUP BY peringkat ORDER BY total DESC LIMIT 7'),
-  readRows('SELECT cawangan as name,count(*) as total FROM pesilat GROUP BY cawangan COLLATE NOCASE ORDER BY total DESC LIMIT 6'),
-  readRows('SELECT s.id,s.nama_sijil,s.tarikh_isu,s.kategori,p.nama_penuh,p.cawangan FROM sijil s JOIN pesilat p ON s.pesilat_id=p.id ORDER BY s.id DESC LIMIT 6'),
- ]);
- const pesilat=Number(studentCounts[0].n),sijil=Number(certificateCounts[0].n),branches=Number(branchCounts[0].n);
- res.json({pesilat,sijil,branches,byLevel,byBranch,recent});
+ const snapshot=await readDashboard();
+ res.set('Cache-Control','no-store');
+ res.json(snapshot);
  } catch(error) { next(error); }
 });
 

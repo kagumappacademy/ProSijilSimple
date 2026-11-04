@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   GraduationCap,
@@ -44,20 +44,22 @@ function NumberCard({ title, value, icon: Icon, tint, badge }) {
 }
 
 function BreakdownCard({ title, rows, icon: Icon }) {
+  const { lang } = useLang();
   const max = Math.max(...rows.map((x) => x.total), 1);
   return (
-    <div className="rounded-xl bg-white p-4 sm:p-5 border border-slate-200/90 shadow-2xs space-y-3 min-w-0 w-full overflow-hidden">
-      <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-        <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider truncate flex items-center gap-2">
+    <section aria-label={title} className="rounded-xl bg-white p-4 sm:p-5 border border-slate-200/90 shadow-2xs space-y-3 min-w-0 w-full overflow-hidden">
+      <div className="border-b border-slate-100 pb-2.5">
+        <h4 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
           {Icon && <Icon size={14} className="text-slate-500 shrink-0" />}
           <span>{title}</span>
         </h4>
-        <span className="text-[11px] font-semibold text-slate-400 font-mono">
-          {rows.reduce((acc, x) => acc + x.total, 0)} rekod
-        </span>
+        <div className="mt-1.5 flex flex-wrap items-center justify-between gap-2 text-[11px] font-semibold text-slate-500">
+          <span className="whitespace-nowrap font-mono">{rows.reduce((acc, x) => acc + x.total, 0)} {lang === 'eng' ? 'students' : 'pesilat'}</span>
+          <span>{rows.length} {lang === 'eng' ? 'groups' : 'kumpulan'}</span>
+        </div>
       </div>
       {rows.length ? (
-        <div className="space-y-2.5 min-w-0 w-full">
+        <div tabIndex={0} aria-label={lang === 'eng' ? 'Scroll all groups' : 'Tatal semua kumpulan'} className="max-h-80 space-y-2.5 min-w-0 w-full overflow-y-auto pr-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-700 focus-visible:ring-inset">
           {rows.map((r, idx) => {
             const labelText = r.name || r.label || 'Lain-lain';
             return (
@@ -82,10 +84,10 @@ function BreakdownCard({ title, rows, icon: Icon }) {
         </div>
       ) : (
         <div className="rounded-lg border border-dashed border-slate-200 p-6 text-center text-xs text-slate-400 font-normal">
-          Tiada data
+          {lang === 'eng' ? 'No data' : 'Tiada data'}
         </div>
       )}
-    </div>
+    </section>
   );
 }
 
@@ -94,18 +96,34 @@ export function Dashboard() {
   const [data, setData] = useState(null);
   const { setRefreshing: setGlobalRefreshing } = useSync();
   const [refreshing, setRefreshing] = useState(false);
+  const [loadError, setLoadError] = useState('');
+  const requestRef = useRef(null);
+  const requestVersion = useRef(0);
 
   const fetchDashboard = useCallback((isManual = false) => {
+    const version = ++requestVersion.current;
+    requestRef.current?.abort();
+    const controller = new AbortController();
+    requestRef.current = controller;
     setGlobalRefreshing(true);
-    if (isManual) setRefreshing(true);
-    return api('/admin/dashboard')
+    setRefreshing(isManual);
+    return api('/admin/dashboard', { cache: 'no-store', signal: controller.signal })
       .then((res) => {
+        if (controller.signal.aborted || version !== requestVersion.current) return;
         setData(res);
+        setLoadError('');
         if (isManual) toast.success(lang === 'eng' ? 'Dashboard refreshed!' : 'Statistik dashboard berjaya dikemaskini!');
       })
-      .catch(() => {})
+      .catch((error) => {
+        if (controller.signal.aborted || version !== requestVersion.current) return;
+        setLoadError(error.message);
+        if (isManual) toast.error(error.message);
+      })
       .finally(() => {
-        if (isManual) setRefreshing(false);
+        if (version === requestVersion.current) {
+          requestRef.current = null;
+          setRefreshing(false);
+        }
         setGlobalRefreshing(false);
       });
   }, [lang, setGlobalRefreshing]);
@@ -113,9 +131,17 @@ export function Dashboard() {
   useEffect(() => {
     fetchDashboard(false);
     const timer = setInterval(() => {
-      fetchDashboard(false);
+      if (!requestRef.current) fetchDashboard(false);
     }, 15000);
-    return () => clearInterval(timer);
+    const onFocus = () => { if (!requestRef.current) fetchDashboard(false); };
+    window.addEventListener('focus', onFocus);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('focus', onFocus);
+      requestVersion.current++;
+      requestRef.current?.abort();
+      requestRef.current = null;
+    };
   }, [fetchDashboard]);
 
   return (
@@ -138,9 +164,18 @@ export function Dashboard() {
         }
       />
 
-      {!data ? (
+      {loadError && <div role="alert" className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-800">
+        <p className="font-semibold">{lang === 'eng' ? 'Unable to refresh dashboard data.' : 'Data dashboard tidak dapat dikemas kini.'}</p>
+        <p className="mt-1">{loadError}</p>
+        {data && <p className="mt-1">{lang === 'eng' ? 'The figures below are from the last successful update.' : 'Angka di bawah ialah data daripada kemas kini terakhir yang berjaya.'}</p>}
+      </div>}
+      {data?.updatedAt && <p role="status" className="mb-3 text-xs text-slate-500">
+        {lang === 'eng' ? 'Last updated: ' : 'Dikemas kini: '}{new Date(data.updatedAt).toLocaleString(lang === 'eng' ? 'en-GB' : 'ms-MY')}
+      </p>}
+
+      {!data && !loadError ? (
         <Loading />
-      ) : (
+      ) : data ? (
         <div className="space-y-4 sm:space-y-5 w-full max-w-full min-w-0">
           {/* Top 3 Stat Cards (Stripe / Apple clean metrics) */}
           <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-3 w-full min-w-0">
@@ -156,14 +191,14 @@ export function Dashboard() {
               value={data.sijil}
               icon={Award}
               tint="bg-red-50 text-red-700"
-              badge={lang === 'eng' ? 'Verified certificates' : 'Sijil digital disahkan'}
+              badge={lang === 'eng' ? 'All certificate categories' : 'Rekod sijil semua kategori'}
             />
             <NumberCard
               title={t('statBranches')}
               value={data.branches}
               icon={MapPin}
               tint="bg-slate-100 text-slate-800"
-              badge={lang === 'eng' ? 'Active branches' : 'Cawangan aktif'}
+              badge={lang === 'eng' ? 'Registered branches, excluding unassigned' : 'Cawangan berdaftar, tanpa yang belum ditetapkan'}
             />
           </div>
 
@@ -285,7 +320,7 @@ export function Dashboard() {
             </Panel>
           </div>
         </div>
-      )}
+      ) : null}
     </>
   );
 }
