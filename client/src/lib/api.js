@@ -1,4 +1,16 @@
-export async function api(url,{body,...options}={}) {
+const inflightReads=new Map();
+
+export function api(url,options={}){
+ const method=(options.method||'GET').toUpperCase();
+ if(method!=='GET')inflightReads.clear();
+ if(method!=='GET'||options.signal||options.headers||options.body||options.credentials)return requestApi(url,options);
+ const key=JSON.stringify([url,options.cache||'default']);
+ if(inflightReads.has(key))return inflightReads.get(key);
+ const pending=requestApi(url,options).finally(()=>{if(inflightReads.get(key)===pending)inflightReads.delete(key);});
+ inflightReads.set(key,pending);return pending;
+}
+
+async function requestApi(url,{body,...options}={}) {
  const isForm=body instanceof FormData;
  if(isForm){
   const bytes=[...body.values()].reduce((total,value)=>total+

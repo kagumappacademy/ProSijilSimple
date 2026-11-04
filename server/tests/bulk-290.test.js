@@ -1,3 +1,4 @@
+import {seedCloudAdmin} from './helpers/cloud-admin.js';
 import {test,after} from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -20,6 +21,7 @@ const {getTursoClient,initTursoSchema}=await import('../src/turso.js');
 const {saveTemplate}=await import('../src/templateStore.js');
 const {default:app}=await import('../src/app.js');
 const remote=getTursoClient();await initTursoSchema(remote);
+await seedCloudAdmin(remote,db);
 const server=app.listen(0);await new Promise(resolve=>server.once('listening',resolve));
 const admin=db.prepare('SELECT id FROM admin_users LIMIT 1').get();
 const cookie='prosijil_admin='+jwt.sign({sub:String(admin.id)},process.env.JWT_SECRET,{issuer:'prosijil',expiresIn:'1h'});
@@ -49,8 +51,9 @@ test('All 290 ranks generate with a 1MB cache budget despite transient saves and
  assert.equal(fs.existsSync(path.join(process.env.DATA_DIR,'prosijil.sqlite')),false);
  assert.equal(fs.existsSync(process.env.DATA_DIR),false,'Serverless generation must not write to the temporary disk at all.');
  const original=remote.execute;
- const failOnce=new Set([19,101,288]);let insertAttempts=0;
+ const failOnce=new Set([19,101,288]);let insertAttempts=0,fullCertificateReadbacks=0;
  remote.execute=async statement=>{
+  if(typeof statement==='object'&&statement.sql.startsWith('SELECT id,pesilat_id')&&statement.sql.includes('file_base64')&&statement.sql.includes('FROM sijil WHERE public_token'))fullCertificateReadbacks++;
   if(typeof statement==='object' && statement.sql.startsWith('INSERT INTO sijil')){
    insertAttempts++;
    if(failOnce.delete(Number(statement.args[0])))throw Object.assign(new Error('Transient storage connection error'),{code:'SQLITE_BUSY'});
@@ -81,6 +84,7 @@ test('All 290 ranks generate with a 1MB cache budget despite transient saves and
  assert.ok(batchRows.every(row=>row.batch_id===result.batchId&&row.template_name===templateName&&row.jenis==='generated'));
  assert.equal(progress.at(-1),290);
  assert.equal(insertAttempts,293); // Retries reuse already committed rows.
+ assert.equal(fullCertificateReadbacks,0,'Confirmed inserts must not download every generated PDF back over the network.');
  assert.equal((await remote.execute('SELECT count(*) AS n FROM sijil')).rows[0].n,290);
  assert.equal(db.prepare('SELECT count(*) AS n FROM sijil WHERE file_base64 IS NOT NULL').get().n,0);
  assert.equal(db.prepare('SELECT count(*) AS n FROM template_sijil WHERE file_base64 IS NOT NULL').get().n,0);

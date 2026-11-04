@@ -126,6 +126,10 @@ for(const {cloud,nullableCloud} of [{cloud:false},{cloud:true},{cloud:true,nulla
      remote=getTursoClient();await remote.execute(${nullableCloud===true}?legacySchema.replace('file_path TEXT NOT NULL','file_path TEXT'):legacySchema);
      await remote.execute({sql:"INSERT INTO template_sijil(nama_template,peringkat,file_path,file_name) VALUES('Existing','Awan Putih',?,'original.pdf')",args:[originalPath]});
     }
+    if(remote){
+     const {ensureTursoSchema}=await import('./server/src/turso.js');await ensureTursoSchema();
+     const {seedCloudAdmin}=await import('./server/tests/helpers/cloud-admin.js');await seedCloudAdmin(remote,db);
+    }
     const {default:app}=await import('./server/src/app.js');
     const server=app.listen(0);await new Promise(resolve=>server.once('listening',resolve));
     try {

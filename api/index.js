@@ -1,28 +1,4 @@
 import app from '../server/src/app.js';
-import { syncWithTursoIfAvailable } from '../server/src/db.js';
-
-let lastSync = 0;
-let inFlightSync = null;
-
-async function ensureFreshTursoData(force = false) {
-  const now = Date.now();
-  // Sync on cold start, if forced, or at least every 45 seconds for warm instances
-  if (force || !lastSync || now - lastSync > 45_000) {
-    if (!inFlightSync) {
-      inFlightSync = syncWithTursoIfAvailable()
-        .then(() => {
-          lastSync = Date.now();
-        })
-        .catch((err) => {
-          console.warn('Vercel sync warning:', err.message);
-        })
-        .finally(() => {
-          inFlightSync = null;
-        });
-    }
-    await inFlightSync;
-  }
-}
 
 export default async function handler(req, res) {
   try {
@@ -35,14 +11,7 @@ export default async function handler(req, res) {
       }
     }
 
-    const pathname = req.url.split('?')[0];
-    const anonymousSessionCheck = pathname === '/api/auth/me' &&
-      !/(?:^|;\s*)prosijil_admin=/.test(req.headers.cookie || '');
-    // These routes either need no database or read their own primary records.
-    // A full admin-cache refresh must not block opening the public portal.
-    const independent = anonymousSessionCheck || ['/api/health','/api/public/contact','/api/public/reports'].includes(pathname);
-    if (!independent) await ensureFreshTursoData(req.query?.force_sync === '1');
-
+    // Routes read authoritative records directly; no full database copy per request.
     return app(req, res);
   } catch (error) {
     console.error('[API Serverless Error]:', error);

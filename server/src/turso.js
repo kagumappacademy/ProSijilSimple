@@ -117,26 +117,40 @@ export const TURSO_SCHEMA_STATEMENTS = [
  */
 export async function initTursoSchema(client) {
   const turso = client || getTursoClient();
-  for (const statement of TURSO_SCHEMA_STATEMENTS) await turso.execute(statement);
-  await turso.execute(SEED_BRANCHES_SQL);
+  // One network round trip for the idempotent schema, rather than one per table.
+  await turso.batch(TURSO_SCHEMA_STATEMENTS,'write');
   // Ignore migration errors only when another instance added the column.
   const migrations = {
     sijil: {file_base64:'TEXT',kategori:"TEXT DEFAULT 'kenaikan_tali_pinggang'",batch_id:'TEXT',template_name:'TEXT'},
     template_sijil: {file_base64:'TEXT',kategori:"TEXT DEFAULT 'kenaikan_tali_pinggang'",page_count:'INTEGER DEFAULT 1',thumbnail_base64:'TEXT',layout_config:'TEXT'},
     admin_activity: {students_before:'INTEGER',students_after:'INTEGER',certs_before:'INTEGER',certs_after:'INTEGER',templates_before:'INTEGER',templates_after:'INTEGER'},
   };
-  for (const [table,columns] of Object.entries(migrations)) {
-    const existing = await turso.execute('PRAGMA table_info('+table+')');
+  const tables=Object.keys(migrations);
+  const schema=await turso.batch(tables.map(table=>'PRAGMA table_info('+table+')'),'read');
+  const pending=[];
+  for (const [index,table] of tables.entries()) {
+    const columns=migrations[table],existing=schema[index];
     for (const [column,type] of Object.entries(columns)) {
       if (existing.rows.some(row => row.name === column)) continue;
-      try { await turso.execute('ALTER TABLE '+table+' ADD COLUMN '+column+' '+type); }
-      catch (error) {
-        const current = await turso.execute('PRAGMA table_info('+table+')');
-        if (!current.rows.some(row => row.name === column)) throw error;
+      pending.push({table,column,type});
+    }
+  }
+  if(pending.length){
+    try{await turso.batch(pending.map(({table,column,type})=>'ALTER TABLE '+table+' ADD COLUMN '+column+' '+type),'write');}
+    catch(error){
+      // Another instance may have completed the same migration concurrently.
+      for(const {table,column,type} of pending){
+        const current=await turso.execute('PRAGMA table_info('+table+')');
+        if(current.rows.some(row=>row.name===column))continue;
+        try{await turso.execute('ALTER TABLE '+table+' ADD COLUMN '+column+' '+type);}
+        catch(migrationError){
+          const refreshed=await turso.execute('PRAGMA table_info('+table+')');
+          if(!refreshed.rows.some(row=>row.name===column))throw migrationError;
+        }
       }
     }
   }
-  await turso.execute('CREATE INDEX IF NOT EXISTS idx_sijil_batch ON sijil(batch_id)');
+  await turso.batch([SEED_BRANCHES_SQL,'CREATE INDEX IF NOT EXISTS idx_sijil_batch ON sijil(batch_id)'],'write');
 }
 
 let schemaReady;

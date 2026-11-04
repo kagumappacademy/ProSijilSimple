@@ -21,7 +21,7 @@ Tarikh semakan: 4 November 2026.
 
 ## Keputusan dan batas pengesahan
 
-- `npm test`: 128 ujian lulus, termasuk simpanan kekal, migrasi skema, 290 penerima, cawangan, dashboard dan laporan.
+- `npm test`: 138 ujian lulus, termasuk simpanan kekal, migrasi skema, 290 penerima, cawangan, dashboard, laporan dan prestasi. Lihat [butiran prestasi](PRESTASI.md).
 - `npm run build`: berjaya.
 - Audit pelayar tambahan menggunakan pangkalan data sementara yang berasingan; data pengguna sebenar tidak diubah untuk ujian.
 - Janaan 290/290 diuji dengan data ujian. Kuota sebenar penyedia pangkalan data masih perlu mencukupi; jika penyedia menolak simpanan, sistem menunjukkan penerima yang gagal dan tidak melaporkan kejayaan palsu.

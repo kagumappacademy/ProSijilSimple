@@ -1,15 +1,15 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
-import * as pdfjsLib from 'pdfjs-dist';
 import pdfWorker from 'pdfjs-dist/build/pdf.worker.min.js?url';
 import { RotateCw, FileText, Image as ImageIcon } from 'lucide-react';
 import { BrandLoader } from './Loading';
 
-if (typeof window !== 'undefined') {
-  try {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = pdfWorker || 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
-  } catch (_) {
-    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
-  }
+let pdfEngine;
+export function getPdfEngine(){
+  pdfEngine ||= import('pdfjs-dist').then(engine=>{
+    engine.GlobalWorkerOptions.workerSrc=pdfWorker;
+    return engine;
+  }).catch(error=>{pdfEngine=null;throw error;});
+  return pdfEngine;
 }
 
 // In-memory buffer cache & in-flight deduplication
@@ -42,6 +42,7 @@ export async function renderPdfBlobToDataUrl(blobOrArrayBuffer, pageNum = 1, sca
       ? new Uint8Array(blobOrArrayBuffer.slice(0))
       : new Uint8Array(await blobOrArrayBuffer.arrayBuffer());
 
+    const pdfjsLib=await getPdfEngine();
     const loadingTask = pdfjsLib.getDocument({
       data,
       cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
@@ -147,6 +148,8 @@ export function PdfThumbnail({
         const arrayBuffer = await getPdfBuffer(url);
         if (!active) return;
 
+        const pdfjsLib=await getPdfEngine();
+        if(!active)return;
         const loadingTask = pdfjsLib.getDocument({
           // PDF.js transfers its input buffer to a worker. Keep the cached original intact.
           data: new Uint8Array(arrayBuffer.slice(0)),

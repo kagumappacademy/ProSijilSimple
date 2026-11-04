@@ -99,8 +99,8 @@ export function GenerateCerts() {
   };
 
   // Load templates
-  const loadTemplates = useCallback(async (isManualRefresh = false) => {
-    setGlobalRefreshing(true);
+  const loadTemplates = useCallback(async (isManualRefresh = false, background = false) => {
+    if(!background)setGlobalRefreshing(true);
     if (isManualRefresh) setRefreshingTemplates(true);
     try {
       const url = isManualRefresh ? '/admin/templates/groups?force_sync=1' : '/admin/templates/groups';
@@ -121,13 +121,13 @@ export function GenerateCerts() {
       toast.error('Gagal memuat senarai templat: ' + err.message);
     } finally {
       if (isManualRefresh) setRefreshingTemplates(false);
-      setGlobalRefreshing(false);
+      if(!background)setGlobalRefreshing(false);
     }
   }, [lang, setGlobalRefreshing]);
 
   // Load students
-  const loadStudents = useCallback(async (isInitial = false) => {
-    if (!isInitial) setGlobalRefreshing(true);
+  const loadStudents = useCallback(async (isInitial = false, background = false) => {
+    if (!isInitial && !background) setGlobalRefreshing(true);
     try {
       const res = await api('/admin/students?limit=10000&page=1');
       setStudents(res.rows || []);
@@ -141,7 +141,7 @@ export function GenerateCerts() {
     } catch (err) {
       if (isInitial) toast.error('Gagal memuat senarai pesilat: ' + err.message);
     } finally {
-      if (!isInitial) setGlobalRefreshing(false);
+      if (!isInitial && !background) setGlobalRefreshing(false);
       setLoading(false);
     }
   }, [setGlobalRefreshing]);
@@ -174,9 +174,9 @@ export function GenerateCerts() {
   useEffect(() => {
     const interval = setInterval(() => {
       // Background silent auto-refresh every 15s (only if not actively generating certs)
-      if (!generating) {
-        loadTemplates(false);
-        loadStudents(false);
+      if (document.visibilityState==='visible' && !generating) {
+        loadTemplates(false,true);
+        loadStudents(false,true);
       }
     }, 15000);
 

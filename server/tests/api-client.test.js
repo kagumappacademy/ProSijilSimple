@@ -23,3 +23,25 @@ test('Incomplete JSON responses produce a useful retry message',async(t)=>{
  t.mock.method(globalThis,'fetch',async()=>new Response('{"rows":',{headers:{'Content-Type':'application/json'}}));
  await assert.rejects(api('/admin/templates'),/Respons pelayan tidak lengkap/);
 });
+
+test('Concurrent identical reads share a request, but later reads remain fresh',async(t)=>{
+ let finish;
+ const fetchMock=t.mock.method(globalThis,'fetch',()=>new Promise(resolve=>{finish=resolve;}));
+ const first=api('/admin/dashboard?dedupe=1'),second=api('/admin/dashboard?dedupe=1');
+ assert.equal(fetchMock.mock.callCount(),1);
+ finish(new Response('{"pesilat":290}',{headers:{'Content-Type':'application/json'}}));
+ assert.deepEqual(await first,{pesilat:290});assert.deepEqual(await second,{pesilat:290});
+ fetchMock.mock.mockImplementation(async()=>new Response('{"pesilat":291}',{headers:{'Content-Type':'application/json'}}));
+ assert.equal((await api('/admin/dashboard?dedupe=1')).pesilat,291);assert.equal(fetchMock.mock.callCount(),2);
+});
+
+test('Aborted callers and mutations never share another request or retain old read promises',async(t)=>{
+ const waiting=[];const fetchMock=t.mock.method(globalThis,'fetch',()=>new Promise(resolve=>waiting.push(resolve)));
+ const first=api('/admin/students?dedupe=2');
+ const mutation=api('/admin/students',{method:'POST',body:{nama_penuh:'Test'}});
+ const next=api('/admin/students?dedupe=2');
+ const controller=new AbortController(),abortable=api('/admin/students?dedupe=2',{signal:controller.signal});
+ assert.equal(fetchMock.mock.callCount(),4);
+ waiting.forEach(resolve=>resolve(new Response('{}',{headers:{'Content-Type':'application/json'}})));
+ await Promise.all([first,mutation,next,abortable]);
+});

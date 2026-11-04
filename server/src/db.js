@@ -102,14 +102,14 @@ try { db.exec('ALTER TABLE admin_activity ADD COLUMN certs_before INTEGER;'); } 
 try { db.exec('ALTER TABLE admin_activity ADD COLUMN certs_after INTEGER;'); } catch (_) {}
 try { db.exec('ALTER TABLE admin_activity ADD COLUMN templates_before INTEGER;'); } catch (_) {}
 try { db.exec('ALTER TABLE admin_activity ADD COLUMN templates_after INTEGER;'); } catch (_) {}
-const defaults = {
+export const defaultSettings = {
  nama_organisasi: 'AKADEMI PRO SILAT',
  sub_organisasi: 'Pusat Latihan Silat Pintar',
  nama_penandatangan: 'Pengarah Akademi',
  jawatan_penandatangan: 'Pengarah Program',
  tema_warna: '#991b1b'
 };
-for (const [key, value] of Object.entries(defaults)) {
+for (const [key, value] of Object.entries(defaultSettings)) {
  db.prepare('INSERT OR IGNORE INTO settings (key,value) VALUES (?,?)').run(key, value);
 }
 
@@ -140,8 +140,31 @@ export function getSystemCounts() {
   }
 }
 
-export function logActivity(type, action, title, detail = '', target_url = '', metrics = {}) {
+export async function logActivity(type, action, title, detail = '', target_url = '', metrics = {}) {
   try {
+
+    const {isTursoConfigured,getTursoClient,ensureTursoSchema}=await import('./turso.js');
+    if(isTursoConfigured()){
+      await ensureTursoSchema();
+      const deltas={students:0,certs:0,templates:0,...metrics.deltas};
+      if(!metrics.deltas){
+        const column={student:'students',certificate:'certs',template:'templates'}[type];
+        if(column&&action==='create')deltas[column]=1;
+        if(column&&action==='delete')deltas[column]=-1;
+      }
+      const result=await getTursoClient().execute({
+        sql:`INSERT INTO admin_activity(type,action,title,detail,target_url,students_before,students_after,certs_before,certs_after,templates_before,templates_after,created_at)
+          SELECT ?,?,?,?,?,max(0,students-?),students,max(0,certs-?),certs,max(0,templates-?),templates,?
+          FROM (SELECT (SELECT count(*) FROM pesilat) AS students,(SELECT count(*) FROM sijil) AS certs,(SELECT count(*) FROM template_sijil) AS templates)
+          RETURNING *`,
+        args:[type,action,title,detail||'',target_url||'',deltas.students,deltas.certs,deltas.templates,new Date().toISOString()]
+      });
+      const row=result.rows[0];
+      if(row){
+        try{const columns=Object.keys(row);db.prepare('INSERT OR REPLACE INTO admin_activity('+columns.join(',')+') VALUES('+columns.map(()=>'?').join(',')+')').run(...columns.map(column=>row[column]));}catch(error){console.warn('[Activity Cache]',error.message);}
+      }
+      return;
+    }
     let countsBefore = metrics.countsBefore || metrics.before || null;
     let countsAfter = metrics.countsAfter || metrics.after || null;
 
@@ -197,28 +220,6 @@ export function logActivity(type, action, title, detail = '', target_url = '', m
       )
     `).run();
 
-    // Hantar terus rekod aktiviti ke Turso Cloud secara asynchronously
-    import('./turso.js').then(({ isTursoConfigured, getTursoClient }) => {
-      if (isTursoConfigured()) {
-        const turso = getTursoClient();
-        turso.execute({
-          sql: `INSERT INTO admin_activity (
-            type, action, title, detail, target_url,
-            students_before, students_after,
-            certs_before, certs_after,
-            templates_before, templates_after,
-            created_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-          args: [
-            type, action, title, detail || null, target_url || null,
-            students_before, students_after,
-            certs_before, certs_after,
-            templates_before, templates_after,
-            nowIso
-          ]
-        }).catch((err) => console.warn('[Turso Live Activity Insert Warning]', err.message));
-      }
-    }).catch(() => {});
   } catch (err) {
     console.warn('[Activity Log Warning]', err.message);
   }

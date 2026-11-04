@@ -87,13 +87,16 @@ export async function deleteStudent(id) {
   let row;
   if (remote) {
     const results = await remote.batch([
-      { sql: 'DELETE FROM sijil WHERE pesilat_id=?', args: [id] },
+      { sql: 'DELETE FROM sijil WHERE pesilat_id=? RETURNING id', args: [id] },
       { sql: 'DELETE FROM pesilat WHERE id=? RETURNING *', args: [id] },
     ], 'write');
     row = results[1].rows[0];
+    if(row)row.deleted_certificates=results[0].rows.length;
     db.prepare('DELETE FROM pesilat WHERE id=?').run(id);
   } else {
+    const count=db.prepare('SELECT count(*) AS n FROM sijil WHERE pesilat_id=?').get(id).n;
     row = db.prepare('DELETE FROM pesilat WHERE id=? RETURNING *').get(id);
+    if(row)row.deleted_certificates=count;
   }
   return row;
 }

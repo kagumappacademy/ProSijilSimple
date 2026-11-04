@@ -129,4 +129,4 @@ Pengurusan Sijil menyediakan paparan Templat & Batch dan penapis batch. Checkbox
 
 Rekod lama atau muat naik individu yang tiada batch_id dikumpulkan mengikut jenis, tajuk, tarikh sijil dan sumber serta dilabel Rekod tanpa ID batch. Sistem tidak mereka semula batch sejarah yang tidak pernah direkodkan. Migrasi SQLite/Turso menambah medan baharu secara automatik; penyegerakan metadata tidak boleh menulis balik salinan cache lama ke pangkalan data utama.
 
-Semakan sesi tanpa cookie admin, health check, butiran hubungan awam dan penghantaran laporan tidak menunggu penyegerakan penuh cache admin pada Vercel. Endpoint sokongan terus membaca atau menulis rekod pangkalan data utama; tiada kejayaan palsu daripada cache sementara.
+Semua endpoint membaca rekod yang diperlukan terus dari pangkalan data utama, tanpa menunggu salinan penuh cache admin pada Vercel. Akaun admin, tetapan dan aktiviti juga menggunakan sumber utama. Halaman awam tidak menunggu semakan sesi sebelum dipaparkan. Lihat [pembaikan prestasi](PRESTASI.md) untuk ukuran dan bukti semakan.

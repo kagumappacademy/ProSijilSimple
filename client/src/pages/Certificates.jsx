@@ -327,9 +327,9 @@ export function Certificates() {
   const [refreshing, setRefreshing] = useState(false);
 
   // Load one metadata dataset so changing category/branch/rank cannot erase other counts.
-  const load = useCallback((isManual = false) => {
+  const load = useCallback((isManual = false, background = false) => {
     const version = ++requestVersion.current;
-    setGlobalRefreshing(true);
+    if(!background)setGlobalRefreshing(true);
     if (isManual) setRefreshing(true);
     const params = new URLSearchParams({ all: '1' });
 
@@ -348,14 +348,13 @@ export function Certificates() {
       })
       .finally(() => {
         if (isManual) setRefreshing(false);
-        setGlobalRefreshing(false);
+        if(!background)setGlobalRefreshing(false);
       });
   }, [lang, setGlobalRefreshing]);
 
   useEffect(() => {
-    const timer = setTimeout(() => load(false), 200);
+    load(false);
     return () => {
-      clearTimeout(timer);
       requestVersion.current++;
     };
   }, [load]);
@@ -364,8 +363,8 @@ export function Certificates() {
   useEffect(() => {
     const timer = setInterval(() => {
       // Auto-refresh silently if user not in modals/batch delete
-      if (!modal && !batchModal && !busy && !batchBusy) {
-        load(false);
+      if (document.visibilityState==='visible' && !modal && !batchModal && !busy && !batchBusy) {
+        load(false,true);
       }
     }, 15000);
     return () => clearInterval(timer);

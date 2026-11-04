@@ -100,12 +100,12 @@ export function Dashboard() {
   const requestRef = useRef(null);
   const requestVersion = useRef(0);
 
-  const fetchDashboard = useCallback((isManual = false) => {
+  const fetchDashboard = useCallback((isManual = false, background = false) => {
     const version = ++requestVersion.current;
     requestRef.current?.abort();
     const controller = new AbortController();
     requestRef.current = controller;
-    setGlobalRefreshing(true);
+    if(!background)setGlobalRefreshing(true);
     setRefreshing(isManual);
     return api('/admin/dashboard', { cache: 'no-store', signal: controller.signal })
       .then((res) => {
@@ -124,14 +124,14 @@ export function Dashboard() {
           requestRef.current = null;
           setRefreshing(false);
         }
-        setGlobalRefreshing(false);
+        if(!background)setGlobalRefreshing(false);
       });
   }, [lang, setGlobalRefreshing]);
 
   useEffect(() => {
     fetchDashboard(false);
     const timer = setInterval(() => {
-      if (!requestRef.current) fetchDashboard(false);
+      if (document.visibilityState==='visible' && !requestRef.current) fetchDashboard(false,true);
     }, 15000);
     const onFocus = () => { if (!requestRef.current) fetchDashboard(false); };
     window.addEventListener('focus', onFocus);

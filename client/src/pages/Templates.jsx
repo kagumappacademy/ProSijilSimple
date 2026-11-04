@@ -33,11 +33,9 @@ import {
   ChevronDown,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { PDFDocument } from 'pdf-lib';
-import * as pdfjsLib from 'pdfjs-dist';
 import { api, fmtDate } from '../lib/api';
 import { PageIntro, Panel, Button, Input, Modal, Confirm, Loading, Empty, Chip } from '../components/UI';
-import { PdfThumbnail, renderPdfBlobToDataUrl } from '../components/PdfThumbnail';
+import { PdfThumbnail, renderPdfBlobToDataUrl, getPdfEngine } from '../components/PdfThumbnail';
 import { useLang } from '../lib/i18n';
 import { useSync } from '../lib/syncContext';
 import { templateCollections, templateCollectionKey } from '../lib/certificateGroups';
@@ -384,6 +382,7 @@ async function optimizePdfIfNeeded(file, maxTargetBytes = 3.2 * 1024 * 1024) {
   try {
     const arrayBuffer = await file.arrayBuffer();
     const pdfData = new Uint8Array(arrayBuffer);
+    const [pdfjsLib,{PDFDocument}]=await Promise.all([getPdfEngine(),import('pdf-lib')]);
     const loadingTask = pdfjsLib.getDocument({
       data: pdfData,
       cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
@@ -1656,8 +1655,8 @@ export function Templates() {
   const { setRefreshing: setGlobalRefreshing } = useSync();
   const [refreshing, setRefreshing] = useState(false);
 
-  const loadTemplates = useCallback((isManual = false) => {
-    setGlobalRefreshing(true);
+  const loadTemplates = useCallback((isManual = false, background = false) => {
+    if(!background)setGlobalRefreshing(true);
     if (isManual) setRefreshing(true);
     const url = isManual ? '/admin/templates?force_sync=1' : '/admin/templates';
     return api(url)
@@ -1670,17 +1669,18 @@ export function Templates() {
       })
       .finally(() => {
         if (isManual) setRefreshing(false);
-        setGlobalRefreshing(false);
+        if(!background)setGlobalRefreshing(false);
       });
   }, [lang, setGlobalRefreshing]);
 
-  // Initial load & Auto-refresh every 15 seconds
+  useEffect(()=>{loadTemplates(false);},[loadTemplates]);
+
+  // Refresh visible idle pages without repeating the initial load when a modal opens.
   useEffect(() => {
-    loadTemplates(false);
     const timer = setInterval(() => {
       // Background silent auto-refresh every 15s (if modals closed)
-      if (!uploadOpen && !deleteTarget && !testTarget) {
-        loadTemplates(false);
+      if (document.visibilityState==='visible' && !uploadOpen && !deleteTarget && !testTarget) {
+        loadTemplates(false,true);
       }
     }, 15000);
     return () => clearInterval(timer);

@@ -52,7 +52,7 @@ export function Login({ onLogin }) {
         onLogin(r.user);
         toast.success(lang === 'eng' ? 'Login successful. Welcome back!' : 'Log masuk berjaya. Selamat kembali!');
         nav('/admin');
-      }, reduceMotion ? 0 : 720);
+      }, reduceMotion ? 0 : 120);
     } catch (e) {
       if (!mounted.current || controller.signal.aborted) return;
       errorToast.current = toast.error(e.message);

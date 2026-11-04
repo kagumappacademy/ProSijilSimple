@@ -810,8 +810,8 @@ export function Students(){
   const [refreshing, setRefreshing] = useState(false);
   useEffect(()=>setPage(1),[branch]);
 
-  const fetchRows = useCallback((isManual = false) => {
-    setGlobalRefreshing(true);
+  const fetchRows = useCallback((isManual = false, background = false) => {
+    if(!background)setGlobalRefreshing(true);
     if (isManual) setRefreshing(true);
     return api('/admin/students?' + new URLSearchParams({ q, branch, level, page: String(page) }))
       .then((res) => {
@@ -823,12 +823,12 @@ export function Students(){
       })
       .finally(() => {
         if (isManual) setRefreshing(false);
-        setGlobalRefreshing(false);
+        if(!background)setGlobalRefreshing(false);
       });
   }, [q, branch, level, page, lang, setGlobalRefreshing]);
 
   useEffect(() => {
-    const t = setTimeout(() => fetchRows(false), 180);
+    const t = setTimeout(() => fetchRows(false), q.trim()?180:0);
     return () => clearTimeout(t);
   }, [fetchRows]);
 
@@ -836,8 +836,8 @@ export function Students(){
   useEffect(() => {
     const timer = setInterval(() => {
       // Don't auto-refresh while editing or modals open
-      if (!formOpen && !importOpen && !exportOpen && !deleteTarget && !viewTarget) {
-        fetchRows(false);
+      if (document.visibilityState==='visible' && !formOpen && !importOpen && !exportOpen && !deleteTarget && !viewTarget) {
+        fetchRows(false,true);
       }
     }, 15000);
     return () => clearInterval(timer);

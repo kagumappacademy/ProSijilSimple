@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { Suspense, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
-import { Logo } from './UI';
+import { Logo, Loading } from './UI';
 import { useLang, LanguageSwitcher, LiveClock } from '../lib/i18n';
 import { AdminThemeSwitch } from '../lib/adminAppearance';
 
@@ -226,7 +226,7 @@ export function AdminLayout({ user, onLogout }) {
         </header>
 
         <main className="mx-auto w-full max-w-[1380px] p-4 sm:p-6 lg:p-7 pb-16 min-w-0 overflow-x-hidden">
-          <Outlet />
+          <Suspense fallback={<Loading size="sm"/>}><Outlet /></Suspense>
         </main>
       </div>
     </div>

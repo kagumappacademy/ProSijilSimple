@@ -1,3 +1,4 @@
+import {seedCloudAdmin} from './cloud-admin.js';
 import {test,after} from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -17,6 +18,7 @@ export async function registerBatchMetadataTests(cloud){
   const {saveTemplate}=await import('../../src/templateStore.js');
   const {generationBatchId}=await import('../../src/certificateStore.js');
   const remote=cloud?getTursoClient():null;if(remote)await initTursoSchema(remote);
+  if(remote)await seedCloudAdmin(remote,db);
   const {default:app}=await import('../../src/app.js');
   const server=app.listen(0);await new Promise(resolve=>server.once('listening',resolve));
   const base='http://127.0.0.1:'+server.address().port;

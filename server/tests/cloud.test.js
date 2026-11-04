@@ -1,3 +1,4 @@
+import {seedCloudAdmin} from './helpers/cloud-admin.js';
 import { test, after } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -18,6 +19,7 @@ const {getTursoClient,initTursoSchema,pullTursoToLocal,pushLocalToTurso}=await i
 const {saveTemplate}=await import('../src/templateStore.js');
 const remote=getTursoClient();
 await initTursoSchema(remote);
+await seedCloudAdmin(remote,db);
 const {default:app}=await import('../src/app.js');
 const server=app.listen(0);
 await new Promise(resolve=>server.once('listening',resolve));

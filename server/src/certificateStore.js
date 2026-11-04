@@ -1,10 +1,11 @@
-import { db, getSettings } from './db.js';
+import { db } from './db.js';
 import fs from 'node:fs';
 import crypto from 'node:crypto';
 import { isVercel } from './config.js';
 import { getTursoClient, isTursoConfigured, ensureTursoSchema } from './turso.js';
-import { getStoredStudent, readRows } from './studentStore.js';
+import { cacheStudent, getStoredStudent, readRows } from './studentStore.js';
 import { createCertificatePdfBytes } from './pdf.js';
+import { readStoredSettings } from './settingsStore.js';
 
 const columns = 'pesilat_id,nama_sijil,tarikh_isu,jenis,file_path,file_type,public_token,file_base64,kategori,batch_id,template_name';
 const storageError = message => Object.assign(new Error(message), {status:503});
@@ -36,9 +37,12 @@ async function certificateClient() {
   return null;
 }
 
-async function cacheCertificate(row) {
+async function cacheCertificate(row,student=null) {
   try {
-    if (isTursoConfigured()) await getStoredStudent(row.pesilat_id);
+    if (isTursoConfigured()) {
+      if(student&&student.id===row.pesilat_id)cacheStudent(student);
+      else await getStoredStudent(row.pesilat_id);
+    }
     db.prepare(`INSERT INTO sijil(id,${columns}) VALUES(${Array(columns.split(',').length+1).fill('?').join(',')})
       ON CONFLICT(id) DO UPDATE SET ${columns.split(',').map(column=>`${column}=excluded.${column}`).join(',')}`)
       .run(row.id,...columns.split(',').map(column=>
@@ -65,7 +69,7 @@ export async function ensureCertificateFile(row) {
   if (row.jenis==='generated') {
     const student=await getStoredStudent(row.pesilat_id);
     if (!student) return null;
-    recovered=(await createCertificatePdfBytes(student,row,getSettings())).toString('base64');
+    recovered=(await createCertificatePdfBytes(student,row,await readStoredSettings())).toString('base64');
   }
   if (!recovered) throw storageError('Fail asal sijil belum tersedia dalam storan kekal. Sila muat naik semula fail asal.');
   const remote=await certificateClient();
@@ -95,7 +99,7 @@ export async function updateStoredCertificate(id, changes) {
   } else if(current.jenis==='generated') {
     const student=await getStoredStudent(current.pesilat_id);
     if (!student) return null;
-    const bytes=await createCertificatePdfBytes(student,{...current,nama_sijil:changes.namaSijil,tarikh_isu:changes.tarikh},getSettings());
+    const bytes=await createCertificatePdfBytes(student,{...current,nama_sijil:changes.namaSijil,tarikh_isu:changes.tarikh},await readStoredSettings());
     fields.push("file_path=''","file_type='application/pdf'",'file_base64=?');
     args.push(bytes.toString('base64'));
   }
@@ -131,7 +135,7 @@ export async function saveCertificate(record, remote = isTursoConfigured() ? get
   if(record.jenis==='generated' && !fileBase64){
     const student=await getStoredStudent(record.studentId);
     if(!student)throw new Error('Pesilat tidak ditemui.');
-    fileBase64=(await createCertificatePdfBytes(student,{nama_sijil:record.namaSijil,tarikh_isu:record.tarikh,public_token:record.token},getSettings())).toString('base64');
+    fileBase64=(await createCertificatePdfBytes(student,{nama_sijil:record.namaSijil,tarikh_isu:record.tarikh,public_token:record.token},await readStoredSettings())).toString('base64');
   }
   if(!fileBase64)throw storageError('Fail sijil tidak boleh kosong.');
   const args = [record.studentId, record.namaSijil, record.tarikh, record.jenis || 'uploaded',
@@ -139,15 +143,20 @@ export async function saveCertificate(record, remote = isTursoConfigured() ? get
   const insert = `INSERT INTO sijil (${columns}) VALUES (${columns.split(',').map(()=>'?').join(',')}) ON CONFLICT(public_token) DO NOTHING`;
   if (remote) {
     // Never report success or change the local cache when durable storage fails.
-    await remote.execute({ sql: insert, args });
-    const result = await remote.execute({
-      sql: `SELECT id,${columns} FROM sijil WHERE public_token=?`, args: [record.token],
-    });
-    const id = Number(result.rows[0]?.id);
+    const metadata=columns.split(',').filter(column=>column!=='file_base64').join(',');
+    const result=await remote.execute({sql:insert+` RETURNING id,${metadata},length(file_base64) AS stored_length`,args});
+    let saved=result.rows[0];
+    if(saved){
+      if(Number(saved.stored_length)!==fileBase64.length)throw storageError('Simpanan fail sijil belum dapat disahkan. Sila cuba semula.');
+      saved={...saved,file_base64:fileBase64};
+    }else{
+      // A concurrent retry may have committed this token already.
+      saved=(await remote.execute({sql:`SELECT id,${columns} FROM sijil WHERE public_token=?`,args:[record.token]})).rows[0];
+    }
+    const id = Number(saved?.id);
     if (!Number.isSafeInteger(id) || id <= 0) throw new Error('Gagal mengesahkan simpanan sijil. Sila cuba semula.');
-    const saved = result.rows[0];
     if (!saved.file_base64) throw storageError('Simpanan fail sijil belum dapat disahkan. Sila cuba semula.');
-    await cacheCertificate(saved);
+    await cacheCertificate(saved,record.student);
     return id;
   }
   db.prepare(insert).run(...args);
