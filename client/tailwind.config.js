@@ -1,8 +1,12 @@
+import plugin from 'tailwindcss/plugin.js';
+import { adminDarkVariables, adminThemeColors } from './theme/adminTheme.js';
+
 /** @type {import('tailwindcss').Config} */
 export default {
  content: ['./index.html', './src/**/*.{js,jsx}'],
  theme: {
   extend: {
+   ...adminThemeColors,
    fontFamily: {
     sans: [
      '-apple-system',
@@ -57,5 +61,5 @@ export default {
    },
   },
  },
- plugins: [],
+ plugins: [plugin(({ addBase }) => addBase({ '[data-admin-theme="dark"]': adminDarkVariables }))],
 };

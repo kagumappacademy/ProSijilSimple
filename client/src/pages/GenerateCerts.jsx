@@ -1020,7 +1020,7 @@ export function GenerateCerts() {
               </div>
 
               {/* Bottom Action Footer for Step 1 */}
-              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3 mt-4 border-t border-slate-100 bg-[#FCFDFB] p-3 sm:px-4 rounded-xl">
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 pt-3 mt-4 border-t border-slate-100 bg-surface-footer p-3 sm:px-4 rounded-xl">
                 <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
                   <span className="font-bold text-slate-900">Templat Terpilih:</span>
                   <span className="font-extrabold text-red-700 bg-red-50 border border-red-200 px-2.5 py-0.5 rounded-lg truncate max-w-[220px]">
@@ -1160,7 +1160,7 @@ export function GenerateCerts() {
           <BulkStudentPicker students={students} loading={loading} onApply={applyBulkSelection} />
 
           {/* Quick select buttons */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 bg-[#FBFCFA] px-3 sm:px-4 py-2 border-b border-slate-100 text-xs">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 bg-surface-header px-3 sm:px-4 py-2 border-b border-slate-100 text-xs">
             <div className="flex flex-wrap items-center gap-1.5 text-[10.5px]">
               <button
                 type="button"
@@ -1264,7 +1264,7 @@ export function GenerateCerts() {
               {/* Desktop Table View (>= md) */}
               <div className="hidden md:block overflow-x-auto max-h-[calc(100vh-370px)] overflow-y-auto">
                 <table className="w-full min-w-[760px] text-left text-xs sm:text-sm">
-                  <thead className="sticky top-0 z-10 bg-[#FBFCFA] text-[10px] font-extrabold uppercase tracking-[.14em] text-slate-400 border-b border-slate-100 shadow-2xs">
+                  <thead className="sticky top-0 z-10 bg-surface-header text-[10px] font-extrabold uppercase tracking-[.14em] text-slate-400 border-b border-slate-100 shadow-2xs">
                     <tr>
                       <th className="w-10 px-3.5 py-2 text-center">
                         <input
@@ -1350,7 +1350,7 @@ export function GenerateCerts() {
 
           {/* Pagination Bar */}
           {filteredStudents.length > 0 && (
-            <div className="flex flex-wrap items-center justify-between border-t border-slate-100 bg-[#FBFCFA] px-4 py-2 text-xs">
+            <div className="flex flex-wrap items-center justify-between border-t border-slate-100 bg-surface-header px-4 py-2 text-xs">
               <span className="text-slate-500 text-[11px]">
                 {t('pageShowing')} <strong>{startIndex + 1}</strong> – <strong>{endIndex}</strong> {t('pageOf')}{' '}
                 <strong>{totalStudents}</strong> {t('pageStudentsCount')} ({t('pageLabel')} {currentPage} / {totalPages})
@@ -1413,7 +1413,7 @@ export function GenerateCerts() {
           )}
 
           {/* Bottom Navigation for Step 2 */}
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 border-t border-slate-100 bg-[#FCFDFB] p-3 sm:px-4 sm:py-3 rounded-b-2xl">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 border-t border-slate-100 bg-surface-footer p-3 sm:px-4 sm:py-3 rounded-b-2xl">
             <Button
               type="button"
               variant="secondary"
@@ -1578,7 +1578,7 @@ export function GenerateCerts() {
 
               {/* Senarai Pratonton Pesilat Yang Akan Dijana */}
               <div className="rounded-2xl border border-slate-200/90 bg-white overflow-hidden mb-5">
-                <div className="bg-[#FBFCFA] px-4 py-2.5 border-b border-slate-100 flex items-center justify-between text-xs">
+                <div className="bg-surface-header px-4 py-2.5 border-b border-slate-100 flex items-center justify-between text-xs">
                   <div className="font-extrabold text-slate-900 flex items-center gap-1.5">
                     <Award size={14} className="text-red-700" />
                     <span>Pratonton Senarai Pesilat ({selectedStudentsList.length})</span>

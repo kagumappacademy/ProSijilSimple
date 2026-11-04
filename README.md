@@ -76,6 +76,7 @@ Ujian mengesahkan API, log masuk, CRUD pesilat, import CSV, penciptaan sijil, pe
 | Tetapan sistem | Nama akademi, subtajuk, penandatangan, jawatan dan kata laluan admin |
 | Animasi & UX | Motion entrance, hover cards, efek ambient, loading state, modal, toast, skeleton-style elements, sidebar mobile |
 | Mobile | Layout responsif, jadual scroll, sidebar boleh dibuka di telefon |
+| Tema admin | Suis Light/Dark di bar atas admin; kekal semasa navigasi admin dan kembali Light apabila muat semula, keluar ke portal awam atau log keluar. Portal awam dan rupa PDF sijil tidak bertukar tema. |
 
 ## Format CSV
 

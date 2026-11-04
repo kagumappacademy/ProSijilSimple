@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
-import { Toaster } from 'sonner';
 import { api } from './lib/api';
 import { Loading } from './components/UI';
 import { LanguageProvider } from './lib/i18n';
 import { SyncProvider } from './lib/syncContext';
+import { AdminAppearanceProvider } from './lib/adminAppearance';
 import { AdminLayout } from './components/AdminLayout';
 import { Home, Verify } from './pages/Public';
 import { Login } from './pages/Auth';
@@ -44,9 +44,9 @@ function App() {
 
   return (
     <LanguageProvider>
-      <SyncProvider>
       <BrowserRouter>
-        <Toaster position="top-right" richColors closeButton duration={4000} />
+      <AdminAppearanceProvider user={user}>
+      <SyncProvider>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/verify/:token" element={<Verify />} />
@@ -64,8 +64,9 @@ function App() {
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </BrowserRouter>
       </SyncProvider>
+      </AdminAppearanceProvider>
+      </BrowserRouter>
     </LanguageProvider>
   );
 }

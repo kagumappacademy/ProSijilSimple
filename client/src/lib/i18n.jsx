@@ -758,7 +758,7 @@ export function LiveClock({ light = false, compact = false, showDate = true, cla
       className={`inline-flex items-center gap-2 sm:gap-3 rounded-xl px-2.5 sm:px-3 py-1.5 text-xs select-none transition-all ${
         light
           ? 'bg-white/10 text-white border border-white/20 backdrop-blur-md shadow-xs'
-          : 'bg-[#FCFDFB] text-slate-800 border border-slate-200/90 shadow-2xs'
+          : 'bg-surface-footer text-slate-800 border border-slate-200/90 shadow-2xs'
       } ${className}`}
     >
       {showDate && (

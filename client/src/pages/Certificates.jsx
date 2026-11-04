@@ -1103,7 +1103,7 @@ export function Certificates() {
             {/* Desktop Table View (>= md) */}
             <div className="hidden md:block overflow-x-auto max-h-[calc(100vh-235px)] overflow-y-auto">
               <table className="w-full min-w-[760px] text-left text-xs sm:text-sm">
-                <thead className="sticky top-0 z-10 bg-[#FBFCFA] text-[10px] font-extrabold uppercase tracking-[.14em] text-slate-400 border-b border-slate-100 shadow-2xs">
+                <thead className="sticky top-0 z-10 bg-surface-header text-[10px] font-extrabold uppercase tracking-[.14em] text-slate-400 border-b border-slate-100 shadow-2xs">
                   <tr>
                     <th className="px-3.5 py-2.5 w-10">
                       <input

@@ -304,7 +304,7 @@ export function ProcessingModal({
 export function Pagination({ page, pages, onChange }) {
   if (pages <= 1) return null;
   return (
-    <div className="flex items-center justify-between border-t border-slate-100 bg-[#FCFDFB] px-4 py-2.5 text-xs">
+    <div className="flex items-center justify-between border-t border-slate-100 bg-surface-footer px-4 py-2.5 text-xs">
       <span className="text-xs text-slate-500 font-medium">
         Halaman <strong className="text-slate-800">{page}</strong> daripada <strong className="text-slate-800">{pages}</strong>
       </span>
