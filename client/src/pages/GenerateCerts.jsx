@@ -31,6 +31,8 @@ import { api, fmtDate } from '../lib/api';
 import { generateCertificateBatches } from '../lib/generateBatch';
 import { PageIntro, Panel, Button, Input, Chip, Loading, Empty, SearchField } from '../components/UI';
 import { PdfThumbnail } from '../components/PdfThumbnail';
+import { BulkStudentPicker } from '../components/BulkStudentPicker';
+import { SelectedStudentsPreview } from '../components/SelectedStudentsPreview';
 import { LargeTemplatePreviewModal } from './Templates';
 import { useLang } from '../lib/i18n';
 import { useSync } from '../lib/syncContext';
@@ -69,6 +71,8 @@ export function GenerateCerts() {
   const [selectedLevel, setSelectedLevel] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedIds, setSelectedIds] = useState(new Set());
+  const [studentPreviewOpen, setStudentPreviewOpen] = useState(false);
+  const closeStudentPreview = useCallback(() => setStudentPreviewOpen(false), []);
 
   // Pagination for Step 2
   const [currentPage, setCurrentPage] = useState(1);
@@ -357,6 +361,22 @@ export function GenerateCerts() {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id);
       else next.add(id);
+      return next;
+    });
+  }
+
+  function applyBulkSelection(ids, mode) {
+    setSelectedIds(previous => new Set(mode === 'add' ? [...previous, ...ids] : ids));
+    setSelectedBranch('');
+    setSelectedLevel('');
+    setSearchQuery('');
+    setStudentPreviewOpen(true);
+  }
+
+  function removeSelectedStudent(id) {
+    setSelectedIds(previous => {
+      const next = new Set(previous);
+      next.delete(id);
       return next;
     });
   }
@@ -1075,12 +1095,16 @@ export function GenerateCerts() {
 
           {/* Toolbar Carian & Tapisan */}
           <div className="flex flex-col gap-2.5 border-b border-slate-100 p-3 sm:px-4 sm:py-3 lg:flex-row lg:items-center lg:justify-between">
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <Award className="text-red-700 shrink-0" size={17} />
               <h2 className="text-xs sm:text-sm font-extrabold text-slate-950">
                 {t('step2Title')}
               </h2>
               <Chip color="gold">{selectedStudentsList.length} {t('selectedCountBadge')}</Chip>
+              <Button type="button" variant="secondary" disabled={loading}
+                onClick={() => setStudentPreviewOpen(true)} className="text-xs">
+                <Eye size={14} />{lang === 'eng' ? 'Preview Selection' : 'Pratonton Pilihan'} ({selectedStudentsList.length})
+              </Button>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full lg:w-auto">
@@ -1132,6 +1156,8 @@ export function GenerateCerts() {
               </button>
             </div>
           )}
+
+          <BulkStudentPicker students={students} loading={loading} onApply={applyBulkSelection} />
 
           {/* Quick select buttons */}
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2 bg-[#FBFCFA] px-3 sm:px-4 py-2 border-b border-slate-100 text-xs">
@@ -1795,6 +1821,15 @@ export function GenerateCerts() {
           )}
         </div>
       )}
+
+      {/* Review every selected recipient, independently of the table filters. */}
+      {studentPreviewOpen && <SelectedStudentsPreview
+        students={selectedStudentsList}
+        getMatchingTemplate={getMatchingTemplate}
+        onRemove={removeSelectedStudent}
+        onClose={closeStudentPreview}
+        disabled={generating}
+      />}
 
       {/* Large Template Preview Modal */}
       <LargeTemplatePreviewModal

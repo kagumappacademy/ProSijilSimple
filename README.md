@@ -72,11 +72,14 @@ Ujian mengesahkan API, log masuk, CRUD pesilat, import CSV, penciptaan sijil, pe
 | Pengurusan cawangan | Menu sidebar untuk tambah/kemas kini cawangan, kiraan pesilat dan sijil, serta pautan terus ke pesilat cawangan |
 | Import CSV | Terima `Nama Peserta`, `Nama Cawangan`, `Peringkat`, `No KP` (kolum No KP optional), elak duplikasi |
 | Pengurusan sijil | Tetapkan pesilat, tarikh, jenis sijil, upload fail atau jana templat rasmi PDF |
+| Pilihan pesilat pukal | Langkah 2 janaan: tampal nama/ID atau seret fail TXT/CSV/TSV, semak padanan, gantikan/tambah pilihan dan pratonton semua pesilat dipilih |
 | Tetapan sistem | Nama akademi, subtajuk, penandatangan, jawatan dan kata laluan admin |
 | Animasi & UX | Motion entrance, hover cards, efek ambient, loading state, modal, toast, skeleton-style elements, sidebar mobile |
 | Mobile | Layout responsif, jadual scroll, sidebar boleh dibuka di telefon |
 
 ## Format CSV
+
+Untuk **pemilihan janaan sijil** di langkah 2, tampal satu nama penuh atau No. KP/ID setiap baris, atau pilih/seret fail TXT, CSV atau TSV (maksimum 1MB). CSV berbilang lajur menggunakan tajuk `nama_penuh`, `no_kp_atau_id`, `cawangan`; nama atau ID diperlukan, manakala cawangan boleh disertakan untuk membezakan nama sama. Pemadanan meliputi semua pesilat, tanpa mengira tapisan semasa, dan tidak menambah rekod pesilat baharu. Betulkan nama yang tidak ditemui dan tentukan rekod bagi nama yang mempunyai beberapa padanan sebelum menggunakan senarai. Pilihan lalai menggantikan pilihan sedia ada; pilihan tambah turut tersedia. Butang **Pratonton Pilihan** memaparkan semua pilihan dengan carian, butiran pesilat, status templat dan tindakan nyahpilih.
 
 Sistem menerima tajuk kolum `nama_penuh`, `no_kp_atau_id`, `peringkat`, `cawangan` atau alternatif `Nama Peserta`, `No KP`, `Peringkat`, `Nama Cawangan`. **Hanya nama wajib**. Jika fail cuma ada tiga kolum (`Nama Peserta`, `Nama Cawangan`, `Peringkat`), sistem tetap boleh import dan akan buat ID `PS-XXXXXXXX` secara automatik. Simpan CSV sebagai **CSV UTF-8**. Fail contoh tersedia pada `examples/import-pesilat.csv`.
 
