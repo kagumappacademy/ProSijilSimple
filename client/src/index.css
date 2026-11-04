@@ -136,22 +136,33 @@ button {
   background: #64748b;
 }
 
-/* Upright logo: rotate only around the vertical Y axis. */
+/* The ring spins independently; the upright logo rotates only on the Y axis. */
 .brand-loader {
   --loader-size: 112px;
+  --loader-ring-accent: #b91c1c;
+  --loader-ring-soft: #fca5a5;
+  --loader-ring-track: #fee2e2;
   position: relative;
   width: var(--loader-size);
-  height: calc(var(--loader-size) * 0.6);
+  height: var(--loader-size);
   flex: 0 0 auto;
   perspective: 650px;
 }
 .brand-loader--xs { --loader-size: 32px; }
 .brand-loader--sm { --loader-size: 72px; }
 .brand-loader--lg { --loader-size: 136px; }
+.brand-loader__ring {
+  position: absolute;
+  inset: 0;
+  animation: loader-ring-turn 1.6s linear infinite;
+}
+.brand-loader__ring svg { display: block; width: 100%; height: 100%; }
+.brand-loader__ring circle { stroke-width: 2.25px; }
+.brand-loader__track { stroke: var(--loader-ring-track); }
+.brand-loader--xs .brand-loader__ring circle { stroke-width: 4.5px; }
 .brand-loader__rotor {
-  position: relative;
-  width: 100%;
-  height: 100%;
+  position: absolute;
+  inset: 16%;
   transform-style: preserve-3d;
   transform-origin: center;
   animation: loader-logo-turn 3.2s linear infinite;
@@ -170,6 +181,11 @@ button {
 .brand-loader__fallback { color: #b91c1c; font-size: calc(var(--loader-size) * 0.3); font-weight: 700; }
 [data-admin-theme="dark"] .brand-loader__face img { filter: brightness(0) invert(1); }
 [data-admin-theme="dark"] .brand-loader__fallback { color: #f87171; }
+[data-admin-theme="dark"] .brand-loader {
+  --loader-ring-accent: #f87171;
+  --loader-ring-soft: #fecaca;
+  --loader-ring-track: #334155;
+}
 
 .loading-overlay {
   position: fixed;
@@ -202,7 +218,7 @@ button {
 .loading-content--lg .loading-content__title,
 .auth-feedback .loading-content__title { font-size: 16px; line-height: 1.5; }
 .loading-content__subtitle { margin: 8px 0 0; font-size: 12px; line-height: 1.7; overflow-wrap: anywhere; }
-.auth-feedback__art { display: grid; width: 136px; height: 82px; place-items: center; }
+.auth-feedback__art { display: grid; width: 136px; height: 136px; place-items: center; }
 .auth-feedback__badge { margin-top: 20px; padding: 5px 10px; border-width: 1px; border-radius: 999px; font-size: 9px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.13em; }
 .auth-feedback .loading-content__copy { margin-top: 14px; }
 .auth-feedback__success { display: grid; width: 72px; height: 72px; place-items: center; border-radius: 50%; animation: loader-card-enter 350ms ease-out both; }
@@ -210,9 +226,11 @@ button {
 
 .sync-indicator { position: fixed; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); z-index: 50; max-width: calc(100vw - 32px); pointer-events: none; opacity: 0; transform: translateY(10px); transition: opacity 200ms ease, transform 200ms ease; }
 .sync-indicator[data-visible="true"] { opacity: 1; transform: translateY(0); }
-.sync-indicator[data-visible="false"] .brand-loader__rotor { animation-play-state: paused; }
+.sync-indicator[data-visible="false"] .brand-loader__rotor,
+.sync-indicator[data-visible="false"] .brand-loader__ring { animation-play-state: paused; }
 
 @keyframes loader-logo-turn { from { transform: rotateY(0deg); } to { transform: rotateY(360deg); } }
+@keyframes loader-ring-turn { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
 @keyframes loader-card-enter { from { opacity: 0; transform: translateY(12px) scale(0.97); } to { opacity: 1; transform: translateY(0) scale(1); } }
 @keyframes loader-check { from { stroke-dashoffset: 100; opacity: 0; } to { stroke-dashoffset: 0; opacity: 1; } }
 

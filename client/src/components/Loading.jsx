@@ -1,9 +1,22 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
 import { ShieldCheck } from 'lucide-react';
 
 export function BrandLoader({ size = 'md' }) {
   const [imageFailed, setImageFailed] = useState(false);
+  const gradientId='loader-ring-'+useId().replaceAll(':','');
   return <div className={`brand-loader brand-loader--${size}`} aria-hidden="true">
+    <div className="brand-loader__ring">
+      <svg viewBox="0 0 100 100" fill="none" focusable="false">
+        <defs>
+          <linearGradient id={gradientId} x1="0" y1="0" x2="1" y2="1">
+            <stop stopColor="var(--loader-ring-soft)"/>
+            <stop offset="1" stopColor="var(--loader-ring-accent)"/>
+          </linearGradient>
+        </defs>
+        <circle className="brand-loader__track" cx="50" cy="50" r="46"/>
+        <circle className="brand-loader__arc" cx="50" cy="50" r="46" pathLength="100" stroke={`url(#${gradientId})`} strokeDasharray="28 72" strokeLinecap="round"/>
+      </svg>
+    </div>
     <div className="brand-loader__rotor">
       {['front', 'back'].map(face => <div key={face} className={`brand-loader__face brand-loader__face--${face}`}>
         {imageFailed ? <span className="brand-loader__fallback">P</span> : <img src="/logo-prosijil.png" alt="" draggable="false" onError={() => setImageFailed(true)} />}
