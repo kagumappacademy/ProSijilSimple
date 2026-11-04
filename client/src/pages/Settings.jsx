@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { api } from '../lib/api';
 import { PageIntro, Panel, Button, Input } from '../components/UI';
 import { useLang } from '../lib/i18n';
+import { SupportContactSettings } from '../components/SupportContactSettings';
 
 export function Settings() {
   const { t, lang } = useLang();
@@ -36,6 +37,7 @@ export function Settings() {
       />
 
       <div className="max-w-xl mx-auto space-y-4">
+        <SupportContactSettings />
         <Panel className="p-5 sm:p-6">
           <div className="mb-4 flex items-center gap-3">
             <div className="grid h-9 w-9 place-items-center rounded-lg bg-slate-100 text-slate-800 border border-slate-200">

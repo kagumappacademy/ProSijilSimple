@@ -18,6 +18,8 @@ import { GenerateCerts } from './pages/GenerateCerts';
 import { ImportCSV } from './pages/Import';
 import { Settings } from './pages/Settings';
 import { RecentActivity } from './pages/RecentActivity';
+import { Reports } from './pages/Reports';
+import { PublicSupportLayout } from './components/PublicSupport';
 import './index.css';
 
 function App() {
@@ -48,8 +50,10 @@ function App() {
       <AdminAppearanceProvider user={user}>
       <SyncProvider>
         <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/verify/:token" element={<Verify />} />
+          <Route element={<PublicSupportLayout />}>
+            <Route path="/" element={<Home />} />
+            <Route path="/verify/:token" element={<Verify />} />
+          </Route>
           <Route path="/admin/login" element={user ? <Navigate to="/admin" replace /> : <Login onLogin={setUser} />} />
           <Route path="/admin" element={user ? <AdminLayout user={user} onLogout={() => setUser(null)} /> : <Navigate to="/admin/login" replace />}>
             <Route index element={<Dashboard />} />
@@ -59,6 +63,7 @@ function App() {
             <Route path="jana-sijil" element={<GenerateCerts />} />
             <Route path="sijil" element={<Certificates />} />
             <Route path="aktiviti" element={<RecentActivity />} />
+            <Route path="laporan" element={<Reports />} />
             <Route path="import" element={<ImportCSV />} />
             <Route path="tetapan" element={<Settings />} />
           </Route>

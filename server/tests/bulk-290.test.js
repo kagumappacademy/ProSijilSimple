@@ -75,6 +75,10 @@ test('All 290 ranks generate with a 1MB cache budget despite transient saves and
  assert.equal(result.total,290);assert.equal(result.successCount,290);assert.equal(result.failedCount,0);assert.equal(result.verified,true);
  assert.equal(new Set(result.generatedTokens.map(row=>row.studentId)).size,290);
  assert.equal(new Set(result.generatedTokens.map(row=>row.token)).size,290);
+ assert.ok(result.batchId);
+ const batchRows=(await remote.execute('SELECT batch_id,template_name,jenis FROM sijil')).rows;
+ assert.equal(new Set(batchRows.map(row=>row.batch_id)).size,1);
+ assert.ok(batchRows.every(row=>row.batch_id===result.batchId&&row.template_name===templateName&&row.jenis==='generated'));
  assert.equal(progress.at(-1),290);
  assert.equal(insertAttempts,293); // Retries reuse already committed rows.
  assert.equal((await remote.execute('SELECT count(*) AS n FROM sijil')).rows[0].n,290);

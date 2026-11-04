@@ -54,8 +54,9 @@
 - `admin_users(id, username, password_hash, created_at)`
 - `pesilat(id, nama_penuh, no_kp_atau_id, peringkat, cawangan, tarikh_daftar, created_at, updated_at)`
 - `cawangan(id, nama_cawangan, keterangan, created_at, updated_at)`
-- `sijil(id, pesilat_id, nama_sijil, tarikh_isu, jenis, file_path, file_type, public_token, file_base64, kategori, created_at)`
+- `sijil(id, pesilat_id, nama_sijil, tarikh_isu, jenis, file_path, file_type, public_token, file_base64, kategori, batch_id, template_name, created_at)`
 - `template_sijil(id, nama_template, peringkat, file_name, file_size, file_base64, kategori, page_count, thumbnail_base64, layout_config, created_at)`
+- `public_reports(id, request_id, reference, category, reporter_name, reporter_role, email, phone, student_name, branch, subject, message, page_path, status, admin_notes, updated_by, version, created_at, updated_at)`
 - `settings(key, value)`
 
 SQLite akan mencipta jadual pada kali pertama API/skrip admin dijalankan. `pesilat_id` memautkan sijil kepada pesilat dengan `ON DELETE CASCADE`.
@@ -103,3 +104,27 @@ SQLite akan mencipta jadual pada kali pertama API/skrip admin dijalankan. `pesil
 - Tiada e-mel automatik, tandatangan kriptografi PDF atau integrasi pembayaran. Pautan pengesahan menyatakan rekod semasa dalam pangkalan data, **bukan** tandatangan PDF cryptographic.
 - Sijil yang telah dikeluarkan menyimpan PDF tetap. Perubahan tetapan tidak mengubahnya; kemas kini sijil generated melalui admin akan menjana dan menyimpan versi baharu.
 - Untuk privasi, jangan gunakan nombor KP sebenar dalam demo atau repositori awam.
+
+## Hubungi Kami dan laporan portal
+
+Portal awam mempunyai bahagian Hubungi Kami serta butang terapung Lapor Masalah pada halaman utama dan semakan sijil. Pegawai lalai ialah En. Ifni (013 703 6786) dan En. Harith (011 6116 9689), dengan pautan WhatsApp dan panggilan. Admin boleh mengubah pegawai dan emel pilihan melalui Tetapan > Hubungan Portal Awam.
+
+Borang menerima pertanyaan atau laporan tanpa akaun. Sekurang-kurangnya satu emel atau telefon diperlukan. Rujukan LAP diberikan hanya selepas rekod disahkan tersimpan dalam jadual public_reports pada pangkalan data utama. Permintaan berulang menggunakan request_id yang sama tidak menduplikasi laporan. Had penghantaran ialah 8 permintaan setiap 15 minit bagi setiap alamat IP pada satu proses.
+
+Menu admin Pertanyaan & Laporan menyediakan carian, penapis, butiran, status Baru / Dalam Semakan / Selesai dan catatan dalaman. Catatan dan butiran pengirim hanya boleh dibaca admin; versi rekod menghalang kemas kini lama menimpa tindakan admin lain. Tiada mesej dihantar secara automatik kepada pegawai atau pengirim.
+
+| Kaedah | Route | Akses |
+|---|---|---|
+| GET | /api/public/contact | Butiran hubungan awam sahaja |
+| POST | /api/public/reports | Awam, pengesahan medan dan had kadar |
+| GET, PUT | /api/admin/support-contact | Admin |
+| GET | /api/admin/reports | Admin, carian dan paginasi |
+| GET, PUT | /api/admin/reports/:id | Admin, versi diperlukan semasa kemas kini |
+
+## Koleksi templat dan batch sijil
+
+Templat Sijil, Janaan Sijil dan Pengurusan Sijil diasingkan mengikut jenis sijil dan nama templat. Nama yang sama bagi jenis berbeza ialah dua koleksi berasingan; permintaan janaan menghantar kategori yang dipilih. Setiap sesi janaan baharu menyimpan batch_id kekal dan salinan nama templat dalam template_name pada sijil. Semua kelompok kecil, percubaan semula dan pengesahan akhir bagi sesi yang sama menggunakan batch yang sama. Dua sesi pada tarikh yang sama tetap berasingan. Metadata ini tidak mengubah PDF atau token pengesahan sedia ada.
+
+Pengurusan Sijil menyediakan paparan Templat & Batch dan penapis batch. Checkbox pada kepala batch memilih keseluruhan batch, termasuk rekod yang tidak kelihatan akibat tapisan cawangan, peringkat atau carian. Bilangan penuh, bilangan dipilih dan bilangan dipaparkan ditunjukkan. Pilihan individu dan status checkbox separa dipilih turut tersedia. Pemadaman pukal masih memerlukan pengesahan bilangan rekod.
+
+Rekod lama atau muat naik individu yang tiada batch_id dikumpulkan mengikut jenis, tajuk, tarikh sijil dan sumber serta dilabel Rekod tanpa ID batch. Sistem tidak mereka semula batch sejarah yang tidak pernah direkodkan. Migrasi SQLite/Turso menambah medan baharu secara automatik; penyegerakan metadata tidak boleh menulis balik salinan cache lama ke pangkalan data utama.

@@ -6,23 +6,25 @@ import { getTursoClient, isTursoConfigured, ensureTursoSchema } from './turso.js
 import { getStoredStudent, readRows } from './studentStore.js';
 import { createCertificatePdfBytes } from './pdf.js';
 
-const columns = 'pesilat_id,nama_sijil,tarikh_isu,jenis,file_path,file_type,public_token,file_base64,kategori';
+const columns = 'pesilat_id,nama_sijil,tarikh_isu,jenis,file_path,file_type,public_token,file_base64,kategori,batch_id,template_name';
 const storageError = message => Object.assign(new Error(message), {status:503});
 
 export const generationToken=(adminId,requestId,studentId)=>crypto.createHash('sha256')
   .update(`${adminId}:${requestId}:${studentId}`).digest('hex');
+export const generationBatchId=(adminId,requestId)=>crypto.createHash('sha256').update(JSON.stringify([String(adminId),requestId])).digest('hex');
 
 export async function getGenerationStatus(adminId,requestId,ids) {
   const tokens=ids.map(id=>generationToken(adminId,requestId,id));
   if(!tokens.length)return {total:0,successCount:0,failedCount:0,failed:[],generatedTokens:[],verified:true};
-  const rows=await readRows(`SELECT s.pesilat_id,s.public_token,p.nama_penuh FROM sijil s JOIN pesilat p ON p.id=s.pesilat_id
+  const rows=await readRows(`SELECT s.pesilat_id,s.public_token,s.batch_id,p.nama_penuh FROM sijil s JOIN pesilat p ON p.id=s.pesilat_id
     WHERE s.public_token IN (${tokens.map(()=>'?').join(',')}) AND length(s.file_base64)>0`,tokens);
   const saved=new Map(rows.map(row=>[Number(row.pesilat_id),row]));
   const generatedTokens=ids.filter((id,index)=>saved.get(id)?.public_token===tokens[index])
     .map(id=>({studentId:id,token:saved.get(id).public_token,nama:saved.get(id).nama_penuh}));
   const found=new Set(generatedTokens.map(row=>row.studentId));
   const failed=ids.filter(id=>!found.has(id)).map(id=>({id,reason:'Simpanan sijil belum dapat disahkan.',retryable:true}));
-  return {total:ids.length,successCount:generatedTokens.length,failedCount:failed.length,failed,generatedTokens,verified:true};
+  const batchId=rows.find(row=>row.batch_id)?.batch_id;
+  return {total:ids.length,successCount:generatedTokens.length,failedCount:failed.length,failed,generatedTokens,verified:true,...(batchId?{batchId}:{})};
 }
 
 async function certificateClient() {
@@ -37,7 +39,7 @@ async function certificateClient() {
 async function cacheCertificate(row) {
   try {
     if (isTursoConfigured()) await getStoredStudent(row.pesilat_id);
-    db.prepare(`INSERT INTO sijil(id,${columns}) VALUES(?,?,?,?,?,?,?,?,?,?)
+    db.prepare(`INSERT INTO sijil(id,${columns}) VALUES(${Array(columns.split(',').length+1).fill('?').join(',')})
       ON CONFLICT(id) DO UPDATE SET ${columns.split(',').map(column=>`${column}=excluded.${column}`).join(',')}`)
       .run(row.id,...columns.split(',').map(column=>
         column==='file_base64' && isTursoConfigured() ? null : row[column] ?? (column==='file_path'?'':null)));
@@ -133,8 +135,8 @@ export async function saveCertificate(record, remote = isTursoConfigured() ? get
   }
   if(!fileBase64)throw storageError('Fail sijil tidak boleh kosong.');
   const args = [record.studentId, record.namaSijil, record.tarikh, record.jenis || 'uploaded',
-    '',record.fileType || 'application/pdf', record.token, fileBase64, record.kategori];
-  const insert = `INSERT INTO sijil (${columns}) VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT(public_token) DO NOTHING`;
+    '',record.fileType || 'application/pdf', record.token, fileBase64, record.kategori,record.batchId??null,record.templateName??null];
+  const insert = `INSERT INTO sijil (${columns}) VALUES (${columns.split(',').map(()=>'?').join(',')}) ON CONFLICT(public_token) DO NOTHING`;
   if (remote) {
     // Never report success or change the local cache when durable storage fails.
     await remote.execute({ sql: insert, args });

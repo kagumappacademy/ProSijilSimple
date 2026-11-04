@@ -142,3 +142,27 @@ Menu **Pengurusan Cawangan** tersedia di `/admin/cawangan`. Cawangan lama daripa
 - Sistem e-mel tidak disertakan. Untuk hosting Vercel, tetapkan pangkalan data Turso bagi penyimpanan rekod dan PDF kekal; lihat bahagian penyimpanan templat di atas.
 
 **Panduan tambahan:** `docs/STRUKTUR_DAN_FUNGSI.md`.
+
+## Hubungi Kami dan laporan portal
+
+Portal awam mempunyai bahagian Hubungi Kami serta butang terapung Lapor Masalah pada halaman utama dan semakan sijil. Pegawai lalai ialah En. Ifni (013 703 6786) dan En. Harith (011 6116 9689), dengan pautan WhatsApp dan panggilan. Admin boleh mengubah pegawai dan emel pilihan melalui Tetapan > Hubungan Portal Awam.
+
+Borang menerima pertanyaan atau laporan tanpa akaun. Sekurang-kurangnya satu emel atau telefon diperlukan. Rujukan LAP diberikan hanya selepas rekod disahkan tersimpan dalam jadual public_reports pada pangkalan data utama. Permintaan berulang menggunakan request_id yang sama tidak menduplikasi laporan. Had penghantaran ialah 8 permintaan setiap 15 minit bagi setiap alamat IP pada satu proses.
+
+Menu admin Pertanyaan & Laporan menyediakan carian, penapis, butiran, status Baru / Dalam Semakan / Selesai dan catatan dalaman. Catatan dan butiran pengirim hanya boleh dibaca admin; versi rekod menghalang kemas kini lama menimpa tindakan admin lain. Tiada mesej dihantar secara automatik kepada pegawai atau pengirim.
+
+| Kaedah | Route | Akses |
+|---|---|---|
+| GET | /api/public/contact | Butiran hubungan awam sahaja |
+| POST | /api/public/reports | Awam, pengesahan medan dan had kadar |
+| GET, PUT | /api/admin/support-contact | Admin |
+| GET | /api/admin/reports | Admin, carian dan paginasi |
+| GET, PUT | /api/admin/reports/:id | Admin, versi diperlukan semasa kemas kini |
+
+## Koleksi templat dan batch sijil
+
+Templat Sijil, Janaan Sijil dan Pengurusan Sijil diasingkan mengikut jenis sijil dan nama templat. Nama yang sama bagi jenis berbeza ialah dua koleksi berasingan; permintaan janaan menghantar kategori yang dipilih. Setiap sesi janaan baharu menyimpan batch_id kekal dan salinan nama templat dalam template_name pada sijil. Semua kelompok kecil, percubaan semula dan pengesahan akhir bagi sesi yang sama menggunakan batch yang sama. Dua sesi pada tarikh yang sama tetap berasingan. Metadata ini tidak mengubah PDF atau token pengesahan sedia ada.
+
+Pengurusan Sijil menyediakan paparan Templat & Batch dan penapis batch. Checkbox pada kepala batch memilih keseluruhan batch, termasuk rekod yang tidak kelihatan akibat tapisan cawangan, peringkat atau carian. Bilangan penuh, bilangan dipilih dan bilangan dipaparkan ditunjukkan. Pilihan individu dan status checkbox separa dipilih turut tersedia. Pemadaman pukal masih memerlukan pengesahan bilangan rekod.
+
+Rekod lama atau muat naik individu yang tiada batch_id dikumpulkan mengikut jenis, tajuk, tarikh sijil dan sumber serta dilabel Rekod tanpa ID batch. Sistem tidak mereka semula batch sejarah yang tidak pernah direkodkan. Migrasi SQLite/Turso menambah medan baharu secara automatik; penyegerakan metadata tidak boleh menulis balik salinan cache lama ke pangkalan data utama.

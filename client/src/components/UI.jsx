@@ -192,16 +192,17 @@ export function Pagination({ page, pages, onChange }) {
   );
 }
 
-export function Modal({ open, onClose, title, children, wide = false }) {
+export function Modal({ open, onClose, title, children, wide = false, closeDisabled = false }) {
   if (!open) return null;
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-label={title}
+      tabIndex={-1}
       className="fixed inset-0 z-[80] flex items-center justify-center overflow-y-auto bg-slate-900/40 p-3 sm:p-4 backdrop-blur-xs"
       onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target === e.currentTarget && !closeDisabled) onClose();
       }}
     >
       <div
@@ -212,9 +213,11 @@ export function Modal({ open, onClose, title, children, wide = false }) {
         <div className="mb-4 flex items-center justify-between gap-3 border-b border-slate-100 pb-3">
           <h2 className="text-sm sm:text-base font-bold tracking-tight text-slate-900">{title}</h2>
           <button
+            type="button"
             onClick={onClose}
+            disabled={closeDisabled}
             aria-label="Tutup"
-            className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors cursor-pointer"
+            className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-700 transition-colors cursor-pointer disabled:cursor-wait disabled:opacity-40"
           >
             <X size={18} />
           </button>

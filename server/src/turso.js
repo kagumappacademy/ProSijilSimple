@@ -5,6 +5,7 @@ import dotenv from 'dotenv';
 import path from 'node:path';
 import fs from 'node:fs';
 import {BRANCH_SCHEMA,SEED_BRANCHES_SQL} from './branchSchema.js';
+import { SUPPORT_SCHEMA } from './supportSchema.js';
 
 dotenv.config({ path: path.join(projectRoot, '.env') });
 
@@ -39,6 +40,7 @@ export function getTursoClient() {
 }
 
 export const TURSO_SCHEMA_STATEMENTS = [
+  ...SUPPORT_SCHEMA,
   BRANCH_SCHEMA,
   'DROP TABLE IF EXISTS template_sijil_deleted',
   `CREATE TABLE IF NOT EXISTS admin_users (
@@ -119,7 +121,7 @@ export async function initTursoSchema(client) {
   await turso.execute(SEED_BRANCHES_SQL);
   // Ignore migration errors only when another instance added the column.
   const migrations = {
-    sijil: {file_base64:'TEXT',kategori:"TEXT DEFAULT 'kenaikan_tali_pinggang'"},
+    sijil: {file_base64:'TEXT',kategori:"TEXT DEFAULT 'kenaikan_tali_pinggang'",batch_id:'TEXT',template_name:'TEXT'},
     template_sijil: {file_base64:'TEXT',kategori:"TEXT DEFAULT 'kenaikan_tali_pinggang'",page_count:'INTEGER DEFAULT 1',thumbnail_base64:'TEXT',layout_config:'TEXT'},
     admin_activity: {students_before:'INTEGER',students_after:'INTEGER',certs_before:'INTEGER',certs_after:'INTEGER',templates_before:'INTEGER',templates_after:'INTEGER'},
   };
@@ -134,6 +136,7 @@ export async function initTursoSchema(client) {
       }
     }
   }
+  await turso.execute('CREATE INDEX IF NOT EXISTS idx_sijil_batch ON sijil(batch_id)');
 }
 
 let schemaReady;
@@ -215,7 +218,7 @@ async function batchExecute(turso, statements, chunkSize = 50) {
 export async function pushLocalToTurso(client, { importNewRecords = false } = {}) {
   const turso=client || getTursoClient();
   await initTursoSchema(turso);
-  const stats={admin_users:0,pesilat:0,sijil:0,template_sijil:0,settings:0,cawangan:0};
+  const stats={admin_users:0,pesilat:0,sijil:0,template_sijil:0,settings:0,cawangan:0,public_reports:0};
   // Normal sync only repairs missing file bytes on records that still exist.
   // Importing new records is an explicit CLI migration, never a background task.
   if(importNewRecords) {
@@ -228,14 +231,17 @@ export async function pushLocalToTurso(client, { importNewRecords = false } = {}
     stats.settings=await batchExecute(turso,settings.map(row=>({sql:'INSERT INTO settings(key,value) VALUES(?,?) ON CONFLICT(key) DO NOTHING',args:[row.key,row.value]})));
     stats.admin_users=await batchExecute(turso,admins.map(row=>({sql:'INSERT INTO admin_users(username,password_hash,created_at) VALUES(?,?,?) ON CONFLICT(username) DO NOTHING',args:[row.username,row.password_hash,row.created_at]})));
     stats.pesilat=await batchExecute(turso,students.map(row=>({sql:'INSERT INTO pesilat(nama_penuh,no_kp_atau_id,peringkat,cawangan,tarikh_daftar,created_at,updated_at) VALUES(?,?,?,?,?,?,?) ON CONFLICT(no_kp_atau_id) DO NOTHING',args:[row.nama_penuh,row.no_kp_atau_id,row.peringkat,row.cawangan,row.tarikh_daftar,row.created_at,row.updated_at]})));
+    const reportColumns='request_id,reference,category,reporter_name,reporter_role,email,phone,student_name,branch,subject,message,page_path,status,admin_notes,updated_by,version,created_at,updated_at'.split(',');
+    const reports=db.prepare('SELECT * FROM public_reports').all();
+    stats.public_reports=await batchExecute(turso,reports.map(row=>({sql:`INSERT INTO public_reports(${reportColumns.join(',')}) VALUES(${reportColumns.map(()=>'?').join(',')}) ON CONFLICT(request_id) DO NOTHING`,args:reportColumns.map(column=>row[column])})));
   }
   for(const row of db.prepare('SELECT s.*,p.no_kp_atau_id FROM sijil s JOIN pesilat p ON p.id=s.pesilat_id').all()) {
     const bytes=row.file_base64 || (row.file_path && fs.existsSync(row.file_path)?fs.readFileSync(row.file_path).toString('base64'):null);
     if(row.jenis==='uploaded'&&!bytes)continue;
     if(importNewRecords) {
       const inserted=await turso.execute({
-        sql: 'INSERT INTO sijil(pesilat_id,nama_sijil,tarikh_isu,jenis,file_path,file_type,public_token,file_base64,kategori,created_at) SELECT id,?,?,?,?,?,?,?,?,? FROM pesilat WHERE no_kp_atau_id=? ON CONFLICT(public_token) DO NOTHING',
-        args:[row.nama_sijil,row.tarikh_isu,row.jenis,'',row.file_type,row.public_token,bytes,row.kategori || 'kenaikan_tali_pinggang',row.created_at,row.no_kp_atau_id],
+        sql: 'INSERT INTO sijil(pesilat_id,nama_sijil,tarikh_isu,jenis,file_path,file_type,public_token,file_base64,kategori,created_at,batch_id,template_name) SELECT id,?,?,?,?,?,?,?,?,?,?,? FROM pesilat WHERE no_kp_atau_id=? ON CONFLICT(public_token) DO NOTHING',
+        args:[row.nama_sijil,row.tarikh_isu,row.jenis,'',row.file_type,row.public_token,bytes,row.kategori || 'kenaikan_tali_pinggang',row.created_at,row.batch_id??null,row.template_name??null,row.no_kp_atau_id],
       });
       stats.sijil+=Number(inserted.rowsAffected);
     }
@@ -287,7 +293,7 @@ export async function pullTursoToLocal(client) {
   const remoteSettings = await turso.execute('SELECT key, value FROM settings');
   const remoteAdmins = await turso.execute('SELECT id, username, password_hash, created_at FROM admin_users');
   const remotePesilat = await turso.execute('SELECT id, nama_penuh, no_kp_atau_id, peringkat, cawangan, tarikh_daftar, created_at, updated_at FROM pesilat');
-  const remoteSijil = await turso.execute('SELECT id, pesilat_id, nama_sijil, tarikh_isu, jenis, file_path, file_type, public_token, kategori, created_at FROM sijil');
+  const remoteSijil = await turso.execute('SELECT id, pesilat_id, nama_sijil, tarikh_isu, jenis, file_path, file_type, public_token, kategori, created_at, batch_id, template_name FROM sijil');
   let remoteTemplates;
   try {
     remoteTemplates = await turso.execute('SELECT id, nama_template, peringkat, keterangan, file_path, file_name, file_size, kategori, page_count, thumbnail_base64, layout_config, created_at FROM template_sijil');
@@ -339,8 +345,8 @@ export async function pullTursoToLocal(client) {
 
     // 4. Sijil (ringan: tanpa memuat turun file_base64 pukal)
     const sijilStmt = db.prepare(`
-      INSERT INTO sijil (id, pesilat_id, nama_sijil, tarikh_isu, jenis, file_path, file_type, public_token, kategori, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO sijil (id, pesilat_id, nama_sijil, tarikh_isu, jenis, file_path, file_type, public_token, kategori, created_at, batch_id, template_name)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         pesilat_id=excluded.pesilat_id,
         nama_sijil=excluded.nama_sijil,
@@ -351,10 +357,12 @@ export async function pullTursoToLocal(client) {
         file_base64=CASE WHEN sijil.public_token=excluded.public_token THEN sijil.file_base64 ELSE NULL END,
         public_token=excluded.public_token,
         kategori=excluded.kategori,
+        batch_id=excluded.batch_id,
+        template_name=excluded.template_name,
         created_at=excluded.created_at
     `);
     for (const row of remoteSijil.rows) {
-      sijilStmt.run(row.id, row.pesilat_id, row.nama_sijil, row.tarikh_isu, row.jenis, row.file_path, row.file_type, row.public_token, row.kategori || 'kenaikan_tali_pinggang', row.created_at);
+      sijilStmt.run(row.id, row.pesilat_id, row.nama_sijil, row.tarikh_isu, row.jenis, row.file_path, row.file_type, row.public_token, row.kategori || 'kenaikan_tali_pinggang', row.created_at, row.batch_id??null, row.template_name??null);
       stats.sijil++;
     }
 

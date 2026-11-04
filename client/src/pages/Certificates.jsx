@@ -26,6 +26,9 @@ import { api, fmtDate, certDownload, certPreview } from '../lib/api';
 import { PageIntro, Panel, Button, Input, Modal, Confirm, Loading, Empty, SearchField, Chip } from '../components/UI';
 import { useLang } from '../lib/i18n';
 import { useSync } from '../lib/syncContext';
+import { CertificateBatchView } from '../components/CertificateBatchView';
+import { TemplateCollections } from '../components/TemplateCollections';
+import { certificateCollections, certificateBatches, certificateCollectionKey, certificateBatchKey, certificateTemplateName } from '../lib/certificateGroups';
 import {
   CERT_CATEGORIES,
   CULA_GROUPS,
@@ -235,7 +238,9 @@ export function Certificates() {
   const [selectedCula, setSelectedCula] = useState('semua'); // 'semua', 'merah', 'kuning', 'hijau', 'hitam'
   const [selectedBranch, setSelectedBranch] = useState('');
   const [selectedLevel, setSelectedLevel] = useState('');
-  const [viewMode, setViewMode] = useState('grouped'); // 'grouped' (By Cawangan -> Peringkat) or 'table'
+  const [selectedTemplateKey,setSelectedTemplateKey]=useState('');
+  const [selectedBatch,setSelectedBatch]=useState(()=>searchParams.get('batch')?'batch:'+searchParams.get('batch'):'');
+  const [viewMode, setViewMode] = useState('grouped'); // Template collections and generation batches, or a flat table.
   const [modal, setModal] = useState(false);
   const [target, setTarget] = useState(null);
   const [busy, setBusy] = useState(false);
@@ -248,7 +253,7 @@ export function Certificates() {
   // Padam pilihan jika carian atau penapis berubah
   useEffect(() => {
     setSelectedIds(new Set());
-  }, [q, selectedCategory, selectedCula, selectedBranch, selectedLevel]);
+  }, [q, selectedCategory, selectedCula, selectedBranch, selectedLevel, selectedTemplateKey, selectedBatch]);
 
   useEffect(() => {
     setSelectedLevel('');
@@ -327,7 +332,7 @@ export function Certificates() {
     setGlobalRefreshing(true);
     if (isManual) setRefreshing(true);
     const params = new URLSearchParams({ all: '1' });
-    if (q) params.set('q', q);
+
 
     return api('/admin/certificates?' + params.toString())
       .then((res) => {
@@ -345,7 +350,7 @@ export function Certificates() {
         if (isManual) setRefreshing(false);
         setGlobalRefreshing(false);
       });
-  }, [q, lang, setGlobalRefreshing]);
+  }, [lang, setGlobalRefreshing]);
 
   useEffect(() => {
     const timer = setTimeout(() => load(false), 200);
@@ -383,9 +388,12 @@ export function Certificates() {
   // Count each branch before applying its own filter, within the active category/cula.
   const branchFilterRows = useMemo(() => (data?.rows || []).filter(cert => {
     const category = getCertCategory(cert);
-    return category === selectedCategory &&
+    return (selectedCategory === 'semua' || category === selectedCategory) &&
+      (!selectedTemplateKey || certificateCollectionKey(cert) === selectedTemplateKey) &&
+      (!selectedBatch || certificateBatchKey(cert) === selectedBatch) &&
+      (!q.trim() || [cert.nama_penuh,cert.no_kp_atau_id,cert.nama_sijil,cert.template_name,cert.cawangan].join(' ').toLowerCase().includes(q.trim().toLowerCase())) &&
       (category !== 'kenaikan_tali_pinggang' || selectedCula === 'semua' || getCulaCategory(cert.peringkat) === selectedCula);
-  }), [data?.rows, selectedCategory, selectedCula]);
+  }), [data?.rows, selectedCategory, selectedCula, selectedTemplateKey, selectedBatch, q]);
 
   const branchList = useMemo(() => {
     const counts = new Map();
@@ -422,47 +430,12 @@ export function Certificates() {
     return counts;
   }, [data?.rows]);
 
-  // Hierarchical grouping: Cawangan -> Peringkat (Tersusun ikut Cula) -> Sijil
-  const groupedTree = useMemo(() => {
-    if (!data?.rows) return {};
-    const tree = {};
-
-    for (const cert of data.rows) {
-      if (selectedBranch && cert.cawangan !== selectedBranch) continue;
-      if (selectedLevel && cert.peringkat !== selectedLevel) continue;
-      const cat = getCertCategory(cert);
-      if (selectedCategory !== 'semua' && cat !== selectedCategory) continue;
-
-      if (selectedCula !== 'semua' && cat === 'kenaikan_tali_pinggang') {
-        if (getCulaCategory(cert.peringkat) !== selectedCula) continue;
-      }
-
-      const bKey = cert.cawangan || (lang === 'eng' ? 'No Branch' : 'Tiada Cawangan');
-      const rKey = cert.peringkat || (lang === 'eng' ? 'Unassigned Rank' : 'Belum Ditetapkan');
-
-      if (!tree[bKey]) {
-        tree[bKey] = {
-          total: 0,
-          levels: {},
-        };
-      }
-      tree[bKey].total += 1;
-
-      if (!tree[bKey].levels[rKey]) {
-        tree[bKey].levels[rKey] = [];
-      }
-      tree[bKey].levels[rKey].push(cert);
-    }
-
-    return tree;
-  }, [data?.rows, selectedCategory, selectedCula, selectedBranch, selectedLevel, lang]);
-
   // Available peringkat within the currently selected cawangan (for sub-filter tabs)
   const availableLevelsForBranch = useMemo(() => {
     if (!data?.rows) return [];
     const setL = new Set();
     const counts = {};
-    for (const c of data.rows) {
+    for (const c of branchFilterRows) {
       const cat = getCertCategory(c);
       if (selectedCategory !== 'semua' && cat !== selectedCategory) continue;
       if (selectedCula !== 'semua' && cat === 'kenaikan_tali_pinggang') {
@@ -488,25 +461,11 @@ export function Certificates() {
         name,
         count: counts[name] || 0,
       }));
-  }, [data?.rows, selectedBranch, selectedCategory, selectedCula]);
+  }, [data?.rows, branchFilterRows, selectedBranch, selectedCategory, selectedCula]);
 
-  // Cawangan keys to display
-  const cawanganEntries = Object.entries(groupedTree);
-
-  // Filtered rows for table view
-  const tableRows = useMemo(() => {
-    if (!data?.rows) return [];
-    return data.rows.filter((c) => {
-      const cat = getCertCategory(c);
-      if (selectedCategory !== 'semua' && cat !== selectedCategory) return false;
-      if (selectedCula !== 'semua' && cat === 'kenaikan_tali_pinggang') {
-        if (getCulaCategory(c.peringkat) !== selectedCula) return false;
-      }
-      if (selectedBranch && c.cawangan !== selectedBranch) return false;
-      if (selectedLevel && c.peringkat !== selectedLevel) return false;
-      return true;
-    });
-  }, [data?.rows, selectedCategory, selectedCula, selectedBranch, selectedLevel]);
+  const tableRows = useMemo(() => branchFilterRows.filter(row => (!selectedBranch || row.cawangan === selectedBranch) && (!selectedLevel || row.peringkat === selectedLevel)), [branchFilterRows, selectedBranch, selectedLevel]);
+  const collections = useMemo(() => certificateCollections((data?.rows||[]).filter(row=>selectedCategory==='semua'||getCertCategory(row)===selectedCategory)), [data?.rows,selectedCategory]);
+  const batches = useMemo(() => certificateBatches((data?.rows||[]).filter(row=>(selectedCategory==='semua'||getCertCategory(row)===selectedCategory)&&(!selectedTemplateKey||certificateCollectionKey(row)===selectedTemplateKey))), [data?.rows,selectedCategory,selectedTemplateKey]);
 
   return (
     <>
@@ -587,10 +546,10 @@ export function Certificates() {
                       ? 'bg-white text-slate-900 shadow-xs'
                       : 'text-slate-500 hover:text-slate-800'
                   }`}
-                  title={lang === 'eng' ? 'By Branch & Rank' : 'Susunan Mengikut Cawangan & Peringkat'}
+                  title={lang === 'eng' ? 'By Template & Generation Batch' : 'Susunan Mengikut Templat & Batch Janaan'}
                 >
                   <Layers size={13} />
-                  <span>{lang === 'eng' ? 'Grouped' : 'Berkumpulan'}</span>
+                  <span>{lang === 'eng' ? 'Templates & Batches' : 'Templat & Batch'}</span>
                 </button>
                 <button
                   type="button"
@@ -611,6 +570,7 @@ export function Certificates() {
 
           {/* Level 0: Kategori Utama Jenis Sijil (Sijil Kenaikan Tali Pinggang, Pencapaian, Penghargaan, Penyertaan) */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none pt-0.5 border-b border-slate-100/80">
+            <button type="button" aria-pressed={selectedCategory==='semua'} onClick={()=>{setSelectedCategory('semua');setSelectedTemplateKey('');setSelectedBatch('');setSelectedCula('semua');setSelectedBranch('');setSelectedLevel('');}} className={`shrink-0 rounded-lg border px-3 py-2 text-xs font-bold ${selectedCategory==='semua'?'border-slate-900 bg-slate-900 text-white':'border-slate-200 bg-white text-slate-700'}`}>{lang==='eng'?'All Certificate Types':'Semua Jenis Sijil'}</button>
             {CERT_CATEGORIES.map((cat) => {
               const active = selectedCategory === cat.id;
               const count = categoryCounts[cat.id] || 0;
@@ -620,6 +580,7 @@ export function Certificates() {
                   type="button"
                   onClick={() => {
                     setSelectedCategory(cat.id);
+                    setSelectedTemplateKey('');setSelectedBatch('');
                     setSelectedCula('semua');
                     setSelectedLevel('');
                   }}
@@ -640,6 +601,8 @@ export function Certificates() {
           </div>
 
           {/* Level 0.5: Sub-Penapis Warna Cula (Untuk Sijil Kenaikan Tali Pinggang) */}
+          <TemplateCollections groups={collections} value={selectedTemplateKey} onChange={key=>{setSelectedTemplateKey(key);setSelectedBatch('');setSelectedBranch('');setSelectedLevel('');}}/>
+          <label className="block space-y-1 text-xs font-semibold text-slate-700"><span>{lang==='eng'?'Generation batch':'Batch janaan'}</span><select value={selectedBatch} onChange={event=>setSelectedBatch(event.target.value)} className="min-h-10 w-full rounded-lg border border-slate-300 bg-white px-3 text-xs text-slate-900"><option value="">{lang==='eng'?'All batches':'Semua batch'}</option>{batches.map(batch=><option key={batch.key} value={batch.key}>{certificateTemplateName(batch.rows[0])} &middot; {batch.id?'Batch '+batch.id.slice(0,10).toUpperCase():(lang==='eng'?'No batch ID':'Tanpa ID batch')} &middot; {fmtDate(batch.issueDate)} ({batch.rows.length})</option>)}</select></label>
           {(selectedCategory === 'semua' || selectedCategory === 'kenaikan_tali_pinggang') && (
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none pt-0.5">
               <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 mr-1 shrink-0 flex items-center gap-1">
@@ -841,174 +804,7 @@ export function Certificates() {
             message={t('noCertsYetDesc')}
           />
         ) : viewMode === 'grouped' ? (
-          /* Paparan 1: Berkelompok Mengikut Cawangan -> Peringkat (Tersusun ikut Cula: Merah, Kuning, Hijau, Hitam) */
-          <div className="divide-y divide-slate-200/80 p-3 sm:p-5 space-y-6">
-            {cawanganEntries.map(([cawanganName, branchData]) => {
-              // Susun peringkat mengikut urutan bengkung silat (Merah -> Kuning -> Hijau -> Hitam)
-              const sortedLevels = Object.entries(branchData.levels).sort(([a], [b]) => {
-                const idxA = LEVEL_RANK_ORDER.indexOf(a);
-                const idxB = LEVEL_RANK_ORDER.indexOf(b);
-                if (idxA !== -1 && idxB !== -1) return idxA - idxB;
-                if (idxA !== -1) return -1;
-                if (idxB !== -1) return 1;
-                return a.localeCompare(b);
-              });
-
-              return (
-                <div key={cawanganName} className="space-y-4 pt-2 first:pt-0">
-                  {/* Cawangan Group Header */}
-                  <div className="flex flex-wrap items-center justify-between gap-2.5 bg-slate-50 p-3 rounded-lg border border-slate-200 shadow-2xs">
-                    <div className="flex items-center gap-2.5">
-                      <div className="grid h-8 w-8 place-items-center rounded-xl bg-red-700 text-white font-black text-xs shadow-xs">
-                        <MapPin size={15} />
-                      </div>
-                      <div>
-                        <h2 className="text-sm sm:text-base font-extrabold text-slate-950 uppercase tracking-tight">
-                          {cawanganName}
-                        </h2>
-                        <span className="text-[11px] font-semibold text-slate-500">
-                          {branchData.total} {lang === 'eng' ? 'official certificates issued' : 'sijil rasmi dikeluarkan'}
-                        </span>
-                      </div>
-                    </div>
-                    <Chip color="red">{branchData.total} {t('certsCountSuffix')}</Chip>
-                  </div>
-
-                  {/* Ranks inside Cawangan (Sorted directly by Cula) */}
-                  <div className="space-y-4 pl-0 sm:pl-3">
-                    {sortedLevels.map(([levelName, certList]) => {
-                      const rankMeta = getRankMeta(levelName);
-                      const allGroupSelected = certList.every((c) => selectedIds.has(c.id));
-
-                      return (
-                        <div
-                          key={levelName}
-                          className="rounded-lg border border-slate-200 bg-white p-3.5 shadow-2xs space-y-3"
-                        >
-                          {/* Rank Header with quick Select All for group */}
-                          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 pb-2.5">
-                            <div className="flex items-center gap-2">
-                              <span className={`inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs font-bold border ${rankMeta.badge}`}>
-                                <span className={`h-2 w-2 rounded-full ${rankMeta.dot}`} />
-                                {levelName}
-                              </span>
-                              <span className="text-xs text-slate-400 font-bold font-mono">
-                                ({certList.length} {t('studentsCountSuffix')})
-                              </span>
-                            </div>
-
-                            <button
-                              type="button"
-                              onClick={() => toggleGroupSelect(certList)}
-                              className={`inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-1 rounded-lg border transition ${
-                                allGroupSelected
-                                  ? 'bg-red-50 text-red-700 border-red-300'
-                                  : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                              }`}
-                            >
-                              <CheckSquare size={13} className={allGroupSelected ? 'text-red-700' : 'text-slate-400'} />
-                              <span>{allGroupSelected ? (lang === 'eng' ? 'Deselect Group' : 'Nyahpilih') : (lang === 'eng' ? 'Select Group' : 'Pilih Peringkat Ini')}</span>
-                            </button>
-                          </div>
-
-                          {/* Student Certificate Cards in this Rank (Nama Jelas & Penuh untuk Telefon & Desktop) */}
-                          <div className="grid gap-3 grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
-                            {certList.map((r) => {
-                              const isChecked = selectedIds.has(r.id);
-                              const catMeta = getCategoryMeta(getCertCategory(r));
-
-                              return (
-                                <div
-                                  key={r.id}
-                                  className={`group relative rounded-xl border p-3.5 sm:p-4 transition shadow-2xs ${
-                                    isChecked
-                                      ? 'border-red-600 bg-red-50/50 ring-2 ring-red-400/30'
-                                      : 'border-slate-200/90 bg-white hover:border-slate-300 hover:shadow-xs'
-                                  }`}
-                                >
-                                  {/* Top Row: Checkbox, ID/No KP & Category Badge */}
-                                  <div className="flex items-center justify-between gap-2">
-                                    <div className="flex items-center gap-2 min-w-0">
-                                      <input
-                                        type="checkbox"
-                                        checked={isChecked}
-                                        onChange={() => toggleSelect(r.id)}
-                                        className="h-4 w-4 rounded border-slate-300 text-red-600 focus:ring-red-500 cursor-pointer shrink-0"
-                                      />
-                                      <span className="font-mono text-xs font-semibold text-slate-500 truncate">
-                                        {r.no_kp_atau_id || '—'}
-                                      </span>
-                                    </div>
-
-                                    {/* Category Badge */}
-                                    <span className={`shrink-0 inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold border ${catMeta.badge}`}>
-                                      <span>{catMeta.emoji}</span>
-                                      <span>{catMeta.shortLabel}</span>
-                                    </span>
-                                  </div>
-
-                                  {/* Nama Penuh Pesilat - LEBAR PENUH 100%, BESAR & TEBAL (Tiada Potongan / Truncate) */}
-                                  <div className="mt-2.5">
-                                    <div className="font-extrabold text-slate-950 text-sm sm:text-base leading-snug break-words">
-                                      {r.nama_penuh}
-                                    </div>
-                                  </div>
-
-                                  {/* Nama Sijil */}
-                                  <div className="mt-2 flex items-start gap-1.5 text-xs font-semibold text-slate-700">
-                                    <FileText size={13} className="text-red-600 shrink-0 mt-0.5" />
-                                    <span className="break-words leading-relaxed">{r.nama_sijil}</span>
-                                  </div>
-
-                                  {/* Bottom Row: Tarikh Dikeluarkan & Butang Tindakan */}
-                                  <div className="mt-3 flex items-center justify-between border-t border-slate-100 pt-2.5">
-                                    <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500">
-                                      <CalendarDays size={12} className="text-slate-400 shrink-0" />
-                                      {fmtDate(r.tarikh_isu)}
-                                    </span>
-                                    <div className="flex items-center gap-1.5">
-                                      <a
-                                        href={certPreview(r.public_token)}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        title="Lihat sijil"
-                                        aria-label="Lihat sijil"
-                                        className="rounded-lg bg-slate-100 p-2 text-slate-600 transition hover:bg-red-50 hover:text-red-800"
-                                      >
-                                        <Eye size={14} />
-                                      </a>
-                                      <a
-                                        href={certDownload(r.public_token)}
-                                        download={`${r.nama_penuh}.pdf`}
-                                        title="Muat turun sijil"
-                                        aria-label="Muat turun sijil"
-                                        className="rounded-lg bg-red-50 p-2 text-red-700 transition hover:bg-red-100 border border-red-100"
-                                      >
-                                        <Download size={14} />
-                                      </a>
-                                      <button
-                                        type="button"
-                                        onClick={() => setTarget(r)}
-                                        title="Padam sijil"
-                                        aria-label="Padam sijil"
-                                        className="rounded-lg bg-rose-50 p-2 text-rose-600 transition hover:bg-rose-100"
-                                      >
-                                        <Trash2 size={14} />
-                                      </button>
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <CertificateBatchView rows={tableRows} allRows={data.rows} selectedIds={selectedIds} onToggleRows={toggleGroupSelect} onToggle={toggleSelect} onDelete={setTarget}/>
         ) : (
           /* Paparan 2: Jadual Penuh (Table View) */
           <div>

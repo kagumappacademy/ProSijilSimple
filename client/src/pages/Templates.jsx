@@ -40,6 +40,8 @@ import { PageIntro, Panel, Button, Input, Modal, Confirm, Loading, Empty, Chip }
 import { PdfThumbnail, renderPdfBlobToDataUrl } from '../components/PdfThumbnail';
 import { useLang } from '../lib/i18n';
 import { useSync } from '../lib/syncContext';
+import { templateCollections, templateCollectionKey } from '../lib/certificateGroups';
+import { TemplateCollections } from '../components/TemplateCollections';
 import {
   CERT_CATEGORIES,
   CULA_GROUPS,
@@ -1648,6 +1650,7 @@ export function Templates() {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterCategory, setFilterCategory] = useState('semua'); // 'semua', 'kenaikan_tali_pinggang', 'pencapaian', 'penghargaan', 'penyertaan'
   const [filterCula, setFilterCula] = useState('semua'); // 'semua', 'merah', 'kuning', 'hijau', 'hitam'
+  const [selectedCollectionKey,setSelectedCollectionKey]=useState('');
   const [sortBy, setSortBy] = useState('peringkat'); // 'peringkat', 'terkini', 'nama'
 
   const { setRefreshing: setGlobalRefreshing } = useSync();
@@ -1728,7 +1731,7 @@ export function Templates() {
   // Filter and sort templates
   const filteredTemplates = useMemo(() => {
     if (!data?.rows) return [];
-    let list = [...data.rows];
+    let list = data.rows.filter(row=>!selectedCollectionKey||templateCollectionKey(row)===selectedCollectionKey);
 
     // 1. Tapis mengikut Kategori Jenis Sijil
     if (filterCategory !== 'semua') {
@@ -1752,23 +1755,15 @@ export function Templates() {
       );
     }
 
-    // 4. Susunan (Sorting)
-    if (sortBy === 'peringkat') {
-      list = sortTemplatesList(list);
-    } else if (sortBy === 'terkini') {
-      list.sort((a, b) => (b.id || 0) - (a.id || 0));
-    } else if (sortBy === 'nama') {
-      list.sort((a, b) => (a.nama_template || '').localeCompare(b.nama_template || ''));
-    }
-
-    return list;
-  }, [data?.rows, filterCategory, filterCula, searchQuery, sortBy]);
+    return templateCollections(list,sortBy).flatMap(group=>group.rows);
+  }, [data?.rows, filterCategory, filterCula, searchQuery, sortBy, selectedCollectionKey]);
+  const collections=useMemo(()=>templateCollections((data?.rows||[]).filter(row=>filterCategory==='semua'||getCertCategory(row)===filterCategory)),[data?.rows,filterCategory]);
 
   // Kelompokkan templat mengikut Jenis Sijil untuk paparan teratur
   const groupedByCategory = useMemo(() => {
-    const groups = {};
+    const groups = Object.create(null);
     for (const item of filteredTemplates) {
-      const cat = getCertCategory(item);
+      const cat = templateCollectionKey(item);
       if (!groups[cat]) groups[cat] = [];
       groups[cat].push(item);
     }
@@ -1853,7 +1848,7 @@ export function Templates() {
               type="button"
               aria-pressed={filterCategory === 'semua'}
               onClick={() => {
-                setFilterCategory('semua');
+                setFilterCategory('semua');setSelectedCollectionKey('');
                 setFilterCula('semua');
               }}
               className={`inline-flex min-h-11 min-w-0 items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 sm:justify-center ${
@@ -1880,7 +1875,7 @@ export function Templates() {
                   type="button"
                   aria-pressed={active}
                   onClick={() => {
-                    setFilterCategory(cat.id);
+                    setFilterCategory(cat.id);setSelectedCollectionKey('');
                     if (cat.id !== 'kenaikan_tali_pinggang') setFilterCula('semua');
                   }}
                   className={`inline-flex min-h-11 min-w-0 items-center justify-between gap-2 rounded-lg border px-3 py-2 text-left text-xs font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-900 focus-visible:ring-offset-2 sm:justify-center ${
@@ -1900,6 +1895,8 @@ export function Templates() {
               );
             })}
           </div>
+
+          <TemplateCollections groups={collections} value={selectedCollectionKey} onChange={setSelectedCollectionKey}/>
 
           {/* TAB 2: Sub-Penapis Cula (Hanya dipaparkan untuk Sijil Kenaikan Tali Pinggang / Semua) */}
           {(filterCategory === 'semua' || filterCategory === 'kenaikan_tali_pinggang') && (
@@ -1988,8 +1985,8 @@ export function Templates() {
           /* Kotak (Card Grid View) - Terasing & Tersusun mengikut Kategori & Cula */
           <div className="p-3 sm:p-4 max-h-[calc(100vh-235px)] overflow-y-auto space-y-6">
             {Object.keys(groupedByCategory).map((catId) => {
-              const catMeta = getCategoryMeta(catId);
               const items = groupedByCategory[catId];
+              const catMeta = getCategoryMeta(getCertCategory(items?.[0]));
               if (!items || items.length === 0) return null;
 
               return (
@@ -1999,7 +1996,7 @@ export function Templates() {
                     <div className="flex items-center gap-2">
                       <span className="text-lg">{catMeta.emoji}</span>
                       <h3 className="text-xs sm:text-sm font-extrabold text-slate-900 uppercase tracking-wider">
-                        {catMeta.label}
+                        {items[0].nama_template}<span className="mt-1 block text-[10px] font-medium normal-case tracking-normal text-slate-500">{catMeta.label}</span>
                       </h3>
                       <Chip color={catMeta.chip}>{items.length} Templat</Chip>
                     </div>
@@ -2139,11 +2136,12 @@ export function Templates() {
           <div>
             {/* Mobile Cards View (< md) */}
             <div className="block md:hidden p-3 space-y-3">
-              {filteredTemplates.map((item) => {
+              {filteredTemplates.map((item,index) => {
                 const meta = getRankMeta(item.peringkat);
                 const catMeta = getCategoryMeta(getCertCategory(item));
                 const previewUrl = `/api/admin/templates/${item.id}/preview`;
-                return (
+                return (<React.Fragment key={item.id}>
+                  {(index===0||templateCollectionKey(filteredTemplates[index-1])!==templateCollectionKey(item))&&<h3 className="break-words border-b border-slate-200 pb-2 pt-2 text-sm font-bold text-slate-950">{item.nama_template}<span className="mt-1 block text-[11px] font-normal text-slate-500">{getCategoryMeta(getCertCategory(item)).label}</span></h3>}
                   <div key={item.id} className="rounded-xl border border-slate-200/90 bg-white p-3.5 space-y-3 shadow-2xs">
                     <div className="flex items-start gap-3">
                       {/* Thumbnail PDF dengan saiz tetap tidak pecah */}
@@ -2245,6 +2243,7 @@ export function Templates() {
                       </div>
                     </div>
                   </div>
+                  </React.Fragment>
                 );
               })}
             </div>
@@ -2265,7 +2264,9 @@ export function Templates() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {filteredTemplates.map((item) => {
+                  {templateCollections(filteredTemplates,sortBy).map(collection => <React.Fragment key={collection.key}>
+                  <tr className="bg-slate-50"><td colSpan={8} className="px-3.5 py-3"><span className="block break-words text-sm font-bold text-slate-950">{collection.name}</span><span className="mt-1 block text-[11px] text-slate-600">{getCategoryMeta(collection.category).label} &middot; {collection.rows.length} {lang==='eng'?'templates':'templat'}</span></td></tr>
+                  {collection.rows.map((item) => {
                     const meta = getRankMeta(item.peringkat);
                     const catMeta = getCategoryMeta(getCertCategory(item));
                     const previewUrl = `/api/admin/templates/${item.id}/preview`;
@@ -2367,6 +2368,7 @@ export function Templates() {
                       </tr>
                     );
                   })}
+                  </React.Fragment>)}
                 </tbody>
               </table>
             </div>

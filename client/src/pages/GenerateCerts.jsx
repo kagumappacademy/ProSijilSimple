@@ -29,6 +29,8 @@ import {
 import { toast } from 'sonner';
 import { api, fmtDate } from '../lib/api';
 import { generateCertificateBatches } from '../lib/generateBatch';
+import { templateCollections } from '../lib/certificateGroups';
+import { TemplateCollections } from '../components/TemplateCollections';
 import { PageIntro, Panel, Button, Input, Chip, Loading, Empty, SearchField } from '../components/UI';
 import { PdfThumbnail } from '../components/PdfThumbnail';
 import { BulkStudentPicker } from '../components/BulkStudentPicker';
@@ -58,7 +60,7 @@ export function GenerateCerts() {
   // Template Groups
   const [templateGroups, setTemplateGroups] = useState({});
   const [allTemplates, setAllTemplates] = useState([]);
-  const [selectedTemplateName, setSelectedTemplateName] = useState('');
+  const [selectedCollectionKey, setSelectedCollectionKey] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('kenaikan_tali_pinggang');
   const [selectedCula, setSelectedCula] = useState('semua');
   const [issueDate, setIssueDate] = useState(new Date().toISOString().slice(0, 10));
@@ -103,14 +105,14 @@ export function GenerateCerts() {
     try {
       const url = isManualRefresh ? '/admin/templates/groups?force_sync=1' : '/admin/templates/groups';
       const res = await api(url);
-      const groups = res.groups || {};
+      const groups = Object.fromEntries(templateCollections(res.templates || Object.values(res.groups || {}).flat()).map(group => [group.key, group.rows]));
       setTemplateGroups(groups);
       setAllTemplates(res.templates || []);
       const keys = Object.keys(groups);
       if (keys.length > 0) {
-        setSelectedTemplateName(current => keys.includes(current) ? current : keys[0]);
+        setSelectedCollectionKey(current => keys.includes(current) ? current : keys[0]);
       } else {
-        setSelectedTemplateName('');
+        setSelectedCollectionKey('');
       }
       if (isManualRefresh) {
         toast.success(lang === 'eng' ? 'Certificate templates updated!' : 'Senarai templat sijil terkini berjaya dikemaskini!');
@@ -275,21 +277,24 @@ export function GenerateCerts() {
       const list = templateGroups[name] || [];
       return list.some((t) => getCertCategory(t) === selectedCategory);
     });
-    return filtered.length > 0 ? filtered : allNames;
+    return filtered;
   }, [templateGroups, selectedCategory]);
 
   useEffect(() => {
-    if (templateNames.length > 0 && !templateNames.includes(selectedTemplateName)) {
-      setSelectedTemplateName(templateNames[0]);
+    if (!templateNames.includes(selectedCollectionKey)) {
+      setSelectedCollectionKey(templateNames[0] || '');
     }
-  }, [templateNames, selectedTemplateName]);
+  }, [templateNames, selectedCollectionKey]);
 
   // Semua templat mentah bagi nama template terpilih (untuk pemadanan auto semasa janaan)
-  const rawTemplatesForName = templateGroups[selectedTemplateName] || [];
+  const rawTemplatesForName = templateNames.includes(selectedCollectionKey) ? templateGroups[selectedCollectionKey] || [] : [];
+  const selectedTemplateName = rawTemplatesForName[0]?.nama_template || '';
+  const selectedTemplateCategory = rawTemplatesForName.length ? getCertCategory(rawTemplatesForName[0]) : '';
+  const selectableCollections = templateNames.map(key => ({key,name:templateGroups[key][0].nama_template,category:getCertCategory(templateGroups[key][0]),rows:templateGroups[key]}));
 
   // Templat yang ditapis & disusun mengikut Kategori dan Cula (Merah -> Kuning -> Hijau -> Hitam)
   const currentTemplatesForName = useMemo(() => {
-    let list = templateGroups[selectedTemplateName] || [];
+    let list = templateGroups[selectedCollectionKey] || [];
     if (selectedCategory !== 'semua') {
       list = list.filter((t) => getCertCategory(t) === selectedCategory);
     }
@@ -297,7 +302,7 @@ export function GenerateCerts() {
       list = list.filter((t) => getCulaCategory(t.peringkat) === selectedCula);
     }
     return sortTemplatesList(list);
-  }, [templateGroups, selectedTemplateName, selectedCategory, selectedCula]);
+  }, [templateGroups, selectedCollectionKey, selectedCategory, selectedCula]);
 
   function getMatchingTemplate(student) {
     if (!rawTemplatesForName.length) return null;
@@ -433,7 +438,7 @@ export function GenerateCerts() {
     setGenError(null);
 
     try {
-      const signature = JSON.stringify([selectedTemplateName, issueDate]);
+      const signature = JSON.stringify([selectedTemplateCategory, selectedTemplateName, issueDate]);
       if (generationRequest.current?.signature !== signature) {
         let storedId;
         try{storedId=localStorage.getItem('prosijil-generation:'+signature);}catch{}
@@ -441,7 +446,7 @@ export function GenerateCerts() {
         try{localStorage.setItem('prosijil-generation:'+signature,generationRequest.current.id);}catch{}
       }
       const res = await generateCertificateBatches({
-        api, ids: idsToGenerate, templateName: selectedTemplateName, issueDate,
+        api, ids: idsToGenerate, templateName: selectedTemplateName, issueDate, category: selectedTemplateCategory,
         requestId: generationRequest.current.id, onProgress: setGenerationProgress,
       });
       setResult(res);
@@ -696,89 +701,6 @@ export function GenerateCerts() {
             </div>
           </div>
 
-          {templateNames.length === 0 ? (
-            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-center">
-              <AlertCircle size={22} className="mx-auto text-amber-600 mb-1.5" />
-              <h3 className="font-bold text-amber-950 text-xs">{t('noTemplatesFound')}</h3>
-              <p className="text-[11px] text-amber-800 mt-1 max-w-md mx-auto">
-                {t('noTemplatesFoundDesc')}
-              </p>
-              <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => loadTemplates(true)}
-                  disabled={refreshingTemplates}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-bold text-amber-950 hover:bg-amber-100/70 transition shadow-2xs cursor-pointer"
-                >
-                  <RefreshCw size={13} className={refreshingTemplates ? 'animate-spin text-amber-700' : ''} />
-                  {refreshingTemplates ? 'Sedang Memuat Semula...' : 'Muat Semula Dari Cloud'}
-                </button>
-                <Link
-                  to="/admin/templates"
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-red-700 px-3 py-1.5 text-xs font-bold text-white hover:bg-red-800 transition"
-                >
-                  <Layers size={13} /> {t('templatesMenu')}
-                </Link>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {/* Top Toolbar: Tajuk & Tarikh Sijil */}
-              <div className="grid gap-3 sm:grid-cols-12 items-end">
-                <div className="sm:col-span-8">
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="block text-[11px] font-bold text-slate-600">
-                      {t('officialCertTitleLabel')}
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => loadTemplates(true)}
-                      disabled={refreshingTemplates}
-                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-red-700 hover:text-red-800 disabled:opacity-50 transition cursor-pointer"
-                      title={lang === 'eng' ? 'Refresh templates from cloud' : 'Muat semula templat terkini dari Cloud'}
-                    >
-                      <RefreshCw size={11} className={refreshingTemplates ? 'animate-spin' : ''} />
-                      <span>{refreshingTemplates ? (lang === 'eng' ? 'Updating...' : 'Menyegerak...') : (lang === 'eng' ? 'Refresh' : 'Muat Semula')}</span>
-                    </button>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <select
-                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs sm:text-sm font-semibold text-slate-950 outline-none focus:border-red-600 shadow-2xs"
-                      value={selectedTemplateName}
-                      onChange={(e) => setSelectedTemplateName(e.target.value)}
-                    >
-                      {templateNames.map((name) => (
-                        <option key={name} value={name}>
-                          {name}
-                        </option>
-                      ))}
-                    </select>
-                    <button
-                      type="button"
-                      onClick={() => loadTemplates(true)}
-                      disabled={refreshingTemplates}
-                      className="shrink-0 p-2 sm:p-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 hover:text-red-700 hover:border-red-300 hover:bg-red-50 transition disabled:opacity-50 shadow-2xs cursor-pointer"
-                      title={lang === 'eng' ? 'Refresh template list from Cloud' : 'Muat semula senarai templat terkini dari Cloud'}
-                    >
-                      <RefreshCw size={15} className={refreshingTemplates ? 'animate-spin text-red-700' : ''} />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="sm:col-span-4">
-                  <label className="mb-1 block text-[11px] font-bold text-slate-600">
-                    {t('issueDateLabel')}
-                  </label>
-                  <input
-                    type="date"
-                    required
-                    value={issueDate}
-                    onChange={(e) => setIssueDate(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs sm:text-sm text-slate-950 outline-none focus:border-red-600"
-                  />
-                </div>
-              </div>
-
               {/* Kategori Jenis Sijil (Tab Utama) */}
               <div className="space-y-2 pt-1 border-t border-slate-100">
                 <div className="flex items-center justify-between">
@@ -790,7 +712,8 @@ export function GenerateCerts() {
                   </span>
                 </div>
 
-                <div className="flex items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+                <div className="grid grid-cols-2 gap-2 pb-1 sm:grid-cols-3 xl:grid-cols-5">
+                  <button type="button" aria-pressed={selectedCategory==='semua'} onClick={()=>{setSelectedCategory('semua');setSelectedCula('semua');setSelectedLevel('');}} className={`min-h-11 rounded-xl border px-3 py-2 text-left text-xs font-bold ${selectedCategory==='semua'?'border-slate-900 bg-slate-900 text-white':'border-slate-200 bg-white text-slate-700'}`}>{lang==='eng'?'All Certificate Types':'Semua Jenis Sijil'}</button>
                   {CERT_CATEGORIES.map((cat) => {
                     const active = selectedCategory === cat.id;
                     const count = categoryCounts[cat.id] || 0;
@@ -800,6 +723,7 @@ export function GenerateCerts() {
                         type="button"
                         onClick={() => {
                           setSelectedCategory(cat.id);
+                          setSelectedLevel('');
                           if (!cat.hasCula) setSelectedCula('semua');
                         }}
                         className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-bold transition shrink-0 cursor-pointer ${
@@ -862,6 +786,92 @@ export function GenerateCerts() {
                   </div>
                 )}
               </div>
+
+
+          {templateNames.length === 0 ? (
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-center">
+              <AlertCircle size={22} className="mx-auto text-amber-600 mb-1.5" />
+              <h3 className="font-bold text-amber-950 text-xs">{t('noTemplatesFound')}</h3>
+              <p className="text-[11px] text-amber-800 mt-1 max-w-md mx-auto">
+                {t('noTemplatesFoundDesc')}
+              </p>
+              <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => loadTemplates(true)}
+                  disabled={refreshingTemplates}
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-amber-300 bg-white px-3 py-1.5 text-xs font-bold text-amber-950 hover:bg-amber-100/70 transition shadow-2xs cursor-pointer"
+                >
+                  <RefreshCw size={13} className={refreshingTemplates ? 'animate-spin text-amber-700' : ''} />
+                  {refreshingTemplates ? 'Sedang Memuat Semula...' : 'Muat Semula Dari Cloud'}
+                </button>
+                <Link
+                  to="/admin/templates"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-red-700 px-3 py-1.5 text-xs font-bold text-white hover:bg-red-800 transition"
+                >
+                  <Layers size={13} /> {t('templatesMenu')}
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {/* Top Toolbar: Tajuk & Tarikh Sijil */}
+              <div className="grid gap-3 sm:grid-cols-12 items-end">
+                <div className="sm:col-span-8">
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-[11px] font-bold text-slate-600">
+                      {t('officialCertTitleLabel')}
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => loadTemplates(true)}
+                      disabled={refreshingTemplates}
+                      className="inline-flex items-center gap-1 text-[11px] font-semibold text-red-700 hover:text-red-800 disabled:opacity-50 transition cursor-pointer"
+                      title={lang === 'eng' ? 'Refresh templates from cloud' : 'Muat semula templat terkini dari Cloud'}
+                    >
+                      <RefreshCw size={11} className={refreshingTemplates ? 'animate-spin' : ''} />
+                      <span>{refreshingTemplates ? (lang === 'eng' ? 'Updating...' : 'Menyegerak...') : (lang === 'eng' ? 'Refresh' : 'Muat Semula')}</span>
+                    </button>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <select
+                      className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs sm:text-sm font-semibold text-slate-950 outline-none focus:border-red-600 shadow-2xs"
+                      value={selectedCollectionKey}
+                      onChange={(e) => {setSelectedCollectionKey(e.target.value);setSelectedLevel('');setSelectedCula('semua');}}
+                    >
+                      {templateNames.map((name) => (
+                        <option key={name} value={name}>
+                          {templateGroups[name][0].nama_template} · {getCategoryMeta(getCertCategory(templateGroups[name][0])).shortLabel}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={() => loadTemplates(true)}
+                      disabled={refreshingTemplates}
+                      className="shrink-0 p-2 sm:p-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 hover:text-red-700 hover:border-red-300 hover:bg-red-50 transition disabled:opacity-50 shadow-2xs cursor-pointer"
+                      title={lang === 'eng' ? 'Refresh template list from Cloud' : 'Muat semula senarai templat terkini dari Cloud'}
+                    >
+                      <RefreshCw size={15} className={refreshingTemplates ? 'animate-spin text-red-700' : ''} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="sm:col-span-4">
+                  <label className="mb-1 block text-[11px] font-bold text-slate-600">
+                    {t('issueDateLabel')}
+                  </label>
+                  <input
+                    type="date"
+                    required
+                    value={issueDate}
+                    onChange={(e) => setIssueDate(e.target.value)}
+                    className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs sm:text-sm text-slate-950 outline-none focus:border-red-600"
+                  />
+                </div>
+              </div>
+
+              <TemplateCollections groups={selectableCollections} value={selectedCollectionKey} onChange={key=>{setSelectedCollectionKey(key);setSelectedLevel('');setSelectedCula('semua');}} allowAll={false} />
 
               {/* Kotak Pratonton Visual Templat Dari Luar */}
               <div>
@@ -1783,7 +1793,7 @@ export function GenerateCerts() {
               {/* Bottom Actions for Completed Generation */}
               <div className="flex flex-wrap items-center gap-2.5 pt-2">
                 <Link
-                  to={`/admin/sijil?category=${getCertCategory(rawTemplatesForName[0])}`}
+                  to={'/admin/sijil?'+new URLSearchParams({category:getCertCategory(rawTemplatesForName[0]),...(result.batchId?{batch:result.batchId}:{})})}
                   className="inline-flex items-center gap-1.5 rounded-xl bg-red-700 px-4 py-2.5 text-xs font-bold text-white transition hover:bg-red-800 shadow-sm"
                 >
                   <Award size={15} /> {t('btnViewNewCerts')} <ArrowRight size={14} />

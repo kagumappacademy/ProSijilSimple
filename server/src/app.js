@@ -13,14 +13,15 @@ import { portalUrl, production, projectRoot } from './config.js';
 import { decodeCsv, csvSafe } from './csv.js';
 import { uploadedToPdf } from './pdf.js';
 import { generateCertificatePdf } from './certificateGenerator.js';
-import { saveCertificate, getStoredCertificate, deleteStoredCertificates, updateStoredCertificate, ensureCertificateFile, generationToken, getGenerationStatus } from './certificateStore.js';
+import { saveCertificate, getStoredCertificate, deleteStoredCertificates, updateStoredCertificate, ensureCertificateFile, generationToken, generationBatchId, getGenerationStatus } from './certificateStore.js';
 import { saveTemplate, getStoredTemplate, getTemplateMetadata, listStoredTemplates, deleteStoredTemplate, updateTemplateMetadata } from './templateStore.js';
 import { PDFDocument } from 'pdf-lib';
-import { readRows, getStoredStudent, saveStudent, deleteStudent, insertStudentBatch } from './studentStore.js';
+import { studentClient, readRows, getStoredStudent, saveStudent, deleteStudent, insertStudentBatch } from './studentStore.js';
 import { trim, validatePesilat, validDate } from './validation.js';
 import {listBranches,saveBranch} from './branchStore.js';
 import {BRANCH_NAMES_SQL} from './branchSchema.js';
 import { readDashboard } from './dashboardStore.js';
+import { createPublicReport, listPublicReports, readPublicReport, updatePublicReport, readSupportContacts, saveSupportContacts } from './supportStore.js';
 
 const app = express();
 app.disable('x-powered-by');
@@ -56,6 +57,7 @@ app.use('/api', (req, res, next) => {
 });
 const authLimit = rateLimit({windowMs:15*60*1000,limit:12,standardHeaders:'draft-7',legacyHeaders:false,message:{error:'Terlalu banyak percubaan. Cuba semula dalam 15 minit.'}});
 const searchLimit = rateLimit({windowMs:60*1000,limit:35,standardHeaders:'draft-7',legacyHeaders:false,message:{error:'Terlalu banyak carian. Cuba semula sebentar lagi.'}});
+export const reportLimit = rateLimit({windowMs:15*60*1000,limit:8,standardHeaders:'draft-7',legacyHeaders:false,message:{error:'Terlalu banyak laporan dihantar. Sila cuba semula selepas 15 minit.'}});
 const upload = multer({storage:multer.memoryStorage(),limits:{fileSize:50*1024*1024,fieldSize:20*1024*1024,files:1}});
 const uploadTemplate = multer({storage:multer.memoryStorage(),limits:{fileSize:50*1024*1024,fieldSize:20*1024*1024,files:3}});
 const today = () => new Date().toISOString().slice(0,10);
@@ -120,6 +122,27 @@ app.get('/api/public/stats',async(_req,res,next)=>{
  const total=Number((await readRows('SELECT count(*) AS n FROM sijil'))[0].n);
  res.json({certificates:total});
  } catch(error) { next(error); }
+});
+app.get('/api/public/contact',async(_req,res,next)=>{
+ try { res.set('Cache-Control','no-store'); res.json(await readSupportContacts()); } catch(error) { next(error); }
+});
+app.post('/api/public/reports',reportLimit,async(req,res,next)=>{
+ try { const result=await createPublicReport(req.body); res.set('Cache-Control','no-store'); res.status(result.created?201:200).json(result.receipt); } catch(error) { next(error); }
+});
+app.get('/api/admin/support-contact',requireAdmin,async(_req,res,next)=>{
+ try { res.set('Cache-Control','no-store'); res.json(await readSupportContacts()); } catch(error) { next(error); }
+});
+app.put('/api/admin/support-contact',requireAdmin,async(req,res,next)=>{
+ try { res.set('Cache-Control','no-store'); res.json(await saveSupportContacts(req.body)); } catch(error) { next(error); }
+});
+app.get('/api/admin/reports',requireAdmin,async(req,res,next)=>{
+ try { res.set('Cache-Control','no-store'); res.json(await listPublicReports(req.query)); } catch(error) { next(error); }
+});
+app.get('/api/admin/reports/:id',requireAdmin,async(req,res,next)=>{
+ try { const id=cleanId(req.params.id); if(!id)return fail(res,'ID laporan tidak sah.'); const report=await readPublicReport(id); if(!report)return fail(res,'Laporan tidak ditemui.',404); res.set('Cache-Control','no-store'); res.json(report); } catch(error) { next(error); }
+});
+app.put('/api/admin/reports/:id',requireAdmin,async(req,res,next)=>{
+ try { const id=cleanId(req.params.id); if(!id)return fail(res,'ID laporan tidak sah.'); const report=await updatePublicReport(id,req.body,req.admin.username); if(!report)return fail(res,'Laporan tidak ditemui.',404); res.set('Cache-Control','no-store'); res.json(report); } catch(error) { next(error); }
 });
 function cleanSearchText(s) {
   return String(s || '')
@@ -478,13 +501,13 @@ app.get('/api/admin/certificates',requireAdmin,async(req,res,next)=>{
  // Keep PDFs out of list responses; bulk PDF data can exceed the serverless response limit.
  const statements = [
   { sql: 'SELECT count(*) AS n'+from+filter, args: params },
-  { sql: 'SELECT s.id,s.pesilat_id,s.nama_sijil,s.tarikh_isu,s.jenis,s.file_type,s.public_token,s.kategori,s.created_at,p.nama_penuh,p.no_kp_atau_id,p.peringkat,p.cawangan'+from+filter+' ORDER BY p.cawangan, p.peringkat, s.id DESC'+(fetchAll?'':' LIMIT ? OFFSET ?'), args: fetchAll?params:[...params,limit,offset] },
+  { sql: 'SELECT s.id,s.pesilat_id,s.nama_sijil,s.tarikh_isu,s.jenis,s.file_type,s.public_token,s.kategori,s.created_at,s.batch_id,s.template_name,p.nama_penuh,p.no_kp_atau_id,p.peringkat,p.cawangan'+from+filter+' ORDER BY p.cawangan, p.peringkat, s.id DESC'+(fetchAll?'':' LIMIT ? OFFSET ?'), args: fetchAll?params:[...params,limit,offset] },
   { sql: "SELECT p.cawangan AS name, count(s.id) AS count FROM sijil s JOIN pesilat p ON p.id=s.pesilat_id WHERE p.cawangan IS NOT NULL AND p.cawangan != '' GROUP BY p.cawangan COLLATE NOCASE ORDER BY p.cawangan", args: [] },
   { sql: "SELECT p.peringkat AS name, count(s.id) AS count FROM sijil s JOIN pesilat p ON p.id=s.pesilat_id WHERE p.peringkat IS NOT NULL AND p.peringkat != '' GROUP BY p.peringkat ORDER BY p.peringkat", args: [] },
  ];
- const { isTursoConfigured, getTursoClient } = await import('./turso.js');
- const results = isTursoConfigured()
-  ? (await getTursoClient().batch(statements, 'read')).map(result => result.rows)
+ const remote = await studentClient();
+ const results = remote
+  ? (await remote.batch(statements, 'read')).map(result => result.rows)
   : statements.map(({sql,args}) => db.prepare(sql).all(...args));
  const total=Number(results[0][0].n);
  const [,rows,branches,levels]=results;
@@ -751,7 +774,7 @@ app.post('/api/admin/templates/:id/layout',requireAdmin,async (req,res,next)=>{
 app.get('/api/admin/templates/groups',requireAdmin,async (req,res,next)=>{
  try {
   const rows=await listStoredTemplates();
-  const groups={};
+  const groups=Object.create(null);
   for(const r of rows){
    if(!groups[r.nama_template])groups[r.nama_template]=[];
    groups[r.nama_template].push(r);
@@ -799,11 +822,19 @@ app.post('/api/admin/templates/generate-batch',requireAdmin,async(req,res,next)=
   if(!namaTemplate)return fail(res,'Sila pilih atau masukkan nama templat sijil.');
   const tarikh=trim(req.body?.tarikh_isu,10)||today();
   if(!validDate(tarikh))return fail(res,'Tarikh sijil tidak sah.');
+  let category=trim(req.body?.kategori,60);
+  if(category&&!['kenaikan_tali_pinggang','pencapaian','penghargaan','penyertaan'].includes(category))return fail(res,'Jenis sijil tidak sah.');
+  const batchId=generationBatchId(req.admin.id,requestId||crypto.randomUUID());
+  const [priorBatch]=await readRows('SELECT template_name,tarikh_isu,kategori FROM sijil WHERE batch_id=? LIMIT 1',[batchId]);
+  if(priorBatch&&(priorBatch.template_name!==namaTemplate||priorBatch.tarikh_isu!==tarikh||(category&&category!==priorBatch.kategori)))return fail(res,'Batch ini telah digunakan untuk templat atau tarikh lain. Mulakan janaan baharu.',409);
+  if(!category&&priorBatch)category=priorBatch.kategori;
 
   const confirmed=requestId ? await getGenerationStatus(req.admin.id,requestId,ids) : {generatedTokens:[]};
   const existing=new Map(confirmed.generatedTokens.map(row=>[row.studentId,row]));
   if(existing.size===ids.length)return res.json({...confirmed});
-  const templates=await listStoredTemplates({name:namaTemplate});
+  let templates=await listStoredTemplates({name:namaTemplate});
+  if(category)templates=templates.filter(template=>(template.kategori||'kenaikan_tali_pinggang')===category);
+  else if(new Set(templates.map(template=>template.kategori||'kenaikan_tali_pinggang')).size>1)return fail(res,'Nama templat ini digunakan oleh beberapa jenis sijil. Sila pilih jenis sijil.');
   if(!templates.length)return fail(res,'Tiada templat dijumpai untuk tajuk sijil ini.');
 
   const placeholders=ids.map(()=>'?').join(',');
@@ -871,7 +902,8 @@ app.post('/api/admin/templates/generate-batch',requireAdmin,async(req,res,next)=
      tarikh,
      fileBase64:Buffer.from(generated.bytes).toString('base64'),
      token,
-     kategori: matchedTemplate.kategori || 'kenaikan_tali_pinggang'
+     kategori: matchedTemplate.kategori || 'kenaikan_tali_pinggang',
+     jenis:'generated',batchId,templateName:namaTemplate
     });
     successCount++;
     generatedTokens.push({studentId:student.id,nama:student.nama_penuh,token});
@@ -892,6 +924,7 @@ app.post('/api/admin/templates/generate-batch',requireAdmin,async(req,res,next)=
   }
 
   res.json({
+   batchId,
    total:ids.length,
    successCount,
    failedCount:failed.length,

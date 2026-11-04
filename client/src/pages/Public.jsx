@@ -24,6 +24,7 @@ import { toast } from 'sonner';
 import { api, certDownload, fmtDate } from '../lib/api';
 import { Logo, Button, Chip, Empty, Loading } from '../components/UI';
 import { useLang, LanguageSwitcher, LiveClock } from '../lib/i18n';
+import { ContactSection } from '../components/PublicSupport';
 
 const rise = {
   hidden: { opacity: 0, y: 18 },
@@ -41,7 +42,7 @@ function PublicNav() {
         <Link to="/" aria-label="Utama" className="shrink-0 flex items-center min-w-0">
           <Logo light />
         </Link>
-        <nav className="hidden items-center gap-7 text-xs font-semibold text-white/80 md:flex">
+        <nav className="hidden items-center gap-5 text-xs font-semibold text-white/80 xl:flex">
           <a href="/#cara" className="transition hover:text-rose-200">
             {t('navHowToCheck')}
           </a>
@@ -51,6 +52,7 @@ function PublicNav() {
           <a href="/#tentang" className="transition hover:text-rose-200">
             {t('navAboutUs')}
           </a>
+          <a href="/#hubungi" className="transition hover:text-rose-200">{t('navContactUs')}</a>
         </nav>
         <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           {/* Live Clock & Date on Front Page */}
@@ -508,9 +510,10 @@ export function Home() {
             <p className="mt-3 text-xs text-white/60">{t('quoteSubtext')}</p>
           </div>
         </section>
+        <ContactSection />
       </main>
 
-      <footer className="border-t border-slate-200/80 bg-white">
+      <footer className="border-t border-slate-200/80 bg-white pb-16">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-4 px-4 py-6 sm:px-8 lg:px-12">
           <Logo small showTextOnMobile />
           <div className="flex items-center gap-3">
@@ -519,6 +522,7 @@ export function Home() {
               © {new Date().getFullYear()} {t('copyrightText')}
             </p>
           </div>
+          <a href="/#hubungi" className="text-xs font-semibold text-red-700 hover:underline">{t('navContactUs')}</a>
           <Link to="/admin/login" className="text-xs font-semibold text-red-700 hover:underline">
             {t('adminLoginLink')}
           </Link>

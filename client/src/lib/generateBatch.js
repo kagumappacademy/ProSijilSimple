@@ -1,15 +1,16 @@
 // Confirm every selected recipient. A failed chunk must not abandon later students.
-export async function generateCertificateBatches({api,ids,templateName,issueDate,requestId,
+export async function generateCertificateBatches({api,ids,templateName,issueDate,requestId,category,
   onProgress=()=>{},batchSize=5,verifyFinal=true,sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms))}) {
   ids=[...new Set(ids)];
   batchSize=Math.max(1,Math.min(25,Math.floor(batchSize)||5));
   const confirmed=new Map(),failures=new Map();
   let lastProgress=-1;
+  let batchId=null;
   const report=()=>{if(confirmed.size!==lastProgress){lastProgress=confirmed.size;onProgress(lastProgress);}};
   const snapshot=(verified=false)=>{
     const failed=ids.filter(id=>!confirmed.has(id)).map(id=>failures.get(id)||{id,reason:'Simpanan belum dapat disahkan.',retryable:true});
     return {total:ids.length,successCount:confirmed.size,failedCount:failed.length,failed,
-      generatedTokens:ids.filter(id=>confirmed.has(id)).map(id=>confirmed.get(id)),verified};
+      generatedTokens:ids.filter(id=>confirmed.has(id)).map(id=>confirmed.get(id)),verified,...(batchId?{batchId}:{})};
   };
   async function generate(chunk) {
     let response;
@@ -17,13 +18,14 @@ export async function generateCertificateBatches({api,ids,templateName,issueDate
       for(let attempt=0;attempt<2;attempt++){
         try {
           response=await api('/admin/templates/generate-batch',{method:'POST',
-            body:{pesilat_ids:chunk,nama_template:templateName,tarikh_isu:issueDate,request_id:requestId}});
+            body:{pesilat_ids:chunk,nama_template:templateName,tarikh_isu:issueDate,request_id:requestId,...(category?{kategori:category}:{})}});
           break;
         }catch(error){
           if(attempt===1 || (error.status>=400 && error.status<500 && error.status!==429))throw error;
         }
       }
       const allowed=new Set(chunk);
+      if(response.batchId)batchId=response.batchId;
       for(const saved of response.generatedTokens||[]){
         if(allowed.has(saved.studentId) && typeof saved.token==='string' && saved.token){
           confirmed.set(saved.studentId,saved);failures.delete(saved.studentId);
@@ -67,6 +69,7 @@ export async function generateCertificateBatches({api,ids,templateName,issueDate
           }
         }
         if(response.verified!==true)throw new Error('Pengesahan akhir pangkalan data tidak lengkap.');
+        if(response.batchId)batchId=response.batchId;
         const allowed=new Set(ids.slice(offset,offset+500));
         for(const saved of response.generatedTokens||[])if(allowed.has(saved.studentId) && saved.token){
           durable.set(saved.studentId,{...confirmed.get(saved.studentId),...saved});

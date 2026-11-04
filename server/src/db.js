@@ -3,6 +3,7 @@ import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { dataDir, isVercel } from './config.js';
 import {BRANCH_SCHEMA,SEED_BRANCHES_SQL} from './branchSchema.js';
+import { SUPPORT_SCHEMA } from './supportSchema.js';
 
 if(!isVercel){
  fs.mkdirSync(dataDir, { recursive: true });
@@ -13,6 +14,7 @@ if(!isVercel){
 // Keeping it off /tmp prevents old SQLite/WAL files exhausting the shared disk.
 export const db = new DatabaseSync(isVercel ? ':memory:' : path.join(dataDir, 'prosijil.sqlite'));
 db.exec('PRAGMA foreign_keys = ON; PRAGMA journal_mode=WAL; PRAGMA busy_timeout=5000;');
+db.exec(SUPPORT_SCHEMA.join(';'));
 db.exec(`
 CREATE TABLE IF NOT EXISTS admin_users (
  id INTEGER PRIMARY KEY AUTOINCREMENT, username TEXT NOT NULL UNIQUE COLLATE NOCASE,
@@ -88,6 +90,9 @@ try { db.exec('ALTER TABLE template_sijil ADD COLUMN file_base64 TEXT;'); } catc
 try { db.exec('ALTER TABLE sijil ADD COLUMN file_base64 TEXT;'); } catch (_) {}
 try { db.exec('ALTER TABLE template_sijil ADD COLUMN kategori TEXT;'); } catch (_) {}
 try { db.exec('ALTER TABLE sijil ADD COLUMN kategori TEXT;'); } catch (_) {}
+try { db.exec('ALTER TABLE sijil ADD COLUMN batch_id TEXT;'); } catch (_) {}
+try { db.exec('ALTER TABLE sijil ADD COLUMN template_name TEXT;'); } catch (_) {}
+db.exec('CREATE INDEX IF NOT EXISTS idx_sijil_batch ON sijil(batch_id)');
 try { db.exec('ALTER TABLE template_sijil ADD COLUMN page_count INTEGER DEFAULT 1;'); } catch (_) {}
 try { db.exec('ALTER TABLE template_sijil ADD COLUMN thumbnail_base64 TEXT;'); } catch (_) {}
 try { db.exec('ALTER TABLE template_sijil ADD COLUMN layout_config TEXT;'); } catch (_) {}

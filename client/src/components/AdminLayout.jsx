@@ -14,6 +14,7 @@ import {
   FileCheck,
   Activity,
   Building2,
+  MessageSquare,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
@@ -30,6 +31,7 @@ const NAV_CONFIG = [
   { to: '/admin/sijil', icon: Award, key: 'certsMenu' },
   { to: '/admin/import', icon: FileUp, key: 'importMenu' },
   { to: '/admin/aktiviti', icon: Activity, key: 'recentActivity' },
+  { to: '/admin/laporan', icon: MessageSquare, key: 'reportsMenu' },
   { to: '/admin/tetapan', icon: Settings, key: 'settingsMenu' },
 ];
 
