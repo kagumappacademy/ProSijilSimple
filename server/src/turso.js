@@ -4,6 +4,7 @@ import { projectRoot } from './config.js';
 import dotenv from 'dotenv';
 import path from 'node:path';
 import fs from 'node:fs';
+import {BRANCH_SCHEMA,SEED_BRANCHES_SQL} from './branchSchema.js';
 
 dotenv.config({ path: path.join(projectRoot, '.env') });
 
@@ -38,6 +39,7 @@ export function getTursoClient() {
 }
 
 export const TURSO_SCHEMA_STATEMENTS = [
+  BRANCH_SCHEMA,
   'DROP TABLE IF EXISTS template_sijil_deleted',
   `CREATE TABLE IF NOT EXISTS admin_users (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -114,6 +116,7 @@ export const TURSO_SCHEMA_STATEMENTS = [
 export async function initTursoSchema(client) {
   const turso = client || getTursoClient();
   for (const statement of TURSO_SCHEMA_STATEMENTS) await turso.execute(statement);
+  await turso.execute(SEED_BRANCHES_SQL);
   // Ignore migration errors only when another instance added the column.
   const migrations = {
     sijil: {file_base64:'TEXT',kategori:"TEXT DEFAULT 'kenaikan_tali_pinggang'"},
@@ -212,10 +215,13 @@ async function batchExecute(turso, statements, chunkSize = 50) {
 export async function pushLocalToTurso(client, { importNewRecords = false } = {}) {
   const turso=client || getTursoClient();
   await initTursoSchema(turso);
-  const stats={admin_users:0,pesilat:0,sijil:0,template_sijil:0,settings:0};
+  const stats={admin_users:0,pesilat:0,sijil:0,template_sijil:0,settings:0,cawangan:0};
   // Normal sync only repairs missing file bytes on records that still exist.
   // Importing new records is an explicit CLI migration, never a background task.
   if(importNewRecords) {
+    db.exec(SEED_BRANCHES_SQL);
+    const branches=db.prepare('SELECT nama_cawangan,keterangan FROM cawangan').all();
+    stats.cawangan=await batchExecute(turso,branches.map(row=>({sql:'INSERT INTO cawangan(nama_cawangan,keterangan) VALUES(?,?) ON CONFLICT(nama_cawangan) DO NOTHING',args:[row.nama_cawangan,row.keterangan]})));
     const settings=db.prepare('SELECT key,value FROM settings').all();
     const admins=db.prepare('SELECT username,password_hash,created_at FROM admin_users').all();
     const students=db.prepare('SELECT nama_penuh,no_kp_atau_id,peringkat,cawangan,tarikh_daftar,created_at,updated_at FROM pesilat').all();
@@ -277,6 +283,7 @@ export async function pullTursoToLocal(client) {
 
   // Complete network reads before opening a synchronous SQLite transaction.
   // Other requests must never see half a sync or have their writes rolled back with it.
+  const remoteBranches=await turso.execute('SELECT * FROM cawangan');
   const remoteSettings = await turso.execute('SELECT key, value FROM settings');
   const remoteAdmins = await turso.execute('SELECT id, username, password_hash, created_at FROM admin_users');
   const remotePesilat = await turso.execute('SELECT id, nama_penuh, no_kp_atau_id, peringkat, cawangan, tarikh_daftar, created_at, updated_at FROM pesilat');
@@ -300,6 +307,10 @@ export async function pullTursoToLocal(client) {
 
   db.exec('BEGIN');
   try {
+    // Branch identities come from the same durable catalog as student names.
+    db.exec('DELETE FROM cawangan');
+    const branchStmt=db.prepare('INSERT INTO cawangan(id,nama_cawangan,keterangan,created_at,updated_at) VALUES(?,?,?,?,?)');
+    for(const row of remoteBranches.rows)branchStmt.run(row.id,row.nama_cawangan,row.keterangan,row.created_at,row.updated_at);
     const setStmt = db.prepare('INSERT OR REPLACE INTO settings (key, value) VALUES (?, ?)');
     for (const row of remoteSettings.rows) {
       setStmt.run(row.key, row.value);

@@ -16,6 +16,15 @@ CREATE TABLE IF NOT EXISTS pesilat (
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
+CREATE TABLE IF NOT EXISTS cawangan (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  nama_cawangan TEXT NOT NULL UNIQUE COLLATE NOCASE,
+  keterangan TEXT NOT NULL DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+INSERT OR IGNORE INTO cawangan(nama_cawangan)
+  SELECT DISTINCT trim(cawangan) FROM pesilat WHERE length(trim(cawangan))>0;
 CREATE TABLE IF NOT EXISTS sijil (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   pesilat_id INTEGER NOT NULL REFERENCES pesilat(id) ON DELETE CASCADE,

@@ -14,6 +14,7 @@ import {
   Filter,
   CheckCircle2,
   Calendar,
+  Building2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
@@ -23,6 +24,8 @@ import { useSync } from '../lib/syncContext';
 
 function getActivityMeta(type) {
   switch (type) {
+    case 'branch':
+      return {icon:Building2,label:'Cawangan',badgeBg:'bg-amber-50 text-amber-800 border-amber-200',dotColor:'bg-amber-500',accentColor:'text-amber-700'};
     case 'certificate':
       return {
         icon: Award,
@@ -187,7 +190,8 @@ export function RecentActivity() {
     const students = activities.filter((a) => a.type === 'student').length;
     const templates = activities.filter((a) => a.type === 'template').length;
     const settings = activities.filter((a) => a.type === 'settings').length;
-    return { total: activities.length, certs, students, templates, settings };
+    const branches=activities.filter(a=>a.type==='branch').length;
+    return { total: activities.length, certs, students, templates, settings, branches };
   }, [activities]);
 
   // Filtered activities
@@ -321,6 +325,7 @@ export function RecentActivity() {
               { id: 'all', label: t('allActivities') || 'Semua', count: stats.total },
               { id: 'certificate', label: 'Sijil', count: stats.certs },
               { id: 'student', label: 'Pesilat', count: stats.students },
+              { id: 'branch', label: 'Cawangan', count: stats.branches },
               { id: 'template', label: 'Templat', count: stats.templates },
               { id: 'settings', label: 'Tetapan', count: stats.settings },
             ].map((tab) => (

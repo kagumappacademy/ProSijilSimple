@@ -13,6 +13,7 @@ import {
   Layers,
   FileCheck,
   Activity,
+  Building2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '../lib/api';
@@ -22,6 +23,7 @@ import { useLang, LanguageSwitcher, LiveClock } from '../lib/i18n';
 const NAV_CONFIG = [
   { to: '/admin', icon: LayoutDashboard, key: 'dashboard', end: true },
   { to: '/admin/pesilat', icon: GraduationCap, key: 'studentsMenu' },
+  { to: '/admin/cawangan', icon: Building2, key: 'branchesMenu' },
   { to: '/admin/templates', icon: Layers, key: 'templatesMenu' },
   { to: '/admin/jana-sijil', icon: FileCheck, key: 'generateMenu' },
   { to: '/admin/sijil', icon: Award, key: 'certsMenu' },

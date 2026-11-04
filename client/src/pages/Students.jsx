@@ -740,10 +740,10 @@ function StudentDetailsModal({ open, onClose, student, onEdit, onSaved }) {
   );
 }
 
-function StudentEditor({open,onClose,onSaved,selected}){
+function StudentEditor({open,onClose,onSaved,selected,branches=[],defaultBranch=''}){
   const { t, lang } = useLang();
   const [form,setForm]=useState(base),[saving,setSaving]=useState(false);
-  useEffect(()=>setForm(selected||base),[selected,open]);
+  useEffect(()=>setForm(selected||{...base,cawangan:defaultBranch}),[selected,open,defaultBranch]);
   const set=(k,v)=>setForm(f=>({...f,[k]:v}));
   async function submit(e){
     e.preventDefault();
@@ -772,7 +772,8 @@ function StudentEditor({open,onClose,onSaved,selected}){
         <div className="grid gap-4 sm:grid-cols-2">
           <Input label={`${t('levelLabel')} *`} list="level-suggestions" required value={form.peringkat||''} onChange={e=>set('peringkat',e.target.value)}/>
           <datalist id="level-suggestions">{['Ujian Awan Putih Cula Merah 1','Ujian Awan Putih Cula Merah 2','Ujian Awan Putih Cula Merah 3','Ujian Awan Putih Cula Hijau 1','Ujian Awan Putih Cula Hijau 2','Ujian Awan Putih Cula Hijau 3','Ujian Awan Putih Cula Kuning 1','Ujian Awan Putih Cula Kuning 2','Ujian Awan Putih Cula Kuning 3','Ujian Awan Putih Cula Hitam 1','Ujian Awan Putih Cula Hitam 2','Ujian Awan Putih Cula Hitam 3','Awan Putih Cula Merah 1','Awan Putih Cula Merah 2','Awan Putih Cula Merah 3','Awan Putih Cula Hijau 1','Awan Putih Cula Hijau 2','Awan Putih Cula Hijau 3','Awan Putih Cula Kuning 1','Awan Putih Cula Kuning 2','Awan Putih Cula Kuning 3','Awan Putih Cula Hitam 1','Awan Putih Cula Hitam 2','Awan Putih Cula Hitam 3'].map(x=><option key={x} value={x}/>)}</datalist>
-          <Input label={`${t('branchLabel')} *`} required placeholder="Contoh: Skudai" value={form.cawangan||''} onChange={e=>set('cawangan',e.target.value)}/>
+          <Input label={`${t('branchLabel')} *`} list="branch-suggestions" required placeholder="Contoh: Skudai" value={form.cawangan||''} onChange={e=>set('cawangan',e.target.value)}/>
+          <datalist id="branch-suggestions">{branches.map(name=><option key={name} value={name}/>)}</datalist>
         </div>
         <Input label={`${t('dateRegLabel')} *`} type="date" required value={form.tarikh_daftar||base.tarikh_daftar} onChange={e=>set('tarikh_daftar',e.target.value)}/>
         <div className="flex justify-end gap-2 pt-4">
@@ -786,9 +787,15 @@ function StudentEditor({open,onClose,onSaved,selected}){
 
 export function Students(){
   const { t, lang } = useLang();
+  const [searchParams,setSearchParams]=useSearchParams();
+  const branch=searchParams.get('branch')||'';
+  const setBranch=value=>setSearchParams(previous=>{
+    const next=new URLSearchParams(previous);
+    if(value)next.set('branch',value);else next.delete('branch');
+    return next;
+  });
   const [data,setData]=useState(null),
     [q,setQ]=useState(''),
-    [branch,setBranch]=useState(''),
     [level,setLevel]=useState(''),
     [page,setPage]=useState(1),
     [edit,setEdit]=useState(null),
@@ -801,6 +808,7 @@ export function Students(){
 
   const { setRefreshing: setGlobalRefreshing } = useSync();
   const [refreshing, setRefreshing] = useState(false);
+  useEffect(()=>setPage(1),[branch]);
 
   const fetchRows = useCallback((isManual = false) => {
     setGlobalRefreshing(true);
@@ -1120,7 +1128,7 @@ export function Students(){
         onEdit={openEdit}
         onSaved={fetchRows}
       />
-      <StudentEditor open={formOpen} onClose={()=>setFormOpen(false)} onSaved={fetchRows} selected={edit}/>
+      <StudentEditor open={formOpen} onClose={()=>setFormOpen(false)} onSaved={fetchRows} selected={edit} branches={data?.branches||[]} defaultBranch={branch}/>
       <ImportStudentsModal open={importOpen} onClose={()=>setImportOpen(false)} onSaved={fetchRows}/>
       <ExportStudentsModal
         open={exportOpen}

@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { dataDir, isVercel } from './config.js';
+import {BRANCH_SCHEMA,SEED_BRANCHES_SQL} from './branchSchema.js';
 
 if(!isVercel){
  fs.mkdirSync(dataDir, { recursive: true });
@@ -78,6 +79,8 @@ CREATE INDEX IF NOT EXISTS idx_activity_id ON admin_activity(id DESC);
 `);
 
 // Cloud records are authoritative; the retired deletion log is no longer used.
+db.exec(BRANCH_SCHEMA);
+db.exec(SEED_BRANCHES_SQL);
 db.exec('DROP TABLE IF EXISTS template_sijil_deleted');
 
 // Migrasi lajur tambahan jika jadual telah wujud sebelum ini

@@ -18,6 +18,8 @@ import { saveTemplate, getStoredTemplate, getTemplateMetadata, listStoredTemplat
 import { PDFDocument } from 'pdf-lib';
 import { readRows, getStoredStudent, saveStudent, deleteStudent, insertStudentBatch } from './studentStore.js';
 import { trim, validatePesilat, validDate } from './validation.js';
+import {listBranches,saveBranch} from './branchStore.js';
+import {BRANCH_NAMES_SQL} from './branchSchema.js';
 
 const app = express();
 app.disable('x-powered-by');
@@ -209,9 +211,9 @@ app.get('/api/admin/dashboard',requireAdmin,async(_req,res,next)=>{
  const [studentCounts,certificateCounts,branchCounts,byLevel,byBranch,recent]=await Promise.all([
   readRows('SELECT count(*) AS n FROM pesilat'),
   readRows('SELECT count(*) AS n FROM sijil'),
-  readRows('SELECT count(DISTINCT cawangan) AS n FROM pesilat'),
+  readRows(`SELECT count(*) AS n FROM (${BRANCH_NAMES_SQL})`),
   readRows('SELECT peringkat as name,count(*) as total FROM pesilat GROUP BY peringkat ORDER BY total DESC LIMIT 7'),
-  readRows('SELECT cawangan as name,count(*) as total FROM pesilat GROUP BY cawangan ORDER BY total DESC LIMIT 6'),
+  readRows('SELECT cawangan as name,count(*) as total FROM pesilat GROUP BY cawangan COLLATE NOCASE ORDER BY total DESC LIMIT 6'),
   readRows('SELECT s.id,s.nama_sijil,s.tarikh_isu,s.kategori,p.nama_penuh,p.cawangan FROM sijil s JOIN pesilat p ON s.pesilat_id=p.id ORDER BY s.id DESC LIMIT 6'),
  ]);
  const pesilat=Number(studentCounts[0].n),sijil=Number(certificateCounts[0].n),branches=Number(branchCounts[0].n);
@@ -286,6 +288,25 @@ app.delete('/api/admin/recent-activity', requireAdmin, async (_req, res) => {
   res.status(500).json({ error: 'Gagal membersihkan log aktiviti.' });
  }
 });
+app.get('/api/admin/branches',requireAdmin,async(_req,res,next)=>{
+ try{res.set('Cache-Control','no-store');res.json({rows:await listBranches()});}
+ catch(error){next(error);}
+});
+app.post('/api/admin/branches',requireAdmin,async(req,res,next)=>{
+ try{
+  const row=await saveBranch(req.body||{});
+  logActivity('branch','create','Cawangan Ditambah',row.nama_cawangan,'/admin/cawangan');
+  res.status(201).json(row);
+ }catch(error){next(error);}
+});
+app.put('/api/admin/branches/:id',requireAdmin,async(req,res,next)=>{
+ try{
+  const id=cleanId(req.params.id);if(!id)return fail(res,'ID cawangan tidak sah.');
+  const row=await saveBranch(req.body||{},id);if(!row)return fail(res,'Cawangan tidak ditemui.',404);
+  logActivity('branch','update','Cawangan Dikemaskini',row.nama_cawangan,'/admin/cawangan');
+  res.json(row);
+ }catch(error){next(error);}
+});
 app.get('/api/admin/students',requireAdmin,async(req,res,next)=>{
  try {
  const q=trim(req.query.q,160),branch=trim(req.query.branch,160),level=trim(req.query.level,90);
@@ -293,7 +314,7 @@ app.get('/api/admin/students',requireAdmin,async(req,res,next)=>{
  const limit=Math.max(1,Math.min(10000,Number(req.query.limit)||20));
  const where=[];const p=[];
  if(q){where.push('(p.nama_penuh LIKE ? OR p.no_kp_atau_id LIKE ?)');p.push(`%${q}%`,`%${q}%`);}
- if(branch){where.push('p.cawangan=?');p.push(branch);}
+ if(branch){where.push('trim(p.cawangan)=? COLLATE NOCASE');p.push(branch);}
  if(level){
   const cleanLevel=level.replace(/^ujian\s+/i,'');
   where.push('(p.peringkat=? OR p.peringkat=? OR p.peringkat=? COLLATE NOCASE)');
@@ -303,7 +324,7 @@ app.get('/api/admin/students',requireAdmin,async(req,res,next)=>{
  const total=Number((await readRows('SELECT count(*) as n FROM pesilat p'+w,p))[0].n);
  const rows=await readRows('SELECT p.*,(SELECT count(*) FROM sijil s WHERE s.pesilat_id=p.id) as sijil_count FROM pesilat p'+w+' ORDER BY p.id DESC LIMIT ? OFFSET ?',[...p,limit,(page-1)*limit]);
  const levels=(await readRows('SELECT DISTINCT peringkat FROM pesilat ORDER BY peringkat')).map(x=>x.peringkat);
- const branches=(await readRows('SELECT DISTINCT cawangan FROM pesilat ORDER BY cawangan')).map(x=>x.cawangan);
+ const branches=(await readRows(BRANCH_NAMES_SQL)).map(x=>x.nama);
  res.set('Cache-Control','no-store');
  res.json({rows,total,page,pages:Math.max(1,Math.ceil(total/limit)),levels,branches});
  } catch(error) { next(error); }
@@ -357,7 +378,7 @@ app.get('/api/admin/students/export',requireAdmin,async (req,res,next)=>{
 
   const where=[];const p=[];
   if(q){where.push('(p.nama_penuh LIKE ? OR p.no_kp_atau_id LIKE ?)');p.push(`%${q}%`,`%${q}%`);}
-  if(branch){where.push('p.cawangan=?');p.push(branch);}
+  if(branch){where.push('trim(p.cawangan)=? COLLATE NOCASE');p.push(branch);}
   if(level){
    const cleanLevel=level.replace(/^ujian\s+/i,'');
    where.push('(p.peringkat=? OR p.peringkat=? OR p.peringkat=? COLLATE NOCASE)');
@@ -436,7 +457,7 @@ app.get('/api/admin/certificates',requireAdmin,async(req,res,next)=>{
   params.push(`%${q}%`,`%${q}%`,`%${q}%`,`%${q}%`);
  }
  if(branch){
-  conditions.push('p.cawangan = ?');
+  conditions.push('trim(p.cawangan) = ? COLLATE NOCASE');
   params.push(branch);
  }
  if(level){
@@ -464,7 +485,7 @@ app.get('/api/admin/certificates',requireAdmin,async(req,res,next)=>{
  const statements = [
   { sql: 'SELECT count(*) AS n'+from+filter, args: params },
   { sql: 'SELECT s.id,s.pesilat_id,s.nama_sijil,s.tarikh_isu,s.jenis,s.file_type,s.public_token,s.kategori,s.created_at,p.nama_penuh,p.no_kp_atau_id,p.peringkat,p.cawangan'+from+filter+' ORDER BY p.cawangan, p.peringkat, s.id DESC'+(fetchAll?'':' LIMIT ? OFFSET ?'), args: fetchAll?params:[...params,limit,offset] },
-  { sql: "SELECT p.cawangan AS name, count(s.id) AS count FROM sijil s JOIN pesilat p ON p.id=s.pesilat_id WHERE p.cawangan IS NOT NULL AND p.cawangan != '' GROUP BY p.cawangan ORDER BY p.cawangan", args: [] },
+  { sql: "SELECT p.cawangan AS name, count(s.id) AS count FROM sijil s JOIN pesilat p ON p.id=s.pesilat_id WHERE p.cawangan IS NOT NULL AND p.cawangan != '' GROUP BY p.cawangan COLLATE NOCASE ORDER BY p.cawangan", args: [] },
   { sql: "SELECT p.peringkat AS name, count(s.id) AS count FROM sijil s JOIN pesilat p ON p.id=s.pesilat_id WHERE p.peringkat IS NOT NULL AND p.peringkat != '' GROUP BY p.peringkat ORDER BY p.peringkat", args: [] },
  ];
  const { isTursoConfigured, getTursoClient } = await import('./turso.js');
@@ -931,6 +952,7 @@ app.use((req,res)=>res.status(404).json({error:'Laluan tidak ditemui.'}));
 app.use((err,req,res,_next)=>{
  if(res.headersSent)return;
  if(/UNIQUE constraint failed: pesilat.no_kp_atau_id/i.test(err.message))return fail(res,'Nombor KP/ID sudah digunakan.',409);
+ if(/UNIQUE constraint failed: cawangan.nama_cawangan/i.test(err.message))return fail(res,'Nama cawangan sudah digunakan. Sila gunakan nama lain.',409);
  if(err.type==='entity.too.large')return fail(res,'Data permintaan terlalu besar. Sila kecilkan fail atau imej pratonton.',413);
  if(err.type==='entity.parse.failed')return fail(res,'Data permintaan JSON tidak sah.',400);
  if(err instanceof multer.MulterError) {

@@ -11,6 +11,7 @@ import { Home, Verify } from './pages/Public';
 import { Login } from './pages/Auth';
 import { Dashboard } from './pages/Dashboard';
 import { Students } from './pages/Students';
+import { Branches } from './pages/Branches';
 import { Certificates } from './pages/Certificates';
 import { Templates } from './pages/Templates';
 import { GenerateCerts } from './pages/GenerateCerts';
@@ -53,6 +54,7 @@ function App() {
           <Route path="/admin" element={user ? <AdminLayout user={user} onLogout={() => setUser(null)} /> : <Navigate to="/admin/login" replace />}>
             <Route index element={<Dashboard />} />
             <Route path="pesilat" element={<Students />} />
+            <Route path="cawangan" element={<Branches />} />
             <Route path="templates" element={<Templates />} />
             <Route path="jana-sijil" element={<GenerateCerts />} />
             <Route path="sijil" element={<Certificates />} />

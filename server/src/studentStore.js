@@ -41,6 +41,8 @@ export async function getStoredStudent(id) {
 export async function saveStudent(values, id = null) {
   const remote = await studentClient();
   const record = { ...values, no_kp_atau_id: values.no_kp_atau_id || uniqueId() };
+  const [branch]=await readRows('SELECT nama_cawangan FROM cawangan WHERE nama_cawangan=? COLLATE NOCASE',[record.cawangan]);
+  if(branch)record.cawangan=branch.nama_cawangan;
   const columns = 'nama_penuh,no_kp_atau_id,peringkat,cawangan,tarikh_daftar';
   const args = columns.split(',').map(column => record[column]);
   const sql = id
@@ -56,10 +58,11 @@ export async function saveStudent(values, id = null) {
 
 export async function insertStudentBatch(records) {
   const remote = await studentClient();
+  const branches=new Map((await readRows('SELECT nama_cawangan FROM cawangan')).map(row=>[row.nama_cawangan.toLowerCase(),row.nama_cawangan]));
   const sql = `INSERT INTO pesilat(nama_penuh,no_kp_atau_id,peringkat,cawangan,tarikh_daftar)
     VALUES(?,?,?,?,?) ON CONFLICT(no_kp_atau_id) DO NOTHING RETURNING *`;
   const statements = records.map(record => ({sql,args:[record.nama_penuh,
-    record.no_kp_atau_id || uniqueId(),record.peringkat,record.cawangan,record.tarikh_daftar]}));
+    record.no_kp_atau_id || uniqueId(),record.peringkat,branches.get(record.cawangan.toLowerCase())||record.cawangan,record.tarikh_daftar]}));
   if (remote) {
     // One transaction per small batch; never push unrelated stale cache records.
     const results = await remote.batch(statements,'write');

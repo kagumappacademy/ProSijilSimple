@@ -27,6 +27,7 @@
 | `client/src/components/AdminLayout.jsx` | Sidebar, header dan susun atur admin |
 | `client/src/pages/Dashboard.jsx` | Statistik, carta bar dan sijil terkini |
 | `client/src/pages/Students.jsx` | CRUD pesilat, carian, penapis dan eksport |
+| `client/src/pages/Branches.jsx` | Tambah/edit cawangan, kiraan ahli/sijil dan pautan pesilat bertapis |
 | `client/src/pages/Certificates.jsx` | Penjanaan sijil dan muat naik PDF/JPG/PNG |
 | `client/src/pages/Import.jsx` | Import CSV pukal dan muat turun templat |
 | `client/src/pages/Settings.jsx` | Tetapan organisasi dan tukar kata laluan |
@@ -35,6 +36,7 @@
 | `client/tailwind.config.js` | Tema forest green + gold |
 | `server/src/app.js` | Semua API & peraturan akses |
 | `server/src/db.js` | Skema SQL SQLite + inisialisasi database |
+| `server/src/branchStore.js` | Katalog cawangan dan pertukaran nama ahli secara transaksi |
 | `server/src/auth.js` | JWT session dalam HTTP-only cookie |
 | `server/src/csv.js` | Peta nama kolum CSV dan escape export |
 | `server/src/pdf.js` | Reka bentuk PDF sijil (A4 landscape) |
@@ -51,6 +53,7 @@
 
 - `admin_users(id, username, password_hash, created_at)`
 - `pesilat(id, nama_penuh, no_kp_atau_id, peringkat, cawangan, tarikh_daftar, created_at, updated_at)`
+- `cawangan(id, nama_cawangan, keterangan, created_at, updated_at)`
 - `sijil(id, pesilat_id, nama_sijil, tarikh_isu, jenis, file_path, file_type, public_token, file_base64, kategori, created_at)`
 - `template_sijil(id, nama_template, peringkat, file_name, file_size, file_base64, kategori, page_count, thumbnail_base64, layout_config, created_at)`
 - `settings(key, value)`
@@ -79,6 +82,8 @@ SQLite akan mencipta jadual pada kali pertama API/skrip admin dijalankan. `pesil
 | GET | `/api/public/certificates/:token/download` | Awam |
 | GET | `/api/admin/dashboard` | Admin |
 | GET, POST | `/api/admin/students` | Admin |
+| GET, POST | `/api/admin/branches` | Admin, katalog termasuk cawangan tanpa pesilat |
+| PUT | `/api/admin/branches/:id` | Admin, nama dan semua ahli dikemas kini dalam satu transaksi |
 | PUT, DELETE | `/api/admin/students/:id` | Admin |
 | POST | `/api/admin/students/import` | Admin |
 | GET | `/api/admin/students/export` | Admin |

@@ -69,6 +69,7 @@ Ujian mengesahkan API, log masuk, CRUD pesilat, import CSV, penciptaan sijil, pe
 | Login pentadbir | Kata laluan bcrypt, token JWT dalam cookie HTTP-only, sesi 8 jam, login rate limit |
 | Dashboard | Statistik pesilat, sijil, cawangan, taburan peringkat dan aktiviti terkini |
 | CRUD pesilat | Tambah, kemaskini, padam, tapis, cari, auto ID dan eksport CSV |
+| Pengurusan cawangan | Menu sidebar untuk tambah/kemas kini cawangan, kiraan pesilat dan sijil, serta pautan terus ke pesilat cawangan |
 | Import CSV | Terima `Nama Peserta`, `Nama Cawangan`, `Peringkat`, `No KP` (kolum No KP optional), elak duplikasi |
 | Pengurusan sijil | Tetapkan pesilat, tarikh, jenis sijil, upload fail atau jana templat rasmi PDF |
 | Tetapan sistem | Nama akademi, subtajuk, penandatangan, jawatan dan kata laluan admin |
@@ -116,6 +117,8 @@ Di Vercel, SQLite hanyalah cache metadata dalam memori dan tidak menulis ke cake
 Ujian `server/tests/bulk-290.test.js` mengesahkan 290 penerima berbeza dan 290 PDF dua muka surat yang sah dengan had cache 1MB, termasuk sambungan terputus, simpanan sementara gagal, percubaan semula dan semakan ketiadaan pendua. Ujian menggunakan pangkalan data berasingan tanpa menyentuh data sebenar.
 
 ## Fail penting
+
+Menu **Pengurusan Cawangan** tersedia di `/admin/cawangan`. Cawangan lama daripada rekod pesilat dimasukkan dalam katalog secara automatik, dan cawangan baharu boleh disimpan walaupun belum mempunyai pesilat. Nama dan keterangan disimpan kekal dalam SQLite/Turso. Kemas kini nama mengubah katalog dan semua pesilat cawangan tersebut dalam satu transaksi, sambil mengekalkan ID pesilat dan fail sijil. Nama pendua ditolak. **Lihat Pesilat** membuka senarai dengan tapisan cawangan yang dikekalkan dalam URL; borang daftar turut mencadangkan cawangan yang telah ditambah.
 
 - `docs/STRUKTUR_DAN_FUNGSI.md`: struktur, API dan penerangan modul
 - `server/src/db.js`: skema SQLite (dijana automatik pada startup)
